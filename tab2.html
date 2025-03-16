@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Inventory by Category</h1>
+
+<!-- Filter inputs with URL submission -->
+<form method="GET" class="mb-3 row g-2">
+  <div class="col-12 col-md-2">
+    <input type="text" class="form-control" name="common_name" placeholder="Filter Common Name" value="{{ filter_common_name }}" />
+  </div>
+  <div class="col-12 col-md-2">
+    <input type="text" class="form-control" name="tag_id" placeholder="Filter Tag ID" value="{{ filter_tag_id }}" />
+  </div>
+  <div class="col-12 col-md-2">
+    <input type="text" class="form-control" name="bin_location" placeholder="Filter Bin Location" value="{{ filter_bin_location }}" />
+  </div>
+  <div class="col-12 col-md-2">
+    <input type="text" class="form-control" name="last_contract_num" placeholder="Filter Last Contract" value="{{ filter_last_contract }}" />
+  </div>
+  <div class="col-12 col-md-2">
+    <input type="text" class="form-control" name="status" placeholder="Filter Status" value="{{ filter_status }}" />
+  </div>
+  <div class="col-12 col-md-2">
+    <button type="submit" class="btn btn-primary">Apply Filters</button>
+  </div>
+</form>
+
+<!-- Parent Table: Categories (No Pagination) -->
+<div class="table-container">
+  <table class="table table-striped table-bordered" id="parentTable">
+    <thead>
+      <tr>
+        <th style="width: 50px;"></th> <!-- Toggle column -->
+        <th class="sortable" data-col-name="category">Category</th>
+        <th class="sortable" data-col-name="total">Total Items</th>
+        <th class="sortable" data-col-name="available">Items Available</th>
+        <th class="sortable" data-col-name="on_rent">Items On Rent</th>
+        <th class="sortable" data-col-name="service">Service</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for parent in parent_data %}
+      {% set cat_key = parent.category|lower|replace(' ', '_') %}
+      <!-- Parent Row -->
+      <tr class="table-active">
+        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ cat_key }}">+</span></td>
+        <td>{{ parent.category }}</td>
+        <td>{{ parent.total }}</td>
+        <td>{{ parent.available }}</td>
+        <td>{{ parent.on_rent }}</td>
+        <td>{{ parent.service }}</td>
+      </tr>
+
+      <!-- Child Row: Subcategories and Items -->
+      <tr>
+        <td colspan="6" class="p-0">
+          <div id="child-{{ cat_key }}" class="collapse" data-category="{{ parent.category }}" {% if expand_category == parent.category %}data-auto-expand="true"{% endif %}>
+            <div class="mb-2 mx-2">
+              <select class="form-select subcategory-dropdown" data-category="{{ parent.category }}">
+                {% for subcat in sub_map[parent.category].subcategories %}
+                <option value="{{ subcat }}">{{ subcat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loading-{{ cat_key }}" class="text-center my-2" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+
+            <!-- Item Pagination (Above Table) -->
+            <nav aria-label="Item navigation" class="mb-2 mx-2" id="pagination-{{ cat_key }}">
+              <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
+            </nav>
+
+            <!-- Items Table -->
+            <div class="child-table-container">
+              <table class="table mb-0 child-table" id="childTable-{{ cat_key }}">
+                <thead>
+                  <tr>
+                    <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                    <th class="sortable" data-col-name="common_name">Common Name</th>
+                    <th class="sortable" data-col-name="status">Status</th>
+                    <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                    <th class="sortable" data-col-name="quality">Quality</th>
+                  </tr>
+                </thead>
+                <tbody id="childTbody-{{ cat_key }}"></tbody>
+              </table>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Inline JS for sorting, dropdown, and AJAX -->
+<script>
+function sortTable(tableEl, colName) {
+  let tbody = tableEl.querySelector("tbody");
+  if (!tbody) return;
+
+  let asc = tableEl.getAttribute("data-sort-col") === colName 
+            ? tableEl.getAttribute("data-sort-dir") !== "asc" 
+            : true;
+  tableEl.setAttribute("data-sort-col", colName);
+  tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+
+  let headers = Array.from(tableEl.querySelectorAll("th"));
+  let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
+
+  let rows = Array.from(tbody.querySelectorAll("tr"));
+  rows.sort((a, b) => {
+    let cellA = a.cells[colIndex]?.innerText.trim() || "";
+    let cellB = b.cells[colIndex]?.innerText.trim() || "";
+    let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+    let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return asc ? numA - numB : numB - numA;
+    }
+    return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+  });
+  tbody.innerHTML = "";
+  rows.forEach(row => tbody.appendChild(row));
+}
+
+function loadSubcatData(category, subcat, page, catKey) {
+  console.log(`Loading: Category: ${category}, Subcat: ${subcat}, Page: ${page}, CatKey: ${catKey}`);
+  const loading = document.getElementById(`loading-${catKey}`);
+  loading.style.display = 'block';
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const params = {
+    category: category,
+    subcat: subcat,
+    page: page,
+    common_name: urlParams.get('common_name') || '',
+    tag_id: urlParams.get('tag_id') || '',
+    bin_location: urlParams.get('bin_location') || '',
+    last_contract_num: urlParams.get('last_contract_num') || '',
+    status: urlParams.get('status') || ''
+  };
+  const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
+  console.log(`Fetching URL: ${url}`);
+
+  fetch(url)
+    .then(response => {
+      console.log(`Response Status: ${response.status}`);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      console.log('AJAX Response:', data);
+      const tbody = document.getElementById(`childTbody-${catKey}`);
+      if (!tbody) {
+        console.error(`Tbody not found for CatKey: ${catKey}`);
+        alert("Error: Table body not found!");
+        return;
+      }
+      tbody.innerHTML = '';
+      data.items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.tag_id}</td>
+          <td>${item.common_name}</td>
+          <td>${item.status}</td>
+          <td>${item.bin_location}</td>
+          <td>${item.quality}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const pagination = document.getElementById(`pagination-${catKey}`).querySelector('.pagination');
+      pagination.innerHTML = '';
+      if (data.total_pages > 1) {
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
+        pagination.appendChild(prevLi);
+
+        for (let p = 1; p <= data.total_pages; p++) {
+          const li = document.createElement('li');
+          li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
+          li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
+          pagination.appendChild(li);
+        }
+
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
+        pagination.appendChild(nextLi);
+
+        pagination.querySelectorAll('.page-link').forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const newPage = parseInt(link.getAttribute('data-page'));
+            if (!isNaN(newPage)) {
+              loadSubcatData(category, subcat, newPage, catKey);
+            }
+          });
+        });
+      }
+      loading.style.display = 'none';
+    })
+    .catch(error => {
+      console.error('Error loading subcat data:', error);
+      alert('Failed to load subcategory data: ' + error.message);
+      loading.style.display = 'none';
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM Content Loaded");
+  
+  // Parent table sorting
+  let parentTable = document.getElementById("parentTable");
+  parentTable.querySelectorAll("th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      let colName = th.getAttribute("data-col-name");
+      sortTable(parentTable, colName);
+    });
+  });
+
+  // Child table sorting
+  document.querySelectorAll(".child-table").forEach(childTable => {
+    childTable.querySelectorAll("th.sortable").forEach(th => {
+      th.addEventListener("click", () => {
+        let colName = th.getAttribute("data-col-name");
+        sortTable(childTable, colName);
+      });
+    });
+  });
+
+  // Expand/collapse toggles
+  document.querySelectorAll(".expand-toggle").forEach(toggle => {
+    let target = document.querySelector(toggle.getAttribute("data-bs-target"));
+    target.addEventListener("show.bs.collapse", () => {
+      console.log(`Expanding: ${target.getAttribute("data-category")}`);
+      toggle.textContent = "-";
+      const category = target.getAttribute("data-category");
+      const catKey = category.toLowerCase().replace(/ /g, '_');
+      const select = target.querySelector(".subcategory-dropdown");
+      const subcat = select.value;
+      loadSubcatData(category, subcat, 1, catKey);
+    });
+    target.addEventListener("hide.bs.collapse", () => {
+      toggle.textContent = "+";
+    });
+  });
+
+  // Dropdown changes
+  document.querySelectorAll(".subcategory-dropdown").forEach(select => {
+    select.addEventListener("change", () => {
+      const category = select.getAttribute("data-category");
+      const subcat = select.value;
+      const catKey = category.toLowerCase().replace(/ /g, '_');
+      console.log(`Dropdown changed: ${category} -> ${subcat}`);
+      loadSubcatData(category, subcat, 1, catKey);
+    });
+  });
+
+  // Initial expand if set
+  let expandCat = "{{ expand_category | default('') }}";
+  if (expandCat) {
+    let collapse = document.querySelector(`#child-${expandCat.toLowerCase().replace(/ /g, '_')}`);
+    if (collapse) {
+      collapse.classList.add("show");
+      let toggle = collapse.previousElementSibling.querySelector(".expand-toggle");
+      if (toggle) toggle.textContent = "-";
+      const category = expandCat;
+      const catKey = category.toLowerCase().replace(/ /g, '_');
+      const select = collapse.querySelector(".subcategory-dropdown");
+      const subcat = select.value;
+      console.log(`Initial expand: ${category} -> ${subcat}`);
+      loadSubcatData(category, subcat, 1, catKey);
+    }
+  }
+
+  document.querySelectorAll(".collapse").forEach(collapse => {
+    if (!collapse.getAttribute("data-auto-expand")) {
+      collapse.classList.remove("show");
+    }
+  });
+});
+</script>
+
+<style>
+  body, html {
+    height: 100%;
+    overflow: auto;
+    margin: 0;
+    padding: 0;
+  }
+  .table-container {
+    width: 100%;
+    overflow-y: auto;
+  }
+  .table-container table {
+    width: 100%;
+    table-layout: auto;
+  }
+  .child-table-container {
+    width: 100%;
+    overflow-y: auto;
+  }
+  .child-table-container table {
+    width: 100%;
+    table-layout: auto;
+  }
+  .collapse {
+    width: 100%;
+  }
+  @media (max-width: 768px) {
+    .pagination .page-link { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
+  }
+</style>
+
+{% endblock %}
