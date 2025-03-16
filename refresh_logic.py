@@ -28,10 +28,10 @@ def get_access_token():
         response.raise_for_status()
         TOKEN = response.json().get("access_token")
         TOKEN_EXPIRY = now + timedelta(minutes=55)
-        print("🔑 Access token refreshed.")
+        print("Access token refreshed.")
         return TOKEN
     except requests.RequestException as e:
-        print(f"❌ Error fetching access token: {e}")
+        print(f"Error fetching access token: {e}")
         return None
 
 def fetch_paginated_data(url, token):
@@ -46,13 +46,13 @@ def fetch_paginated_data(url, token):
             response.raise_for_status()
             data = response.json().get("data", [])
             if not data:
-                print(f"✅ Finished fetching {len(all_data)} records from {url}")
+                print(f"Finished fetching {len(all_data)} records from {url}")
                 break
             all_data.extend(data)
-            print(f"📦 Fetched {len(data)} more records, total: {len(all_data)}")
+            print(f" Fetched {len(data)} more records, total: {len(all_data)}")
             params["offset"] += 200
         except requests.RequestException as e:
-            print(f"❌ Error fetching data from {url}: {e}")
+            print(f"Error fetching data from {url}: {e}")
             return all_data
     return all_data
 
@@ -113,9 +113,9 @@ def update_item_master(data):
                 ),
             )
         conn.commit()
-        print("✅ Item Master data updated.")
+        print("Item Master data updated.")
     except sqlite3.Error as e:
-        print(f"❌ Database error updating item master: {e}")
+        print(f"Database error updating item master: {e}")
         conn.rollback()
     finally:
         conn.close()
@@ -126,9 +126,9 @@ def clear_transactions(conn):
     try:
         cursor.execute("DELETE FROM id_transactions")
         conn.commit()
-        print("🧹 Cleared id_transactions table.")
+        print(" Cleared id_transactions table.")
     except sqlite3.Error as e:
-        print(f"❌ Error clearing transactions: {e}")
+        print(f" Error clearing transactions: {e}")
         conn.rollback()
 
 def update_transactions(data):
@@ -218,9 +218,9 @@ def update_transactions(data):
                 ),
             )
         conn.commit()
-        print("✅ Transaction data updated.")
+        print("Transaction data updated.")
     except sqlite3.Error as e:
-        print(f"❌ Database error updating transactions: {e}")
+        print(f" Database error updating transactions: {e}")
         conn.rollback()
     finally:
         conn.close()
@@ -229,7 +229,7 @@ def refresh_data():
     """Main function to refresh item master and transaction data from the API."""
     token = get_access_token()
     if not token:
-        print("❌ No access token. Aborting refresh.")
+        print(" No access token. Aborting refresh.")
         return
 
     item_master_data = fetch_paginated_data(ITEM_MASTER_URL, token)
@@ -243,4 +243,4 @@ def refresh_data():
     finally:
         conn.close()
 
-    print("⏳ Waiting 10 minutes before next update...")
+    print("Waiting 10 minutes before next update...")

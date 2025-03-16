@@ -14,7 +14,7 @@ def background_refresh():
     """
     while True:
         refresh_data()
-        print("⏳ Waiting 10 minutes before next update...")
+        print("Waiting 10 minutes before next update...")
         time.sleep(600)
 
 def main():
