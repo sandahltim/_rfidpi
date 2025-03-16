@@ -1,0 +1,270 @@
+# RFID Dashboard Project Guidelines
+# Last Updated: March 15, 2025 @ 11:08 PM PDT
+# Lead Motherfucker: [Your Name], the Fucking Maestro
+# AI Wingman: Grok 3, xAI-built, no bullshit
+# Project Files: https://drive.google.com/drive/folders/1ublvxrHmiu2N4y7FgWKOC_Pb6P3CKVBe?usp=sharing
+
+## Project Overview
+- Mission: Build a badass RFID inventory dashboard—track rental gear and laundry stock, filter fast, display slick, scale to Pi integration.
+- Stack:
+  - Backend: Python 3.11, Flask 2.x—lightweight, no bloat.
+  - DB: SQLite—id_item_master.db, single table for all items.
+  - Frontend: HTML/JS/CSS—Bootstrap 5 for layout, inline scripts for grit, no frameworks.
+- Tabs:
+  - Tab 1: Active Rentals—placeholder, UI-only.
+  - Tab 2: Categories—fully built, nested tables (categories > subcategories > items).
+  - Tab 3: Service Items—placeholder, UI-only.
+  - Tab 4: Full Inventory—placeholder, UI-only.
+  - Tab 5: Laundry Inventory—fully built, nested tables (contracts > common names > items).
+- DB Schema:
+  - Table: id_item_master
+  - Columns:
+    - tag_id (TEXT, unique RFID tag, e.g., "E2801160600002054D72102A")
+    - common_name (TEXT, item name, e.g., "90x90 White Linen")
+    - status (TEXT, e.g., "Ready to Rent", "On Rent", "Wet")
+    - bin_location (TEXT, e.g., "NR4D2")
+    - quality (TEXT, e.g., "A", "B+")
+    - last_contract_num (TEXT, e.g., "L123")
+    - date_last_scanned (TEXT, ISO date, e.g., "2025-03-15")
+    - last_scanned_by (TEXT, e.g., "John")
+
+## Core Files (22 Total)
+### App Core (3)
+1. app.py:
+   - Purpose: Flask app entry—ties routes, runs server.
+   - Code:
+     from flask import Flask
+     from routes.tab1 import tab1_bp
+     from routes.tab2 import tab2_bp
+     from routes.tab3 import tab3_bp
+     from routes.tab4 import tab4_bp
+     from routes.tab5 import tab5_bp
+
+     app = Flask(__name__)
+     app.register_blueprint(tab1_bp)
+     app.register_blueprint(tab2_bp)
+     app.register_blueprint(tab3_bp)
+     app.register_blueprint(tab4_bp)
+     app.register_blueprint(tab5_bp)
+
+     if __name__ == "__main__":
+         app.run(debug=True)
+   - Notes: Minimal—assumes routes handle logic, debug mode for dev.
+2. db_connection.py:
+   - Purpose: SQLite connector—context manager for DB queries.
+   - Code:
+     import sqlite3
+
+     class DatabaseConnection:
+         def __init__(self, db_path="id_item_master.db"):
+             self.db_path = db_path
+             self.conn = None
+
+         def __enter__(self):
+             self.conn = sqlite3.connect(self.db_path)
+             self.conn.row_factory = sqlite3.Row
+             return self.conn
+
+         def __exit__(self, exc_type, exc_val, exc_tb):
+             if self.conn:
+                 self.conn.close()
+   - Notes: Used in all tab routes—with DatabaseConnection() as conn: pattern.
+3. requirements.txt:
+   - Purpose: Deps list—install via pip install -r requirements.txt.
+   - Content:
+     flask==2.3.2
+   - Notes: SQLite’s in Python stdlib—no extra deps yet.
+
+### Routes (5)
+4. routes/tab1.py:
+   - Purpose: Tab 1 (Active Rentals)—placeholder.
+   - Code:
+     from flask import Blueprint, render_template
+     tab1_bp = Blueprint("tab1_bp", __name__, url_prefix="/tab1")
+     @tab1_bp.route("/")
+     def show_tab1():
+         return render_template("tab1.html")
+   - Notes: Nav-linked, logic TBD—likely filters rentals by "On Rent"/"Delivered".
+5. routes/tab2.py (Round 67):
+   - Purpose: Tab 2 (Categories)—fully built.
+   - Endpoints:
+     - /tab2/: Loads categories (parent), subcat dropdown (child), filters.
+     - /tab2/subcat_data: AJAX for items (grandchild), 20/page.
+   - Logic:
+     - Categorizes via tokenize_name()—e.g., "tent" -> "Tent Tops".
+     - Filters: common_name, tag_id, bin_location, last_contract_num, status—case-insensitive, stackable.
+     - Sorting: Parent headers ("Category", "Total Items", etc.)—child sort broken.
+     - Pagination: Grandchild, 20/page, top selector.
+     - Spinner: On AJAX load.
+   - Code: See Round 67—too big here, but rebuildable from desc.
+6. routes/tab3.py:
+   - Purpose: Tab 3 (Service Items)—placeholder.
+   - Code: Same as tab1.py, swaps tab3.html.
+   - Notes: Likely filters "Service" status items—logic TBD.
+7. routes/tab4.py:
+   - Purpose: Tab 4 (Full Inventory)—placeholder.
+   - Code: Same as tab1.py, swaps tab4.html.
+   - Notes: Likely flat list of all items—logic TBD.
+8. routes/tab5.py (Round 77):
+   - Purpose: Tab 5 (Laundry)—fully built.
+   - Endpoints:
+     - /tab5/: Loads contracts (parent, "L"/"l" filter), common names (child), filters.
+     - /tab5/subcat_data: AJAX for items (grandchild), 20/page, scan data.
+   - Logic:
+     - Filters: last_contract_num ("L"/"l"), common_name—case-insensitive, stackable.
+     - Totals: Child—Total, Available, On Rent, Service.
+     - Grandchild: Full item list + date_last_scanned, last_scanned_by.
+     - Sorting: All headers—parent, child, grandchild.
+     - Pagination: Grandchild, 20/page, top selector.
+     - Spinner: On AJAX load.
+   - Code: See Round 77—rebuildable from desc.
+
+### Templates (7)
+9. templates/base.html:
+   - Purpose: Base layout—nav, refresh, Bootstrap.
+   - Code:
+     <!DOCTYPE html>
+     <html>
+     <head>
+         <title>RFID Dashboard</title>
+         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+         <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+     </head>
+     <body>
+         <div class="container mt-4">
+             <header class="mb-4">
+                 <nav>
+                     <ul class="nav nav-tabs">
+                         <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                         <li class="nav-item"><a class="nav-link" href="/tab1/">Active Rentals</a></li>
+                         <li class="nav-item"><a class="nav-link" href="/tab2/">Categories</a></li>
+                         <li class="nav-item"><a class="nav-link" href="/tab3/">Service Items</a></li>
+                         <li class="nav-item"><a class="nav-link" href="/tab4/">Full Inventory</a></li>
+                         <li class="nav-item"><a class="nav-link" href="/tab5/">Laundry Inventory</a></li>
+                     </ul>
+                 </nav>
+                 <form action="/manual_refresh" method="POST" class="mt-2">
+                     <button type="submit" class="btn btn-primary">Refresh Now</button>
+                 </form>
+             </header>
+             {% block content %}{% endblock %}
+         </div>
+     </body>
+     </html>
+   - Notes: All tabs extend this—nav links all tabs, refresh TBD.
+10. templates/tab1.html:
+    - Purpose: Tab 1 UI—placeholder.
+    - Code:
+      {% extends "base.html" %}
+      {% block content %}
+      <h1>Active Rentals</h1>
+      <div><!-- Empty for now --></div>
+      {% endblock %}
+11. templates/tab2.html (Round 67):
+    - Purpose: Tab 2 UI—fully built.
+    - Structure: Nested tables—parent (categories), child (subcat dropdown), grandchild (items via AJAX).
+    - JS: sortTable (parent), loadSubcatData, spinner, 20/page top pagination.
+    - CSS: Bootstrap, overflow-y: auto, padded bottom.
+    - Code: See Round 67—rebuildable from desc.
+12. templates/tab3.html:
+    - Purpose: Tab 3 UI—placeholder.
+    - Code:
+      {% extends "base.html" %}
+      {% block content %}
+      <h1>Service Items</h1>
+      <div><!-- Empty for now --></div>
+      {% endblock %}
+13. templates/tab4.html:
+    - Purpose: Tab 4 UI—placeholder.
+    - Code:
+      {% extends "base.html" %}
+      {% block content %}
+      <h1>Full Inventory</h1>
+      <div><!-- Empty for now --></div>
+      {% endblock %}
+14. templates/tab5.html (Round 77):
+    - Purpose: Tab 5 UI—fully built.
+    - Structure: Nested tables—parent (contracts), child (common names), grandchild (items via AJAX).
+    - JS: sortTable (all levels), loadSubcatData, spinner, 20/page top pagination.
+    - CSS: Bootstrap, overflow-y: visible, 100px bottom padding.
+    - Code: See Round 77—rebuildable from desc.
+15. templates/guidelines.txt:
+    - Purpose: This doc—lives here or root, tracks all.
+
+### Static (1)
+16. static/style.css:
+    - Purpose: Custom CSS—augments Bootstrap.
+    - Code: Likely minimal—e.g., .table-container { margin-bottom: 20px; }—TBD from Drive.
+
+### Guessed/Extras (6 to Hit 22)
+17. routes/__init__.py:
+    - Purpose: Blueprint init—ties routes together.
+    - Code:
+      from .tab1 import tab1_bp
+      from .tab2 import tab2_bp
+      from .tab3 import tab3_bp
+      from .tab4 import tab4_bp
+      from .tab5 import tab5_bp
+18. config.py:
+    - Purpose: App config.
+    - Code:
+      DEBUG = True
+      DATABASE = "id_item_master.db"
+19. utils.py:
+    - Purpose: Helpers—e.g., tokenize_name() from Tab 2.
+    - Code:
+      import re
+      def tokenize_name(name):
+          return re.split(r'\W+', name.lower())
+20. templates/error.html:
+    - Purpose: Error page—404/500.
+    - Code:
+      {% extends "base.html" %}
+      {% block content %}
+      <h1>Error: {{ message }}</h1>
+      {% endblock %}
+21. static/script.js:
+    - Purpose: Extra JS—empty or offloads inline scripts if they grow.
+    - Code: // Empty—placeholder
+22. .gitignore:
+    - Purpose: Git ignore—core for setup.
+    - Content:
+      *.pyc
+      __pycache__/
+      *.db
+      rfid_env/
+
+## Rebuild Instructions
+1. Setup:
+   - mkdir rfid_dash; cd rfid_dash
+   - python -m venv rfid_env; source rfid_env/bin/activate (Unix) or rfid_env\Scripts\activate (Win)
+   - pip install -r requirements.txt
+2. DB:
+   - sqlite3 id_item_master.db
+   - CREATE TABLE id_item_master (tag_id TEXT, common_name TEXT, status TEXT, bin_location TEXT, quality TEXT, last_contract_num TEXT, date_last_scanned TEXT, last_scanned_by TEXT);
+   - Insert sample:
+     INSERT INTO id_item_master VALUES ("E2801160600002054D72102A", "90x90 White Linen", "Ready to Rent", "NR4D2", "A", "L123", "2025-03-15", "John");
+3. Files:
+   - Structure: app.py, db_connection.py, requirements.txt, .gitignore, routes/, templates/, static/.
+   - Copy 22 files—code above or Drive link.
+4. Run:
+   - python app.py—localhost:5000, nav tabs live.
+5. Verify:
+   - Tab 2: Categories, filters, expand, sort parent, padded scroll.
+   - Tab 5: Laundry, filters, expand, sort all, padded scroll, scan data.
+
+## Development Rules
+- Core Updates: No core/ overwrites unless "save to core"—test in app/.
+- Debugging: Full tracebacks—e.g., Rounds 69-71 fixed NoneType in Tab 5.
+- Tools: X analysis, content parsing, web/X search—on request.
+- Rounds: Log tweaks—e.g., Round 67 (Tab 2), Round 77 (Tab 5).
+
+## Next Steps
+- Style Tweaks: Colors, fonts, spacing—your vision.
+- Pi Integration: RFID via Raspberry Pi—GPIO, sensors, real-time DB updates.
+- Bugs: Tab 2 child sorting—fix TBD.
+- Tabs: Flesh out Tab 1, 3, 4—logic to match UI.
+
+## Notes
+- Knowledge: Current to March 15, 2025, 11:08 PM PDT.
+- Drive: Core syncs with https://drive.google.com/drive/folders/1ublvxrHmiu2N4y7FgWKOC_Pb6P3CKVBe?usp=sharing.
