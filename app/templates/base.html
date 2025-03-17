@@ -11,22 +11,27 @@
 <!-- Container for the entire page -->
 <div class="container mt-4">
 
-    <!-- Header with Tab Navigation and Refresh Button -->
-    <header class="mb-4">
-        <nav>
-            <ul class="nav nav-tabs">
-                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab1/">Active Rentals</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab2/">Categories</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab3/">Service Items</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab4/">Full Inventory</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab5/">Laundry Contracts</a></li>
-            </ul>
-        </nav>
-        <form action="/manual_refresh" method="POST" class="mt-2">
-            <button type="submit" class="btn btn-primary">Refresh Now</button>
+   <!-- Header with Tab Navigation and Refresh Buttons -->
+<header class="mb-4">
+    <nav>
+        <ul class="nav nav-tabs">
+            <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="/tab1/">Active Rentals</a></li>
+            <li class="nav-item"><a class="nav-link" href="/tab2/">Categories</a></li>
+            <li class="nav-item"><a class="nav-link" href="/tab3/">Service Items</a></li>
+            <li class="nav-item"><a class="nav-link" href="/tab4/">Full Inventory</a></li>
+            <li class="nav-item"><a class="nav-link" href="/tab5/">Laundry Contracts</a></li>
+        </ul>
+    </nav>
+    <div class="mt-2">
+        <form action="/manual_refresh" method="POST" style="display: inline;">
+            <button type="submit" class="btn btn-primary">Refresh Data</button>
         </form>
-    </header>
+        <form action="/manual_refresh_dev" method="POST" style="display: inline; margin-left: 10px;">
+            <button type="submit" class="btn btn-secondary">Refresh Test App</button>
+        </form>
+    </div>
+</header>
 
     <!-- Main content block for each page -->
     {% block content %}
