@@ -4,7 +4,7 @@ sudo apt update && sudo apt install python3.11 -y || { echo "Python install fail
 python3.11 -m venv venv || { echo "Venv creation failed"; exit 1; }
 source venv/bin/activate
 pip install flask==2.3.2 gunicorn==20.1.0 || { echo "Pip install failed"; exit 1; }
-sudo cp rfid_dash_test.service /etc/systemd/system/ || { echo "Systemd copy failed"; exit 1; }
+sudo cp rfid_dash.service /etc/systemd/system/ || { echo "Systemd copy failed"; exit 1; }
 sudo systemctl daemon-reload
 sudo systemctl enable rfid_dash || { echo "Systemd enable failed"; exit 1; }
 python3 db_utils.py  # Initialize DB
