@@ -42,6 +42,9 @@
         <th style="width: 50px;"></th> <!-- Toggle column -->
         <th class="sortable" data-col-name="contract_num">Contract #</th>
         <th class="sortable" data-col-name="client_name">Client Name</th>
+        <th class="sortable" data-col-name="total_items">Total Items</th>
+        <th class="sortable" data-col-name="scan_date">Last Scan Date</th>
+        <th class="sortable" data-col-name="transaction_notes">Transaction Notes</th>
       </tr>
     </thead>
     <tbody>
@@ -49,45 +52,69 @@
       {% set parent_idx = loop.index + (current_page - 1) * 20 %}
       <!-- Parent Row -->
       <tr class="table-active">
-        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ parent_idx }}">+</span></td>
+        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-{{ parent_idx }}">+</span></td>
         <td>{{ parent.contract_num }}</td>
         <td>{{ parent.client_name }}</td>
+        <td>{{ parent.total_items }}</td>
+        <td>{{ parent.scan_date }}</td>
+        <td>{{ parent.transaction_notes }}</td>
       </tr>
 
-      <!-- Child Row: Items -->
+      <!-- Middle Row: Common Names -->
       <tr>
-        <td colspan="3" class="p-0">
-          <div id="child-{{ parent_idx }}" class="collapse">
-            <table class="table mb-0 child-table" id="childTable-{{ parent_idx }}">
+        <td colspan="6" class="p-0">
+          <div id="middle-{{ parent_idx }}" class="collapse">
+            <table class="table mb-0 middle-table" id="middleTable-{{ parent_idx }}">
               <thead>
                 <tr>
-                  <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                  <th style="width: 50px;"></th> <!-- Toggle column -->
                   <th class="sortable" data-col-name="common_name">Common Name</th>
-                  <th class="sortable" data-col-name="quality">Quality</th>
-                  <th class="sortable" data-col-name="bin_location">Bin Location</th>
-                  <th class="sortable" data-col-name="status">Status</th>
-                  <th class="sortable" data-col-name="last_scanned_by">Last Scanned By</th>
-                  <th class="sortable" data-col-name="date_last_scanned">Date Last Scanned</th>
-                  <th class="sortable" data-col-name="notes">Notes</th>
-                  <th class="sortable" data-col-name="status_notes">Status Notes</th>
-                  <th class="sortable" data-col-name="long">Longitude</th>
-                  <th class="sortable" data-col-name="lat">Latitude</th>
+                  <th class="sortable" data-col-name="total_on_contract">Total on Contract</th>
                 </tr>
               </thead>
               <tbody>
-                {% for item in contract_map[parent.contract_num] %}
+                {% for middle in middle_data[parent.contract_num] %}
+                {% set middle_idx = parent_idx ~ '_' ~ loop.index %}
                 <tr>
-                  <td>{{ item.tag_id }}</td>
-                  <td>{{ item.common_name }}</td>
-                  <td>{{ item.quality }}</td>
-                  <td>{{ item.bin_location }}</td>
-                  <td>{{ item.status }}</td>
-                  <td>{{ item.last_scanned_by }}</td>
-                  <td>{{ item.date_last_scanned }}</td>
-                  <td>{{ item.notes }}</td>
-                  <td>{{ item.status_notes }}</td>
-                  <td>{{ item.long }}</td>
-                  <td>{{ item.lat }}</td>
+                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_idx }}">+</span></td>
+                  <td>{{ middle.common_name }}</td>
+                  <td>{{ middle.total_on_contract }}</td>
+                </tr>
+
+                <!-- Child Row: Items -->
+                <tr>
+                  <td colspan="3" class="p-0">
+                    <div id="child-{{ middle_idx }}" class="collapse">
+                      <table class="table mb-0 child-table" id="childTable-{{ middle_idx }}">
+                        <thead>
+                          <tr>
+                            <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                            <th class="sortable" data-col-name="common_name">Common Name</th>
+                            <th class="sortable" data-col-name="quality">Quality</th>
+                            <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                            <th class="sortable" data-col-name="status">Status</th>
+                            <th class="sortable" data-col-name="last_scanned_by">Last Scanned By</th>
+                            <th class="sortable" data-col-name="date_last_scanned">Date Last Scanned</th>
+                            <th class="sortable" data-col-name="notes">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for item in contract_map[parent.contract_num][middle.common_name] %}
+                          <tr>
+                            <td>{{ item.tag_id }}</td>
+                            <td>{{ item.common_name }}</td>
+                            <td>{{ item.quality }}</td>
+                            <td>{{ item.bin_location }}</td>
+                            <td>{{ item.status }}</td>
+                            <td>{{ item.last_scanned_by }}</td>
+                            <td>{{ item.date_last_scanned }}</td>
+                            <td>{{ item.notes }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -136,28 +163,14 @@ function sortTable(tableEl, colName) {
   let headers = Array.from(tableEl.querySelectorAll("th"));
   let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
 
-  if (tableEl.classList.contains("child-table")) {
-    let rows = Array.from(tbody.querySelectorAll("tr"));
-    rows.sort((a, b) => {
-      let cellA = a.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    rows.forEach(row => tbody.appendChild(row));
-  } else {
+  if (tableEl.id === "parentTable") {
     let rows = Array.from(tbody.children);
     let pairs = [];
     for (let i = 0; i < rows.length; i += 2) {
       let parentRow = rows[i];
-      let childRow = rows[i + 1] || null;
+      let middleRow = rows[i + 1] || null;
       if (parentRow && parentRow.classList.contains("table-active")) {
-        pairs.push({ parent: parentRow, child: childRow });
+        pairs.push({ parent: parentRow, middle: middleRow });
       }
     }
     pairs.sort((a, b) => {
@@ -173,8 +186,47 @@ function sortTable(tableEl, colName) {
     tbody.innerHTML = "";
     pairs.forEach(pair => {
       tbody.appendChild(pair.parent);
+      if (pair.middle) tbody.appendChild(pair.middle);
+    });
+  } else if (tableEl.classList.contains("middle-table")) {
+    let rows = Array.from(tbody.children);
+    let pairs = [];
+    for (let i = 0; i < rows.length; i += 2) {
+      let middleRow = rows[i];
+      let childRow = rows[i + 1] || null;
+      if (middleRow) {
+        pairs.push({ middle: middleRow, child: childRow });
+      }
+    }
+    pairs.sort((a, b) => {
+      let cellA = a.middle.cells[colIndex]?.innerText.trim() || "";
+      let cellB = b.middle.cells[colIndex]?.innerText.trim() || "";
+      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return asc ? numA - numB : numB - numA;
+      }
+      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+    tbody.innerHTML = "";
+    pairs.forEach(pair => {
+      tbody.appendChild(pair.middle);
       if (pair.child) tbody.appendChild(pair.child);
     });
+  } else {
+    let rows = Array.from(tbody.querySelectorAll("tr"));
+    rows.sort((a, b) => {
+      let cellA = a.cells[colIndex]?.innerText.trim() || "";
+      let cellB = b.cells[colIndex]?.innerText.trim() || "";
+      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return asc ? numA - numB : numB - numA;
+      }
+      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+    tbody.innerHTML = "";
+    rows.forEach(row => tbody.appendChild(row));
   }
 }
 
@@ -186,24 +238,35 @@ function filterTable() {
 
   let parentRows = document.querySelectorAll("#parentTable tbody tr.table-active");
   parentRows.forEach(parentRow => {
-    let childRow = parentRow.nextElementSibling;
-    let childTable = childRow.querySelector(".child-table tbody");
-    let childItems = childTable.querySelectorAll("tr");
-    let anyMatch = false;
+    let middleRow = parentRow.nextElementSibling;
+    let middleTable = middleRow.querySelector(".middle-table tbody");
+    let middleItems = middleTable.querySelectorAll("tr:not(.collapse)");
+    let anyMiddleMatch = false;
 
-    childItems.forEach(item => {
-      let contractNum = parentRow.cells[1].innerText.toLowerCase();
-      let commonName = item.cells[1].innerText.toLowerCase();
+    middleItems.forEach(middle => {
+      let childRow = middle.nextElementSibling;
+      let childTable = childRow.querySelector(".child-table tbody");
+      let childItems = childTable.querySelectorAll("tr");
+      let anyChildMatch = false;
 
-      let matches = (!filters.contract_num || contractNum.includes(filters.contract_num)) &&
-                    (!filters.common_name || commonName.includes(filters.common_name));
+      childItems.forEach(item => {
+        let contractNum = parentRow.cells[1].innerText.toLowerCase();
+        let commonName = item.cells[1].innerText.toLowerCase();
 
-      item.style.display = matches ? "" : "none";
-      if (matches) anyMatch = true;
+        let matches = (!filters.contract_num || contractNum.includes(filters.contract_num)) &&
+                      (!filters.common_name || commonName.includes(filters.common_name));
+
+        item.style.display = matches ? "" : "none";
+        if (matches) anyChildMatch = true;
+      });
+
+      middle.style.display = anyChildMatch ? "" : "none";
+      childRow.style.display = anyChildMatch ? "" : "none";
+      if (anyChildMatch) anyMiddleMatch = true;
     });
 
-    parentRow.style.display = anyMatch ? "" : "none";
-    childRow.style.display = anyMatch ? "" : "none";
+    parentRow.style.display = anyMiddleMatch ? "" : "none";
+    middleRow.style.display = anyMiddleMatch ? "" : "none";
   });
 }
 
@@ -213,6 +276,15 @@ document.addEventListener("DOMContentLoaded", () => {
     th.addEventListener("click", () => {
       let colName = th.getAttribute("data-col-name");
       sortTable(parentTable, colName);
+    });
+  });
+
+  document.querySelectorAll(".middle-table").forEach(middleTbl => {
+    middleTbl.querySelectorAll("th.sortable").forEach(th => {
+      th.addEventListener("click", () => {
+        let colName = th.getAttribute("data-col-name");
+        sortTable(middleTbl, colName);
+      });
     });
   });
 
@@ -251,6 +323,5 @@ document.addEventListener("DOMContentLoaded", () => {
 </style>
 
 {% endblock %}
-
                 
 
