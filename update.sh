@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home/tim/_rfidpi
+cd /home/tim/test_rfidpi
 # Stash local config.py
 cp config.py config.py.bak
 git pull origin main
