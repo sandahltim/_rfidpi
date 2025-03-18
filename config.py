@@ -7,8 +7,8 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_FILE = os.path.join(BASE_DIR, "inventory.db")
 
 # API configuration (as noted in the project overview)
-API_USERNAME = os.environ.get("API_USERNAME", "username")
-API_PASSWORD = os.environ.get("API_PASSWORD", "password")
+API_USERNAME = os.environ.get("API_USERNAME", "USERNAME")
+API_PASSWORD = os.environ.get("API_PASSWORD", "PASSWORD")
 LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"
 ITEM_MASTER_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169344381"
 TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
