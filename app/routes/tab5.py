@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
+from data_service import get_active_rental_contracts, get_active_rental_items
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
@@ -8,34 +9,31 @@ tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 def show_tab5():
     print("Loading /tab5/ endpoint")
     with DatabaseConnection() as conn:
-        rows = conn.execute("SELECT * FROM id_item_master").fetchall()
-    items = [dict(row) for row in rows]
+        contracts = get_active_rental_contracts(conn)
+        items = get_active_rental_items(conn)
 
-    # Filter for laundry contracts (L or l), handle None explicitly
-    laundry_items = [item for item in items if "last_contract_num" in item and item["last_contract_num"] is not None and item["last_contract_num"].lower().startswith("l")]
+    laundry_items = [
+        item for item in [dict(row) for row in items]
+        if item.get("last_contract_num", "").lower().startswith("l")
+    ]
 
-    # Get filter parameters
     filter_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_common_name = request.args.get("common_name", "").lower().strip()
 
-    # Apply filters
     filtered_items = laundry_items
     if filter_contract:
         filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
     if filter_common_name:
         filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
 
-    # Group by contract number (parent)
     contract_map = defaultdict(list)
     for item in filtered_items:
         contract = item.get("last_contract_num", "Unknown")
         contract_map[contract].append(item)
 
-    # Build parent and child data
     parent_data = []
     child_map = {}
     for contract, item_list in contract_map.items():
-        # Child: Group by common name
         common_name_map = defaultdict(list)
         for item in item_list:
             common_name = item.get("common_name", "Unknown")
@@ -59,7 +57,6 @@ def show_tab5():
         })
         child_map[contract] = child_data
 
-    # Sort parent by contract number
     parent_data.sort(key=lambda x: x["contract"].lower())
 
     return render_template(
@@ -79,13 +76,13 @@ def subcat_data():
     per_page = 20
 
     with DatabaseConnection() as conn:
-        rows = conn.execute("SELECT * FROM id_item_master").fetchall()
-    items = [dict(row) for row in rows]
+        items = get_active_rental_items(conn)
 
-    # Filter for laundry contracts, handle None explicitly
-    laundry_items = [item for item in items if "last_contract_num" in item and item["last_contract_num"] is not None and item["last_contract_num"].lower().startswith("l")]
+    laundry_items = [
+        item for item in [dict(row) for row in items]
+        if item.get("last_contract_num", "").lower().startswith("l")
+    ]
 
-    # Apply filters from query params
     filter_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_common_name = request.args.get("common_name_filter", "").lower().strip()
 
@@ -95,8 +92,10 @@ def subcat_data():
     if filter_common_name:
         filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
 
-    # Filter to specific contract and common name
-    subcat_items = [item for item in filtered_items if item.get("last_contract_num") == contract and item.get("common_name") == common_name]
+    subcat_items = [
+        item for item in filtered_items
+        if item.get("last_contract_num") == contract and item.get("common_name") == common_name
+    ]
 
     total_items = len(subcat_items)
     total_pages = (total_items + per_page - 1) // per_page
