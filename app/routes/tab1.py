@@ -24,7 +24,7 @@ def show_tab1():
     ]
     
     # Pagination
-    per_page = 20
+    per_page = 40
     total_items = len(parent_data)
     total_pages = (total_items + per_page - 1) // per_page
     page = request.args.get("page", 1, type=int)
