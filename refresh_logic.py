@@ -5,8 +5,8 @@ import time
 from datetime import datetime, timedelta
 from config import DB_FILE
 
-API_USERNAME = os.environ.get("API_USERNAME", "USERNAME")
-API_PASSWORD = os.environ.get("API_PASSWORD", "PASSWORD")
+API_USERNAME = os.environ.get("API_USERNAME", "username")
+API_PASSWORD = os.environ.get("API_PASSWORD", "password")
 LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"
 ITEM_MASTER_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169344381"
 TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
@@ -22,7 +22,7 @@ def get_access_token():
     if TOKEN and TOKEN_EXPIRY and now < TOKEN_EXPIRY:
         return TOKEN
 
-    payload = {"USERNAME": API_USERNAME, "PASSWORD": API_PASSWORD}
+    payload = {"username": API_USERNAME, "password": API_PASSWORD}
     try:
         response = requests.post(LOGIN_URL, json=payload, timeout=10)
         response.raise_for_status()
