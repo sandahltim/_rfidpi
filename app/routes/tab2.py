@@ -10,15 +10,15 @@ def tokenize_name(name):
 
 def categorize_item(item):
     tokens = tokenize_name(item.get("common_name", ""))
-    if any(word in tokens for word in ['tent', 'canopy', 'pole','hp','mid','end','navi']):
+    if any(word in tokens for word in ['tent', 'canopy', 'pole', 'hp', 'mid', 'end', 'navi']):
         return 'Tent Tops'
-    elif any(word in tokens for word in ['table', 'chair', 'plywood','prong']):
+    elif any(word in tokens for word in ['table', 'chair', 'plywood', 'prong']):
         return 'Tables and Chairs'
-    elif any(word in tokens for word in ['132','120','90','108']):
+    elif any(word in tokens for word in ['132', '120', '90', '108']):
         return 'Round Linen'
-    elif any(word in tokens for word in ['90x90', '90x132', '60x120','90x156','54']):
+    elif any(word in tokens for word in ['90x90', '90x132', '60x120', '90x156', '54']):
         return 'Rectangle Linen'
-    elif any(word in tokens for word in ['otc', 'machine', 'hotdog','nacho']):
+    elif any(word in tokens for word in ['otc', 'machine', 'hotdog', 'nacho']):
         return 'Concession'
     else:
         return 'Other'
@@ -28,7 +28,7 @@ def subcategorize_item(category, item):
     if category == 'Tent Tops':
         if any(word in tokens for word in ['hp']):
             return 'HP Tents'
-        elif any(word in tokens for word in ['ncp','nc','end','pole']):
+        elif any(word in tokens for word in ['ncp', 'nc', 'end', 'pole']):
             return 'Pole Tents'
         elif any(word in tokens for word in ['navi']):
             return 'Navi Tents'
@@ -112,11 +112,13 @@ def show_tab2():
     if filter_status:
         filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
 
+    # Group by category
     category_map = defaultdict(list)
     for item in filtered_items:
         cat = categorize_item(item)
         category_map[cat].append(item)
 
+    # Parent data (categories)
     parent_data = []
     sub_map = {}
     for category, item_list in category_map.items():
@@ -124,14 +126,12 @@ def show_tab2():
         on_rent = sum(1 for item in item_list if item["status"] in ["On Rent", "Delivered"])
         service = len(item_list) - available - on_rent
 
+        # Subcategories for dropdown
         temp_sub_map = defaultdict(list)
-        for itm in item_list:
-            subcat = subcategorize_item(category, itm)
-            temp_sub_map[subcat].append(itm)
-
-        sub_map[category] = {
-            "subcategories": list(temp_sub_map.keys())
-        }
+        for item in item_list:
+            subcat = subcategorize_item(category, item)
+            temp_sub_map[subcat].append(item)
+        sub_map[category] = {"subcategories": list(temp_sub_map.keys())}
 
         parent_data.append({
             "category": category,
@@ -143,12 +143,28 @@ def show_tab2():
 
     parent_data.sort(key=lambda x: x["category"])
     expand_category = request.args.get('expand', None)
+    selected_subcat = request.args.get('subcat', sub_map[expand_category]['subcategories'][0] if expand_category and sub_map[expand_category]['subcategories'] else None)
+
+    # Middle child: Aggregate by common_name for selected subcategory
+    middle_map = {}
+    if expand_category and selected_subcat:
+        cat_items = [item for item in filtered_items if categorize_item(item) == expand_category and subcategorize_item(expand_category, item) == selected_subcat]
+        common_name_map = defaultdict(list)
+        for item in cat_items:
+            common_name = item.get("common_name", "Unknown")
+            common_name_map[common_name].append(item)
+        middle_map[expand_category] = [
+            {"common_name": name, "total": len(items)}
+            for name, items in common_name_map.items()
+        ]
 
     return render_template(
         "tab2.html",
         parent_data=parent_data,
+        middle_map=middle_map,
         sub_map=sub_map,
         expand_category=expand_category,
+        selected_subcat=selected_subcat,
         filter_common_name=filter_common_name,
         filter_tag_id=filter_tag_id,
         filter_bin_location=filter_bin_location,
@@ -161,6 +177,7 @@ def subcat_data():
     print("Hit /tab2/subcat_data endpoint")
     category = request.args.get('category')
     subcat = request.args.get('subcat')
+    common_name = request.args.get('common_name')  # New param for specific common_name
     page = int(request.args.get('page', 1))
     per_page = 20
 
@@ -169,7 +186,7 @@ def subcat_data():
     items = [dict(row) for row in rows]
 
     # Apply filters from query params
-    filter_common_name = request.args.get("common_name", "").lower().strip()
+    filter_common_name = request.args.get("common_name_filter", "").lower().strip()
     filter_tag_id = request.args.get("tag_id", "").lower().strip()
     filter_bin_location = request.args.get("bin_location", "").lower().strip()
     filter_last_contract = request.args.get("last_contract_num", "").lower().strip()
@@ -189,6 +206,10 @@ def subcat_data():
 
     category_items = [item for item in filtered_items if categorize_item(item) == category]
     subcat_items = [item for item in category_items if subcategorize_item(category, item) == subcat]
+    
+    # Filter by specific common_name if provided
+    if common_name:
+        subcat_items = [item for item in subcat_items if item.get("common_name", "Unknown") == common_name]
 
     total_items = len(subcat_items)
     total_pages = (total_items + per_page - 1) // per_page
@@ -197,7 +218,7 @@ def subcat_data():
     end = start + per_page
     paginated_items = subcat_items[start:end]
 
-    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Total Items: {total_items}, Page: {page}")
+    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
 
     return jsonify({
         "items": [{
