@@ -364,24 +364,21 @@ document.addEventListener("change", (e) => {
   }
 });
 
-// Initial expand if set
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM Content Loaded");
-  const expandCat = "{{ expand_category | default('') }}";
-  if (expandCat) {
-    const collapse = document.querySelector(`#middle-${expandCat.toLowerCase().replace(/ /g, '_')}`);
-    if (collapse) {
-      collapse.classList.add("show");
-      const toggle = collapse.previousElementSibling.querySelector(".expand-toggle");
-      if (toggle) toggle.textContent = "-";
-    }
+// Initial expand if set (static)
+const expandCat = "{{ expand_category | default('') }}";
+if (expandCat) {
+  const collapse = document.querySelector(`#middle-${expandCat.toLowerCase().replace(/ /g, '_')}`);
+  if (collapse) {
+    collapse.classList.add("show");
+    const toggle = collapse.previousElementSibling.querySelector(".expand-toggle");
+    if (toggle) toggle.textContent = "-";
   }
+}
 
-  document.querySelectorAll(".collapse").forEach(collapse => {
-    if (!collapse.getAttribute("data-auto-expand")) {
-      collapse.classList.remove("show");
-    }
-  });
+document.querySelectorAll(".collapse").forEach(collapse => {
+  if (!collapse.getAttribute("data-auto-expand")) {
+    collapse.classList.remove("show");
+  }
 });
 </script>
 
