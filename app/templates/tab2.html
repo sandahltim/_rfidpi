@@ -131,7 +131,7 @@
 <!-- Inline JS for sorting, dropdown, and AJAX -->
 <script>
 function sortTable(tableEl, colName) {
-  let tbody = tableEl.querySelector("tbody");
+  const tbody = tableEl.querySelector("tbody");
   if (!tbody) return;
 
   let asc = tableEl.getAttribute("data-sort-col") === colName 
@@ -140,24 +140,24 @@ function sortTable(tableEl, colName) {
   tableEl.setAttribute("data-sort-col", colName);
   tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
 
-  let headers = Array.from(tableEl.querySelectorAll("th"));
-  let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
+  const headers = Array.from(tableEl.querySelectorAll("th"));
+  const colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
 
   if (tableEl.id === "parentTable") {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
+    const rows = Array.from(tbody.children);
+    const pairs = [];
     for (let i = 0; i < rows.length; i += 2) {
-      let parentRow = rows[i];
-      let middleRow = rows[i + 1] || null;
+      const parentRow = rows[i];
+      const middleRow = rows[i + 1] || null;
       if (parentRow && parentRow.classList.contains("table-active")) {
         pairs.push({ parent: parentRow, middle: middleRow });
       }
     }
     pairs.sort((a, b) => {
-      let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+      const cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
+      const cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
+      const numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+      const numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
       if (!isNaN(numA) && !isNaN(numB)) {
         return asc ? numA - numB : numB - numA;
       }
@@ -169,20 +169,20 @@ function sortTable(tableEl, colName) {
       if (pair.middle) tbody.appendChild(pair.middle);
     });
   } else if (tableEl.classList.contains("middle-table")) {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
+    const rows = Array.from(tbody.children);
+    const pairs = [];
     for (let i = 0; i < rows.length; i += 2) {
-      let middleRow = rows[i];
-      let grandRow = rows[i + 1] || null;
+      const middleRow = rows[i];
+      const grandRow = rows[i + 1] || null;
       if (middleRow) {
         pairs.push({ middle: middleRow, grand: grandRow });
       }
     }
     pairs.sort((a, b) => {
-      let cellA = a.middle.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.middle.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+      const cellA = a.middle.cells[colIndex]?.innerText.trim() || "";
+      const cellB = b.middle.cells[colIndex]?.innerText.trim() || "";
+      const numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+      const numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
       if (!isNaN(numA) && !isNaN(numB)) {
         return asc ? numA - numB : numB - numA;
       }
@@ -194,12 +194,12 @@ function sortTable(tableEl, colName) {
       if (pair.grand) tbody.appendChild(pair.grand);
     });
   } else {
-    let rows = Array.from(tbody.querySelectorAll("tr"));
+    const rows = Array.from(tbody.querySelectorAll("tr"));
     rows.sort((a, b) => {
-      let cellA = a.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+      const cellA = a.cells[colIndex]?.innerText.trim() || "";
+      const cellB = b.cells[colIndex]?.innerText.trim() || "";
+      const numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+      const numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
       if (!isNaN(numA) && !isNaN(numB)) {
         return asc ? numA - numB : numB - numA;
       }
@@ -213,7 +213,7 @@ function sortTable(tableEl, colName) {
 function loadSubcatData(category, subcat, commonName, page, catKey) {
   console.log(`Loading: Category: ${category}, Subcat: ${subcat}, Common Name: ${commonName}, Page: ${page}, CatKey: ${catKey}`);
   const loading = document.getElementById(`loading-${catKey}`);
-  loading.style.display = 'block';
+  if (loading) loading.style.display = 'block';
 
   const urlParams = new URLSearchParams(window.location.search);
   const params = {
@@ -257,96 +257,92 @@ function loadSubcatData(category, subcat, commonName, page, catKey) {
         tbody.appendChild(tr);
       });
 
-      const pagination = document.getElementById(`pagination-${catKey}`).querySelector('.pagination');
-      pagination.innerHTML = '';
-      if (data.total_pages > 1) {
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
-        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
-        pagination.appendChild(prevLi);
+      const pagination = document.getElementById(`pagination-${catKey}`);
+      if (pagination) {
+        const paginationList = pagination.querySelector('.pagination');
+        paginationList.innerHTML = '';
+        if (data.total_pages > 1) {
+          const prevLi = document.createElement('li');
+          prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
+          prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
+          paginationList.appendChild(prevLi);
 
-        for (let p = 1; p <= data.total_pages; p++) {
-          const li = document.createElement('li');
-          li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
-          li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
-          pagination.appendChild(li);
-        }
+          for (let p = 1; p <= data.total_pages; p++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
+            paginationList.appendChild(li);
+          }
 
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
-        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
-        pagination.appendChild(nextLi);
+          const nextLi = document.createElement('li');
+          nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
+          nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
+          paginationList.appendChild(nextLi);
 
-        pagination.querySelectorAll('.page-link').forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const newPage = parseInt(link.getAttribute('data-page'));
-            if (!isNaN(newPage)) {
-              loadSubcatData(category, subcat, commonName, newPage, catKey);
-            }
+          pagination.querySelectorAll('.page-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+              e.preventDefault();
+              const newPage = parseInt(link.getAttribute('data-page'));
+              if (!isNaN(newPage)) {
+                loadSubcatData(category, subcat, commonName, newPage, catKey);
+              }
+            });
           });
-        });
+        }
       }
-      loading.style.display = 'none';
+      if (loading) loading.style.display = 'none';
     })
     .catch(error => {
       console.error('Error loading subcat data:', error);
       alert('Failed to load items: ' + error.message);
-      loading.style.display = 'none';
+      if (loading) loading.style.display = 'none';
     });
 }
 
-// Sorting listeners
-document.querySelectorAll("#parentTable th.sortable").forEach(th => {
-  th.addEventListener("click", () => {
-    const colName = th.getAttribute("data-col-name");
-    sortTable(document.getElementById("parentTable"), colName);
-  });
+// Event delegation for sorting
+document.addEventListener('click', (e) => {
+  const th = e.target.closest('th.sortable');
+  if (th) {
+    const table = th.closest('table');
+    const colName = th.getAttribute('data-col-name');
+    if (table) sortTable(table, colName);
+  }
 });
 
-document.querySelectorAll(".middle-table th.sortable").forEach(th => {
-  th.addEventListener("click", () => {
-    const colName = th.getAttribute("data-col-name");
-    sortTable(th.closest(".middle-table"), colName);
-  });
-});
-
-document.querySelectorAll(".grandchild-table th.sortable").forEach(th => {
-  th.addEventListener("click", () => {
-    const colName = th.getAttribute("data-col-name");
-    sortTable(th.closest(".grandchild-table"), colName);
-  });
-});
-
-// Expand/collapse listeners
-document.querySelectorAll(".expand-toggle").forEach(toggle => {
-  const target = document.querySelector(toggle.getAttribute("data-bs-target"));
-  target.addEventListener("show.bs.collapse", () => {
-    console.log(`Expanding: ${target.id}`);
-    toggle.textContent = "-";
-    if (target.id.startsWith("middle-") && !window.location.search.includes('expand=')) {
-      const category = target.getAttribute("data-category");
-      const select = target.querySelector(".subcategory-dropdown");
-      const subcat = select.value;
-      const urlParams = new URLSearchParams(window.location.search);
-      urlParams.set('expand', category);
-      urlParams.set('subcat', subcat);
-      const url = `/tab2/?${urlParams.toString()}`;
-      console.log(`Auto-redirecting to: ${url}`);
-      window.location.href = url;
-    } else if (target.id.startsWith("child-")) {
-      const category = target.closest(".collapse[data-category]").getAttribute("data-category");
-      const commonName = target.getAttribute("data-common-name");
-      const catKey = target.id.split("child-")[1];
-      const parentCollapse = target.closest(".collapse[id^='middle-']");
-      const select = parentCollapse.querySelector(".subcategory-dropdown");
-      const subcat = select ? select.value : '';
-      loadSubcatData(category, subcat, commonName, 1, catKey);
+// Event delegation for expand/collapse
+document.addEventListener('click', (e) => {
+  const toggle = e.target.closest('.expand-toggle');
+  if (toggle) {
+    const targetId = toggle.getAttribute('data-bs-target');
+    const target = document.querySelector(targetId);
+    if (target) {
+      if (!target.classList.contains('show')) {
+        console.log(`Expanding: ${target.id}`);
+        toggle.textContent = "-";
+        if (target.id.startsWith("middle-") && !window.location.search.includes('expand=')) {
+          const category = target.getAttribute("data-category");
+          const select = target.querySelector(".subcategory-dropdown");
+          const subcat = select ? select.value : '';
+          const urlParams = new URLSearchParams(window.location.search);
+          urlParams.set('expand', category);
+          urlParams.set('subcat', subcat);
+          const url = `/tab2/?${urlParams.toString()}`;
+          console.log(`Auto-redirecting to: ${url}`);
+          window.location.href = url;
+        } else if (target.id.startsWith("child-")) {
+          const category = target.closest(".collapse[data-category]").getAttribute("data-category");
+          const commonName = target.getAttribute("data-common-name");
+          const catKey = target.id.split("child-")[1];
+          const parentCollapse = target.closest(".collapse[id^='middle-']");
+          const select = parentCollapse ? parentCollapse.querySelector(".subcategory-dropdown") : null;
+          const subcat = select ? select.value : '';
+          loadSubcatData(category, subcat, commonName, 1, catKey);
+        }
+      } else {
+        toggle.textContent = "+";
+      }
     }
-  });
-  target.addEventListener("hide.bs.collapse", () => {
-    toggle.textContent = "+";
-  });
+  }
 });
 
 // Dropdown changes with event delegation
@@ -370,7 +366,7 @@ if (expandCat) {
   const collapse = document.querySelector(`#middle-${expandCat.toLowerCase().replace(/ /g, '_')}`);
   if (collapse) {
     collapse.classList.add("show");
-    const toggle = collapse.previousElementSibling.querySelector(".expand-toggle");
+    const toggle = collapse.previousElementSibling ? collapse.previousElementSibling.querySelector(".expand-toggle") : null;
     if (toggle) toggle.textContent = "-";
   }
 }
