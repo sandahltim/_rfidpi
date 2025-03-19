@@ -300,10 +300,10 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded");
 
   // Parent table sorting
-  let parentTable = document.getElementById("parentTable");
+  const parentTable = document.getElementById("parentTable");
   parentTable.querySelectorAll("th.sortable").forEach(th => {
     th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
+      const colName = th.getAttribute("data-col-name");
       sortTable(parentTable, colName);
     });
   });
@@ -312,7 +312,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".middle-table").forEach(middleTbl => {
     middleTbl.querySelectorAll("th.sortable").forEach(th => {
       th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
+        const colName = th.getAttribute("data-col-name");
         sortTable(middleTbl, colName);
       });
     });
@@ -322,7 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".grandchild-table").forEach(grandTbl => {
     grandTbl.querySelectorAll("th.sortable").forEach(th => {
       th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
+        const colName = th.getAttribute("data-col-name");
         sortTable(grandTbl, colName);
       });
     });
@@ -330,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Expand/collapse toggles
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
-    let target = document.querySelector(toggle.getAttribute("data-bs-target"));
+    const target = document.querySelector(toggle.getAttribute("data-bs-target"));
     target.addEventListener("show.bs.collapse", () => {
       console.log(`Expanding: ${target.id}`);
       toggle.textContent = "-";
@@ -358,38 +358,21 @@ document.addEventListener("DOMContentLoaded", () => {
       toggle.textContent = "+";
     });
   });
+});
 
-  // Dropdown changes with event delegation
-  document.addEventListener("change", (e) => {
-    if (e.target.classList.contains("subcategory-dropdown")) {
-      const select = e.target;
-      const category = select.getAttribute("data-category");
-      const subcat = select.value;
-      const urlParams = new URLSearchParams(window.location.search);
-      urlParams.set('expand', category);
-      urlParams.set('subcat', subcat);
-      const url = `/tab2/?${urlParams.toString()}`;
-      console.log(`Dropdown changed: ${category} -> ${subcat}, Redirecting to: ${url}`);
-      window.location.href = url;
-    }
-  });
-
-  // Initial expand if set
-  let expandCat = "{{ expand_category | default('') }}";
-  if (expandCat) {
-    let collapse = document.querySelector(`#middle-${expandCat.toLowerCase().replace(/ /g, '_')}`);
-    if (collapse) {
-      collapse.classList.add("show");
-      let toggle = collapse.previousElementSibling.querySelector(".expand-toggle");
-      if (toggle) toggle.textContent = "-";
-    }
+// Dropdown changes with event delegation
+document.addEventListener("change", (e) => {
+  if (e.target.classList.contains("subcategory-dropdown")) {
+    const select = e.target;
+    const category = select.getAttribute("data-category");
+    const subcat = select.value;
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('expand', category);
+    urlParams.set('subcat', subcat);
+    const url = `/tab2/?${urlParams.toString()}`;
+    console.log(`Dropdown changed: ${category} -> ${subcat}, Redirecting to: ${url}`);
+    window.location.href = url;
   }
-
-  document.querySelectorAll(".collapse").forEach(collapse => {
-    if (!collapse.getAttribute("data-auto-expand")) {
-      collapse.classList.remove("show");
-    }
-  });
 });
 </script>
 
