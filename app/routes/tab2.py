@@ -35,14 +35,14 @@ def subcategorize_item(category, item):
         elif any(word in tokens for word in ['canopy']):
             return 'AP Tents'
         else:
-            return 'Other Tents'
+            return item.get("common_name", "Other Tents")
     elif category == 'Tables and Chairs':
         if 'table' in tokens:
             return 'Tables'
         elif 'chair' in tokens:
             return 'Chairs'
         else:
-            return 'Other T&C'
+            return item.get("common_name", "Other T&C")
     elif category == 'Round Linen':
         if '90' in tokens:
             return '90-inch Round'
@@ -53,7 +53,7 @@ def subcategorize_item(category, item):
         elif '132' in tokens:
             return '132-inch Round'
         else:
-            return 'Other Round Linen'
+            return item.get("common_name", "Other Round Linen")
     elif category == 'Rectangle Linen':
         if '90x90' in tokens:
             return '90 Square'
@@ -66,7 +66,7 @@ def subcategorize_item(category, item):
         elif '60x120' in tokens:
             return '60x120'
         else:
-            return 'Other Rectangle Linen'
+            return item.get("common_name", "Other Rectangle Linen")
     elif category == 'Concession':
         if 'frozen' in tokens:
             return 'Frozen Drink Machines'
@@ -81,9 +81,9 @@ def subcategorize_item(category, item):
         elif 'popcorn' in tokens:
             return 'Popcorn Machines'
         else:
-            return 'Other Concessions'
+            return item.get("common_name", "Other Concessions")
     else:
-        return 'Unspecified Subcategory'
+        return item.get("common_name", "Other Items")
 
 @tab2_bp.route("/")
 def show_tab2():
@@ -121,6 +121,10 @@ def show_tab2():
     # Parent data (categories)
     parent_data = []
     sub_map = {}
+    middle_map = {}
+    expand_category = request.args.get('expand', None)
+    selected_subcat = request.args.get('subcat', None)
+
     for category, item_list in category_map.items():
         available = sum(1 for item in item_list if item["status"] == "Ready to Rent")
         on_rent = sum(1 for item in item_list if item["status"] in ["On Rent", "Delivered"])
@@ -133,6 +137,19 @@ def show_tab2():
             temp_sub_map[subcat].append(item)
         sub_map[category] = {"subcategories": list(temp_sub_map.keys())}
 
+        # Middle child: Always populate for first subcat if no expand, or selected subcat
+        subcat_to_show = selected_subcat if selected_subcat in temp_sub_map else list(temp_sub_map.keys())[0] if temp_sub_map else None
+        if subcat_to_show:
+            cat_items = temp_sub_map[subcat_to_show]
+            common_name_map = defaultdict(list)
+            for item in cat_items:
+                common_name = item.get("common_name", "Unknown")
+                common_name_map[common_name].append(item)
+            middle_map[category] = [
+                {"common_name": name, "total": len(items)}
+                for name, items in common_name_map.items()
+            ]
+
         parent_data.append({
             "category": category,
             "total": len(item_list),
@@ -142,21 +159,6 @@ def show_tab2():
         })
 
     parent_data.sort(key=lambda x: x["category"])
-    expand_category = request.args.get('expand', None)
-    selected_subcat = request.args.get('subcat', sub_map[expand_category]['subcategories'][0] if expand_category and sub_map[expand_category]['subcategories'] else None)
-
-    # Middle child: Aggregate by common_name for selected subcategory
-    middle_map = {}
-    if expand_category and selected_subcat:
-        cat_items = [item for item in filtered_items if categorize_item(item) == expand_category and subcategorize_item(expand_category, item) == selected_subcat]
-        common_name_map = defaultdict(list)
-        for item in cat_items:
-            common_name = item.get("common_name", "Unknown")
-            common_name_map[common_name].append(item)
-        middle_map[expand_category] = [
-            {"common_name": name, "total": len(items)}
-            for name, items in common_name_map.items()
-        ]
 
     return render_template(
         "tab2.html",
@@ -177,7 +179,7 @@ def subcat_data():
     print("Hit /tab2/subcat_data endpoint")
     category = request.args.get('category')
     subcat = request.args.get('subcat')
-    common_name = request.args.get('common_name')  # New param for specific common_name
+    common_name = request.args.get('common_name')
     page = int(request.args.get('page', 1))
     per_page = 20
 
