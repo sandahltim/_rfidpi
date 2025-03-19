@@ -296,67 +296,56 @@ function loadSubcatData(category, subcat, commonName, page, catKey) {
     });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM Content Loaded");
-
-  // Parent table sorting
-  const parentTable = document.getElementById("parentTable");
-  parentTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      const colName = th.getAttribute("data-col-name");
-      sortTable(parentTable, colName);
-    });
+// Sorting listeners
+document.querySelectorAll("#parentTable th.sortable").forEach(th => {
+  th.addEventListener("click", () => {
+    const colName = th.getAttribute("data-col-name");
+    sortTable(document.getElementById("parentTable"), colName);
   });
+});
 
-  // Middle table sorting
-  document.querySelectorAll(".middle-table").forEach(middleTbl => {
-    middleTbl.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        const colName = th.getAttribute("data-col-name");
-        sortTable(middleTbl, colName);
-      });
-    });
+document.querySelectorAll(".middle-table th.sortable").forEach(th => {
+  th.addEventListener("click", () => {
+    const colName = th.getAttribute("data-col-name");
+    sortTable(th.closest(".middle-table"), colName);
   });
+});
 
-  // Grandchild table sorting
-  document.querySelectorAll(".grandchild-table").forEach(grandTbl => {
-    grandTbl.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        const colName = th.getAttribute("data-col-name");
-        sortTable(grandTbl, colName);
-      });
-    });
+document.querySelectorAll(".grandchild-table th.sortable").forEach(th => {
+  th.addEventListener("click", () => {
+    const colName = th.getAttribute("data-col-name");
+    sortTable(th.closest(".grandchild-table"), colName);
   });
+});
 
-  // Expand/collapse toggles
-  document.querySelectorAll(".expand-toggle").forEach(toggle => {
-    const target = document.querySelector(toggle.getAttribute("data-bs-target"));
-    target.addEventListener("show.bs.collapse", () => {
-      console.log(`Expanding: ${target.id}`);
-      toggle.textContent = "-";
-      if (target.id.startsWith("middle-") && !window.location.search.includes('expand=')) {
-        const category = target.getAttribute("data-category");
-        const select = target.querySelector(".subcategory-dropdown");
-        const subcat = select.value;
-        const urlParams = new URLSearchParams(window.location.search);
-        urlParams.set('expand', category);
-        urlParams.set('subcat', subcat);
-        const url = `/tab2/?${urlParams.toString()}`;
-        console.log(`Auto-redirecting to: ${url}`);
-        window.location.href = url;
-      } else if (target.id.startsWith("child-")) {
-        const category = target.closest(".collapse[data-category]").getAttribute("data-category");
-        const commonName = target.getAttribute("data-common-name");
-        const catKey = target.id.split("child-")[1];
-        const parentCollapse = target.closest(".collapse[id^='middle-']");
-        const select = parentCollapse.querySelector(".subcategory-dropdown");
-        const subcat = select ? select.value : '';
-        loadSubcatData(category, subcat, commonName, 1, catKey);
-      }
-    });
-    target.addEventListener("hide.bs.collapse", () => {
-      toggle.textContent = "+";
-    });
+// Expand/collapse listeners
+document.querySelectorAll(".expand-toggle").forEach(toggle => {
+  const target = document.querySelector(toggle.getAttribute("data-bs-target"));
+  target.addEventListener("show.bs.collapse", () => {
+    console.log(`Expanding: ${target.id}`);
+    toggle.textContent = "-";
+    if (target.id.startsWith("middle-") && !window.location.search.includes('expand=')) {
+      const category = target.getAttribute("data-category");
+      const select = target.querySelector(".subcategory-dropdown");
+      const subcat = select.value;
+      const urlParams = new URLSearchParams(window.location.search);
+      urlParams.set('expand', category);
+      urlParams.set('subcat', subcat);
+      const url = `/tab2/?${urlParams.toString()}`;
+      console.log(`Auto-redirecting to: ${url}`);
+      window.location.href = url;
+    } else if (target.id.startsWith("child-")) {
+      const category = target.closest(".collapse[data-category]").getAttribute("data-category");
+      const commonName = target.getAttribute("data-common-name");
+      const catKey = target.id.split("child-")[1];
+      const parentCollapse = target.closest(".collapse[id^='middle-']");
+      const select = parentCollapse.querySelector(".subcategory-dropdown");
+      const subcat = select ? select.value : '';
+      loadSubcatData(category, subcat, commonName, 1, catKey);
+    }
+  });
+  target.addEventListener("hide.bs.collapse", () => {
+    toggle.textContent = "+";
   });
 });
 
@@ -373,6 +362,26 @@ document.addEventListener("change", (e) => {
     console.log(`Dropdown changed: ${category} -> ${subcat}, Redirecting to: ${url}`);
     window.location.href = url;
   }
+});
+
+// Initial expand if set
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM Content Loaded");
+  const expandCat = "{{ expand_category | default('') }}";
+  if (expandCat) {
+    const collapse = document.querySelector(`#middle-${expandCat.toLowerCase().replace(/ /g, '_')}`);
+    if (collapse) {
+      collapse.classList.add("show");
+      const toggle = collapse.previousElementSibling.querySelector(".expand-toggle");
+      if (toggle) toggle.textContent = "-";
+    }
+  }
+
+  document.querySelectorAll(".collapse").forEach(collapse => {
+    if (!collapse.getAttribute("data-auto-expand")) {
+      collapse.classList.remove("show");
+    }
+  });
 });
 </script>
 
