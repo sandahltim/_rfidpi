@@ -14,7 +14,7 @@ def show_tab5():
         all_items = conn.execute("SELECT * FROM id_item_master").fetchall()
         active_items = get_active_rental_items(conn)
 
-    all_items = [dict(row) for row in all_items]  # Full item set for Available
+    all_items = [dict(row) for row in all_items]  # Full item set
     laundry_items = [
         item for item in [dict(row) for row in active_items]
         if item.get("last_contract_num", "").lower().startswith("l")
@@ -44,14 +44,17 @@ def show_tab5():
 
         child_data = {}
         for common_name, items in common_name_map.items():
-            # Count total Ready to Rent from all_items, not just laundry_items
+            # Total Available across all contracts
             total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
-            on_rent = sum(1 for item in items if item["status"] in ["On Rent", "Delivered"])
-            service = len(items) - sum(1 for item in items if item["status"] == "Ready to Rent") - on_rent
+            # On Rent/Delivered for non-L contracts only
+            on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
+                          item["status"] in ["On Rent", "Delivered"] and 
+                          not item.get("last_contract_num", "").lower().startswith("l"))
+            service = len(items) - sum(1 for item in items if item["status"] == "Ready to Rent") - sum(1 for item in items if item["status"] in ["On Rent", "Delivered"])
             child_data[common_name] = {
-                "total": len(items),
-                "available": total_available,  # Now counts all Ready to Rent
-                "on_rent": on_rent,
+                "total": len(items),  # Total on this L contract
+                "available": total_available,  # All Ready to Rent
+                "on_rent": on_rent,  # Non-L On Rent/Delivered
                 "service": service
             }
 
