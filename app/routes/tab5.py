@@ -10,127 +10,138 @@ tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 # Path to new DB
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
 
-# Initialize hand-counted DB
+# Initialize hand-counted DB with error handling
 def init_hand_counted_db():
-    if not os.path.exists(HAND_COUNTED_DB):
-        conn = sqlite3.connect(HAND_COUNTED_DB)
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS hand_counted_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                last_contract_num TEXT,
-                common_name TEXT,
-                total_items INTEGER,
-                tag_id TEXT DEFAULT NULL,
-                date_last_scanned TEXT,
-                last_scanned_by TEXT
-            )
-        """)
-        conn.commit()
-        conn.close()
-        print("Initialized tab5_hand_counted.db")
+    try:
+        if not os.path.exists(HAND_COUNTED_DB):
+            conn = sqlite3.connect(HAND_COUNTED_DB)
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS hand_counted_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    last_contract_num TEXT,
+                    common_name TEXT,
+                    total_items INTEGER,
+                    tag_id TEXT DEFAULT NULL,
+                    date_last_scanned TEXT,
+                    last_scanned_by TEXT
+                )
+            """)
+            conn.commit()
+            conn.close()
+            print("Initialized tab5_hand_counted.db")
+        # Ensure write permissions
+        os.chmod(HAND_COUNTED_DB, 0o666)
+    except Exception as e:
+        print(f"Error initializing tab5_hand_counted.db: {e}")
 
 @tab5_bp.route("/")
 def show_tab5():
     print("Loading /tab5/ endpoint")
     init_hand_counted_db()  # Ensure DB exists
 
-    with DatabaseConnection() as conn:
-        contracts = get_active_rental_contracts(conn)
-        all_items = conn.execute("SELECT * FROM id_item_master").fetchall()
-        active_items = get_active_rental_items(conn)
+    try:
+        with DatabaseConnection() as conn:
+            contracts = get_active_rental_contracts(conn)
+            all_items = conn.execute("SELECT * FROM id_item_master").fetchall()
+            active_items = get_active_rental_items(conn)
 
-    with sqlite3.connect(HAND_COUNTED_DB) as conn:
-        hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
+        with sqlite3.connect(HAND_COUNTED_DB) as conn:
+            hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
 
-    all_items = [dict(row) for row in all_items]
-    laundry_items = [
-        item for item in [dict(row) for row in active_items]
-        if item.get("last_contract_num", "").lower().startswith("l")
-    ]
-    hand_counted = [dict(row) for row in hand_counted_items]
+        all_items = [dict(row) for row in all_items]
+        laundry_items = [
+            item for item in [dict(row) for row in active_items]
+            if item.get("last_contract_num", "").lower().startswith("l")
+        ]
+        hand_counted = [dict(row) for row in hand_counted_items]
 
-    filter_contract = request.args.get("last_contract_num", "").lower().strip()
-    filter_common_name = request.args.get("common_name", "").lower().strip()
+        filter_contract = request.args.get("last_contract_num", "").lower().strip()
+        filter_common_name = request.args.get("common_name", "").lower().strip()
 
-    filtered_items = laundry_items
-    if filter_contract:
-        filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
-    if filter_common_name:
-        filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
+        filtered_items = laundry_items
+        if filter_contract:
+            filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
+        if filter_common_name:
+            filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
 
-    # Merge RFID and hand-counted data
-    contract_map = defaultdict(list)
-    for item in filtered_items:  # RFID L items
-        contract = item.get("last_contract_num", "Unknown")
-        contract_map[contract].append(item)
-    for item in hand_counted:  # Hand-counted items
-        contract = item.get("last_contract_num", "Unknown")
-        contract_map[contract].append(item)
+        contract_map = defaultdict(list)
+        for item in filtered_items:
+            contract = item.get("last_contract_num", "Unknown")
+            contract_map[contract].append(item)
+        for item in hand_counted:
+            contract = item.get("last_contract_num", "Unknown")
+            contract_map[contract].append(item)
 
-    parent_data = []
-    child_map = {}
-    for contract, item_list in contract_map.items():
-        common_name_map = defaultdict(list)
-        for item in item_list:
-            common_name = item.get("common_name", "Unknown")
-            common_name_map[common_name].append(item)
+        parent_data = []
+        child_map = {}
+        for contract, item_list in contract_map.items():
+            common_name_map = defaultdict(list)
+            for item in item_list:
+                common_name = item.get("common_name", "Unknown")
+                common_name_map[common_name].append(item)
 
-        child_data = {}
-        for common_name, items in common_name_map.items():
-            # RFID counts
-            rfid_items = [i for i in items if i.get("tag_id") is not None]
-            hand_items = [i for i in items if i.get("tag_id") is None]
-            total_rfid = len(rfid_items)
-            total_hand = sum(i["total_items"] for i in hand_items) if hand_items else 0
-            total_items = total_rfid + total_hand
-            total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
-            on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
-                          item["status"] in ["On Rent", "Delivered"] and 
-                          (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
-            service = total_rfid - sum(1 for item in rfid_items if item["status"] == "Ready to Rent") - sum(1 for item in rfid_items if item["status"] in ["On Rent", "Delivered"])
-            child_data[common_name] = {
-                "total": total_items,
-                "available": total_available,
-                "on_rent": on_rent,
-                "service": service
-            }
+            child_data = {}
+            for common_name, items in common_name_map.items():
+                rfid_items = [i for i in items if i.get("tag_id") is not None]
+                hand_items = [i for i in items if i.get("tag_id") is None]
+                total_rfid = len(rfid_items)
+                total_hand = sum(i["total_items"] for i in hand_items) if hand_items else 0
+                total_items = total_rfid + total_hand
+                total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
+                on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
+                              item["status"] in ["On Rent", "Delivered"] and 
+                              (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
+                service = total_rfid - sum(1 for item in rfid_items if item["status"] == "Ready to Rent") - sum(1 for item in rfid_items if item["status"] in ["On Rent", "Delivered"])
+                child_data[common_name] = {
+                    "total": total_items,
+                    "available": total_available,
+                    "on_rent": on_rent,
+                    "service": service
+                }
 
-        parent_data.append({
-            "contract": contract,
-            "total": sum(len([i for i in items if i.get("tag_id") is not None]) + 
-                         (i["total_items"] if i.get("tag_id") is None else 0) for i in item_list)
-        })
-        child_map[contract] = child_data
+            parent_data.append({
+                "contract": contract,
+                "total": sum(len([i for i in items if i.get("tag_id") is not None]) + 
+                             (i["total_items"] if i.get("tag_id") is None else 0) for i in item_list)
+            })
+            child_map[contract] = child_data
 
-    parent_data.sort(key=lambda x: x["contract"].lower())
+        parent_data.sort(key=lambda x: x["contract"].lower())
 
-    return render_template(
-        "tab5.html",
-        parent_data=parent_data,
-        child_map=child_map,
-        filter_contract=filter_contract,
-        filter_common_name=filter_common_name
-    )
+        return render_template(
+            "tab5.html",
+            parent_data=parent_data,
+            child_map=child_map,
+            filter_contract=filter_contract,
+            filter_common_name=filter_common_name
+        )
+    except Exception as e:
+        print(f"Error in show_tab5: {e}")
+        return "Internal Server Error", 500
 
 @tab5_bp.route("/save_hand_counted", methods=["POST"])
 def save_hand_counted():
     print("Saving hand-counted entry")
-    common_name = request.form.get("common_name")
-    last_contract_num = request.form.get("last_contract_num")
-    total_items = int(request.form.get("total_items", 0))
-    last_scanned_by = request.form.get("last_scanned_by")
-    date_last_scanned = request.form.get("date_last_scanned")
+    try:
+        common_name = request.form.get("common_name")
+        last_contract_num = request.form.get("last_contract_num")
+        total_items = int(request.form.get("total_items", 0))
+        last_scanned_by = request.form.get("last_scanned_by")
+        date_last_scanned = request.form.get("date_last_scanned")
 
-    with sqlite3.connect(HAND_COUNTED_DB) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO hand_counted_items (last_contract_num, common_name, total_items, tag_id, date_last_scanned, last_scanned_by)
-            VALUES (?, ?, ?, NULL, ?, ?)
-        """, (last_contract_num, common_name, total_items, date_last_scanned, last_scanned_by))
-        conn.commit()
+        with sqlite3.connect(HAND_COUNTED_DB) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO hand_counted_items (last_contract_num, common_name, total_items, tag_id, date_last_scanned, last_scanned_by)
+                VALUES (?, ?, ?, NULL, ?, ?)
+            """, (last_contract_num, common_name, total_items, date_last_scanned, last_scanned_by))
+            conn.commit()
 
-    return redirect(url_for("tab5_bp.show_tab5"))
+        return redirect(url_for("tab5_bp.show_tab5"))
+    except Exception as e:
+        print(f"Error saving hand-counted entry: {e}")
+        return "Internal Server Error", 500
 
 @tab5_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
