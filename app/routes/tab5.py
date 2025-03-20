@@ -48,11 +48,8 @@ def show_tab5():
 
         with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
             logging.debug("Fetching hand-counted data")
-            try:
-                hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
-            except Exception as e:
-                logging.error(f"Hand-counted fetch failed: {e}")
-                hand_counted_items = []  # Fallback to empty list
+            conn.row_factory = sqlite3.Row  # Ensure rows are dict-like
+            hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
 
         all_items = [dict(row) for row in all_items]
         laundry_items = [
