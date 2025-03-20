@@ -83,13 +83,12 @@ def show_tab5():
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
                 total_rfid = len(rfid_items)
-                total_hand = sum(i["total_items"] for i in hand_items) if hand_items else 0
+                total_hand = sum(i.get("total_items", 0) for i in hand_items)  # Default to 0 if missing
                 total_items = total_rfid + total_hand
                 total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
                 on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
                               item["status"] in ["On Rent", "Delivered"] and 
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
-                # Service only for RFID items, hand-counted don't have status
                 service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
                 child_data[common_name] = {
                     "total": total_items,
@@ -98,13 +97,12 @@ def show_tab5():
                     "service": service
                 }
 
-            total_contract = sum(
-                len([i for i in item_list if i.get("tag_id") is not None]) + 
-                sum(i["total_items"] for i in item_list if i.get("tag_id") is None)
-            )
             parent_data.append({
                 "contract": contract,
-                "total": total_contract
+                "total": sum(
+                    len([i for i in item_list if i.get("tag_id") is not None]) + 
+                    sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
+                )
             })
             child_map[contract] = child_data
 
