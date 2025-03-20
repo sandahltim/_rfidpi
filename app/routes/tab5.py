@@ -1,24 +1,54 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from collections import defaultdict
 from db_connection import DatabaseConnection
 from data_service import get_active_rental_contracts, get_active_rental_items
+import sqlite3
+import os
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
+
+# Path to new DB
+HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
+
+# Initialize hand-counted DB
+def init_hand_counted_db():
+    if not os.path.exists(HAND_COUNTED_DB):
+        conn = sqlite3.connect(HAND_COUNTED_DB)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS hand_counted_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                last_contract_num TEXT,
+                common_name TEXT,
+                total_items INTEGER,
+                tag_id TEXT DEFAULT NULL,
+                date_last_scanned TEXT,
+                last_scanned_by TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+        print("Initialized tab5_hand_counted.db")
 
 @tab5_bp.route("/")
 def show_tab5():
     print("Loading /tab5/ endpoint")
+    init_hand_counted_db()  # Ensure DB exists
+
     with DatabaseConnection() as conn:
         contracts = get_active_rental_contracts(conn)
-        # Fetch all items, not just active rental ones
         all_items = conn.execute("SELECT * FROM id_item_master").fetchall()
         active_items = get_active_rental_items(conn)
 
-    all_items = [dict(row) for row in all_items]  # Full item set
+    with sqlite3.connect(HAND_COUNTED_DB) as conn:
+        hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
+
+    all_items = [dict(row) for row in all_items]
     laundry_items = [
         item for item in [dict(row) for row in active_items]
         if item.get("last_contract_num", "").lower().startswith("l")
     ]
+    hand_counted = [dict(row) for row in hand_counted_items]
 
     filter_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_common_name = request.args.get("common_name", "").lower().strip()
@@ -29,8 +59,12 @@ def show_tab5():
     if filter_common_name:
         filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
 
+    # Merge RFID and hand-counted data
     contract_map = defaultdict(list)
-    for item in filtered_items:
+    for item in filtered_items:  # RFID L items
+        contract = item.get("last_contract_num", "Unknown")
+        contract_map[contract].append(item)
+    for item in hand_counted:  # Hand-counted items
         contract = item.get("last_contract_num", "Unknown")
         contract_map[contract].append(item)
 
@@ -44,23 +78,28 @@ def show_tab5():
 
         child_data = {}
         for common_name, items in common_name_map.items():
-            # Total Available across all contracts
+            # RFID counts
+            rfid_items = [i for i in items if i.get("tag_id") is not None]
+            hand_items = [i for i in items if i.get("tag_id") is None]
+            total_rfid = len(rfid_items)
+            total_hand = sum(i["total_items"] for i in hand_items) if hand_items else 0
+            total_items = total_rfid + total_hand
             total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
-            # On Rent/Delivered for non-L contracts only
             on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
                           item["status"] in ["On Rent", "Delivered"] and 
-                          not item.get("last_contract_num", "").lower().startswith("l"))
-            service = len(items) - sum(1 for item in items if item["status"] == "Ready to Rent") - sum(1 for item in items if item["status"] in ["On Rent", "Delivered"])
+                          (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
+            service = total_rfid - sum(1 for item in rfid_items if item["status"] == "Ready to Rent") - sum(1 for item in rfid_items if item["status"] in ["On Rent", "Delivered"])
             child_data[common_name] = {
-                "total": len(items),  # Total on this L contract
-                "available": total_available,  # All Ready to Rent
-                "on_rent": on_rent,  # Non-L On Rent/Delivered
+                "total": total_items,
+                "available": total_available,
+                "on_rent": on_rent,
                 "service": service
             }
 
         parent_data.append({
             "contract": contract,
-            "total": len(item_list)
+            "total": sum(len([i for i in items if i.get("tag_id") is not None]) + 
+                         (i["total_items"] if i.get("tag_id") is None else 0) for i in item_list)
         })
         child_map[contract] = child_data
 
@@ -73,6 +112,25 @@ def show_tab5():
         filter_contract=filter_contract,
         filter_common_name=filter_common_name
     )
+
+@tab5_bp.route("/save_hand_counted", methods=["POST"])
+def save_hand_counted():
+    print("Saving hand-counted entry")
+    common_name = request.form.get("common_name")
+    last_contract_num = request.form.get("last_contract_num")
+    total_items = int(request.form.get("total_items", 0))
+    last_scanned_by = request.form.get("last_scanned_by")
+    date_last_scanned = request.form.get("date_last_scanned")
+
+    with sqlite3.connect(HAND_COUNTED_DB) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO hand_counted_items (last_contract_num, common_name, total_items, tag_id, date_last_scanned, last_scanned_by)
+            VALUES (?, ?, ?, NULL, ?, ?)
+        """, (last_contract_num, common_name, total_items, date_last_scanned, last_scanned_by))
+        conn.commit()
+
+    return redirect(url_for("tab5_bp.show_tab5"))
 
 @tab5_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():

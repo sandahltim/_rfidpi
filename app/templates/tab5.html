@@ -16,6 +16,26 @@
   </div>
 </form>
 
+<!-- Hand-counted input form -->
+<form id="hand-counted-form" method="POST" action="/tab5/save_hand_counted" class="mb-3 row g-2">
+  <div class="col-12 col-md-2">
+    <input type="text" class="form-control" name="common_name" placeholder="Common Name" required>
+  </div>
+  <div class="col-12 col-md-2">
+    <input type="text" class="form-control" name="last_contract_num" placeholder="Last Contract Num" required>
+  </div>
+  <div class="col-12 col-md-2">
+    <input type="number" class="form-control" name="total_items" placeholder="Total Items" required>
+  </div>
+  <div class="col-12 col-md-2">
+    <input type="text" class="form-control" name="last_scanned_by" placeholder="Entered By" required>
+  </div>
+  <div class="col-12 col-md-2">
+    <input type="hidden" name="date_last_scanned" id="date_last_scanned">
+    <button type="submit" class="btn btn-primary" onclick="return confirmSave()">Save</button>
+  </div>
+</form>
+
 <!-- Parent Table: Contracts -->
 <div class="table-container">
   <table class="table table-striped table-bordered" id="parentTable">
@@ -127,7 +147,6 @@ function sortTable(tableEl, colName) {
   let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
 
   if (tableEl.id === "parentTable") {
-    // Parent table sorting (contract level)
     let rows = Array.from(tbody.children);
     let pairs = [];
     for (let i = 0; i < rows.length; i += 2) {
@@ -153,7 +172,6 @@ function sortTable(tableEl, colName) {
       if (pair.child) tbody.appendChild(pair.child);
     });
   } else if (tableEl.classList.contains("child-table")) {
-    // Child table sorting (common name level)
     let rows = Array.from(tbody.children);
     let pairs = [];
     for (let i = 0; i < rows.length; i += 2) {
@@ -179,7 +197,6 @@ function sortTable(tableEl, colName) {
       if (pair.grand) tbody.appendChild(pair.grand);
     });
   } else {
-    // Grandchild table sorting (item level)
     let rows = Array.from(tbody.querySelectorAll("tr"));
     rows.sort((a, b) => {
       let cellA = a.cells[colIndex]?.innerText.trim() || "";
@@ -284,6 +301,9 @@ function loadSubcatData(contract, common_name, page, childKey) {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded");
 
+  // Auto-fill date_last_scanned
+  document.getElementById("date_last_scanned").value = new Date().toISOString().replace("T", " ").slice(0, 19);
+
   // Parent table sorting
   let parentTable = document.getElementById("parentTable");
   parentTable.querySelectorAll("th.sortable").forEach(th => {
@@ -319,12 +339,10 @@ document.addEventListener("DOMContentLoaded", () => {
     target.addEventListener("show.bs.collapse", () => {
       toggle.textContent = "-";
       if (target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
-        // Load grandchild data when expanding the innermost level
         const contract = target.getAttribute("data-contract");
         const common_name = target.getAttribute("data-common-name");
         const childKey = target.id.split("grandchild-")[1];
         loadSubcatData(contract, common_name, 1, childKey);
-        // Bind sorting after data loads
         setTimeout(() => {
           const grandTable = document.getElementById(`grandchildTable-${childKey}`);
           if (grandTable) bindGrandchildSort(grandTable);
@@ -336,6 +354,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+
+function confirmSave() {
+  return confirm("Save this hand-counted entry?");
+}
 </script>
 
 <style>
@@ -347,8 +369,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   .table-container {
     width: 100%;
-    overflow-y: visible; /* Let content dictate scroll */
-    padding-bottom: 100px; /* More empty space at bottom */
+    overflow-y: visible;
+    padding-bottom: 100px;
   }
   .table-container table {
     width: 100%;
@@ -356,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   .child-table-container {
     width: 100%;
-    overflow-y: visible; /* Let content dictate scroll */
+    overflow-y: visible;
   }
   .child-table-container table {
     width: 100%;
@@ -364,7 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   .grandchild-table-container {
     width: 100%;
-    overflow-y: visible; /* Let content dictate scroll */
+    overflow-y: visible;
   }
   .grandchild-table-container table {
     width: 100%;
