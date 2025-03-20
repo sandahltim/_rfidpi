@@ -105,10 +105,9 @@ def show_tab5():
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
             hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
-            total_contract = rfid_total + hand_total
             parent_data.append({
                 "contract": contract,
-                "total": total_contract
+                "total": rfid_total + hand_total  # Fixed: No nested sum
             })
             child_map[contract] = child_data
 
