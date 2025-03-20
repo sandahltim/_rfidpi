@@ -12,8 +12,9 @@ def show_tab5():
         contracts = get_active_rental_contracts(conn)
         items = get_active_rental_items(conn)
 
+    all_items = [dict(row) for row in items]  # No L filter here
     laundry_items = [
-        item for item in [dict(row) for row in items]
+        item for item in all_items
         if item.get("last_contract_num", "").lower().startswith("l")
     ]
 
@@ -41,12 +42,13 @@ def show_tab5():
 
         child_data = {}
         for common_name, items in common_name_map.items():
-            available = sum(1 for item in items if item["status"] == "Ready to Rent")
+            # Use all_items for Available count, not just filtered L items
+            total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
             on_rent = sum(1 for item in items if item["status"] in ["On Rent", "Delivered"])
-            service = len(items) - available - on_rent
+            service = len(items) - sum(1 for item in items if item["status"] == "Ready to Rent") - on_rent
             child_data[common_name] = {
                 "total": len(items),
-                "available": available,
+                "available": total_available,  # Now total across all contracts
                 "on_rent": on_rent,
                 "service": service
             }
