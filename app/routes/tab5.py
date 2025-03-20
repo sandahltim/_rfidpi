@@ -4,15 +4,17 @@ from db_connection import DatabaseConnection
 from data_service import get_active_rental_contracts, get_active_rental_items
 import sqlite3
 import os
+import logging
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
+logging.basicConfig(level=logging.DEBUG)
 
 def init_hand_counted_db():
     try:
         if not os.path.exists(HAND_COUNTED_DB):
-            conn = sqlite3.connect(HAND_COUNTED_DB)
+            conn = sqlite3.connect(HAND_COUNTED_DB, timeout=10)
             cursor = conn.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS hand_counted_items (
@@ -27,23 +29,25 @@ def init_hand_counted_db():
             """)
             conn.commit()
             conn.close()
-            print("Initialized tab5_hand_counted.db")
+            logging.debug("Initialized tab5_hand_counted.db")
         os.chmod(HAND_COUNTED_DB, 0o666)
     except Exception as e:
-        print(f"Error initializing tab5_hand_counted.db: {e}")
+        logging.error(f"Error initializing tab5_hand_counted.db: {e}")
 
 @tab5_bp.route("/")
 def show_tab5():
-    print("Loading /tab5/ endpoint")
+    logging.debug("Loading /tab5/ endpoint")
     init_hand_counted_db()
 
     try:
         with DatabaseConnection() as conn:
+            logging.debug("Fetching RFID data")
             contracts = get_active_rental_contracts(conn)
             all_items = conn.execute("SELECT * FROM id_item_master").fetchall()
             active_items = get_active_rental_items(conn)
 
-        with sqlite3.connect(HAND_COUNTED_DB) as conn:
+        with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
+            logging.debug("Fetching hand-counted data")
             hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
 
         all_items = [dict(row) for row in all_items]
@@ -62,6 +66,7 @@ def show_tab5():
         if filter_common_name:
             filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
 
+        logging.debug("Merging data")
         contract_map = defaultdict(list)
         for item in filtered_items:
             contract = item.get("last_contract_num", "Unknown")
@@ -73,6 +78,7 @@ def show_tab5():
         parent_data = []
         child_map = {}
         for contract, item_list in contract_map.items():
+            logging.debug(f"Processing contract: {contract}")
             common_name_map = defaultdict(list)
             for item in item_list:
                 common_name = item.get("common_name", "Unknown")
@@ -83,7 +89,7 @@ def show_tab5():
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
                 total_rfid = len(rfid_items)
-                total_hand = sum(i.get("total_items", 0) for i in hand_items)  # Default to 0 if missing
+                total_hand = sum(i.get("total_items", 0) for i in hand_items)
                 total_items = total_rfid + total_hand
                 total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
                 on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
@@ -106,8 +112,10 @@ def show_tab5():
             })
             child_map[contract] = child_data
 
+        logging.debug("Sorting parent data")
         parent_data.sort(key=lambda x: x["contract"].lower())
 
+        logging.debug("Rendering Tab 5")
         return render_template(
             "tab5.html",
             parent_data=parent_data,
@@ -116,12 +124,12 @@ def show_tab5():
             filter_common_name=filter_common_name
         )
     except Exception as e:
-        print(f"Error in show_tab5: {e}")
+        logging.error(f"Error in show_tab5: {e}")
         return "Internal Server Error", 500
 
 @tab5_bp.route("/save_hand_counted", methods=["POST"])
 def save_hand_counted():
-    print("Saving hand-counted entry")
+    logging.debug("Saving hand-counted entry")
     try:
         common_name = request.form.get("common_name")
         last_contract_num = request.form.get("last_contract_num")
@@ -129,7 +137,7 @@ def save_hand_counted():
         last_scanned_by = request.form.get("last_scanned_by")
         date_last_scanned = request.form.get("date_last_scanned")
 
-        with sqlite3.connect(HAND_COUNTED_DB) as conn:
+        with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO hand_counted_items (last_contract_num, common_name, total_items, tag_id, date_last_scanned, last_scanned_by)
@@ -139,12 +147,12 @@ def save_hand_counted():
 
         return redirect(url_for("tab5_bp.show_tab5"))
     except Exception as e:
-        print(f"Error saving hand-counted entry: {e}")
+        logging.error(f"Error saving hand-counted entry: {e}")
         return "Internal Server Error", 500
 
 @tab5_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
-    print("Hit /tab5/subcat_data endpoint")
+    logging.debug("Hit /tab5/subcat_data endpoint")
     contract = request.args.get('contract')
     common_name = request.args.get('common_name')
     page = int(request.args.get('page', 1))
@@ -179,7 +187,7 @@ def subcat_data():
     end = start + per_page
     paginated_items = subcat_items[start:end]
 
-    print(f"AJAX: Contract: {contract}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
+    logging.debug(f"AJAX: Contract: {contract}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
 
     return jsonify({
         "items": [{
