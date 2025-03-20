@@ -17,7 +17,7 @@
 </form>
 
 <!-- Hand-counted input form -->
-<form id="hand-counted-form" method="POST" action="/tab5/save_hand_counted" class="mb-3 row g-2">
+<form id="hand-counted-form" method="POST" class="mb-3 row g-2">
   <div class="col-12 col-md-2">
     <input type="text" class="form-control" name="common_name" placeholder="Common Name" required>
   </div>
@@ -32,7 +32,8 @@
   </div>
   <div class="col-12 col-md-2">
     <input type="hidden" name="date_last_scanned" id="date_last_scanned">
-    <button type="submit" class="btn btn-primary" onclick="return confirmSave()">Save</button>
+    <button type="submit" formaction="/tab5/save_hand_counted" class="btn btn-primary" onclick="return confirmSave()">Save</button>
+    <button type="submit" formaction="/tab5/update_hand_counted" class="btn btn-success" onclick="return confirmUpdate()">Update</button>
   </div>
 </form>
 
@@ -357,6 +358,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function confirmSave() {
   return confirm("Save this hand-counted entry?");
+}
+
+function confirmUpdate() {
+  return confirm("Update this hand-counted contract?");
 }
 </script>
 

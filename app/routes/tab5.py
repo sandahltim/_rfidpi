@@ -49,7 +49,7 @@ def show_tab5():
         with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
             logging.debug("Fetching hand-counted data")
             conn.row_factory = sqlite3.Row
-            hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
+            hand_counted_items = conn.execute("SELECT * FROM hand_counted_items WHERE last_contract_num LIKE 'L%'").fetchall()
 
         all_items = [dict(row) for row in all_items]
         laundry_items = [
@@ -150,6 +150,64 @@ def save_hand_counted():
         logging.error(f"Error saving hand-counted entry: {e}")
         return "Internal Server Error", 500
 
+@tab5_bp.route("/update_hand_counted", methods=["POST"])
+def update_hand_counted():
+    logging.debug("Updating hand-counted entry")
+    try:
+        common_name = request.form.get("common_name")
+        last_contract_num = request.form.get("last_contract_num")
+        returned_qty = int(request.form.get("total_items", 0))
+        last_scanned_by = request.form.get("last_scanned_by")
+        date_last_scanned = request.form.get("date_last_scanned")
+
+        if not last_contract_num.startswith("L"):
+            logging.error(f"Invalid contract: {last_contract_num} must start with 'L'")
+            return "Contract must start with 'L'", 400
+
+        with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            # Find matching open L contract
+            cursor.execute("""
+                SELECT id, total_items FROM hand_counted_items 
+                WHERE last_contract_num = ? AND common_name = ?
+            """, (last_contract_num, common_name))
+            row = cursor.fetchone()
+
+            if not row:
+                logging.error(f"No matching L contract found: {last_contract_num}, {common_name}")
+                return "No matching L contract found", 404
+
+            orig_id, orig_total = row["id"], row["total_items"]
+            new_total = orig_total - returned_qty
+
+            if new_total < 0:
+                logging.error(f"Returned quantity {returned_qty} exceeds original {orig_total}")
+                return "Returned quantity exceeds original total", 400
+
+            # Update original L contract
+            if new_total == 0:
+                cursor.execute("DELETE FROM hand_counted_items WHERE id = ?", (orig_id,))
+            else:
+                cursor.execute("""
+                    UPDATE hand_counted_items SET total_items = ? 
+                    WHERE id = ?
+                """, (new_total, orig_id))
+
+            # Add new C contract entry
+            closed_contract = "C" + last_contract_num[1:]
+            cursor.execute("""
+                INSERT INTO hand_counted_items (last_contract_num, common_name, total_items, tag_id, date_last_scanned, last_scanned_by)
+                VALUES (?, ?, ?, NULL, ?, ?)
+            """, (closed_contract, common_name, returned_qty, date_last_scanned, last_scanned_by))
+
+            conn.commit()
+
+        return redirect(url_for("tab5_bp.show_tab5"))
+    except Exception as e:
+        logging.error(f"Error updating hand-counted entry: {e}")
+        return "Internal Server Error", 500
+
 @tab5_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
     logging.debug("Hit /tab5/subcat_data endpoint")
@@ -163,7 +221,7 @@ def subcat_data():
 
     with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
         conn.row_factory = sqlite3.Row
-        hand_items = conn.execute("SELECT * FROM hand_counted_items WHERE last_contract_num = ? AND common_name = ?", 
+        hand_items = conn.execute("SELECT * FROM hand_counted_items WHERE last_contract_num LIKE 'L%' AND last_contract_num = ? AND common_name = ?", 
                                   (contract, common_name)).fetchall()
 
     laundry_items = [
@@ -175,7 +233,7 @@ def subcat_data():
     filter_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_common_name = request.args.get("common_name_filter", "").lower().strip()
 
-    filtered_items = laundry_items + hand_counted  # Merge RFID and hand-counted
+    filtered_items = laundry_items + hand_counted
     if filter_contract:
         filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
     if filter_common_name:
@@ -197,9 +255,9 @@ def subcat_data():
 
     return jsonify({
         "items": [{
-            "tag_id": item.get("tag_id", "N/A"),  # Hand-counted has no tag_id
+            "tag_id": item.get("tag_id", "N/A"),
             "common_name": item["common_name"],
-            "status": item.get("status", "Hand Counted"),  # Default for hand-counted
+            "status": item.get("status", "Hand Counted"),
             "bin_location": item.get("bin_location", "N/A"),
             "quality": item.get("quality", "N/A"),
             "last_contract_num": item["last_contract_num"],
