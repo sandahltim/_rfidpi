@@ -48,7 +48,7 @@ def show_tab5():
 
         with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
             logging.debug("Fetching hand-counted data")
-            conn.row_factory = sqlite3.Row  # Ensure rows are dict-like
+            conn.row_factory = sqlite3.Row
             hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
 
         all_items = [dict(row) for row in all_items]
@@ -161,15 +161,21 @@ def subcat_data():
     with DatabaseConnection() as conn:
         items = get_active_rental_items(conn)
 
+    with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
+        conn.row_factory = sqlite3.Row
+        hand_items = conn.execute("SELECT * FROM hand_counted_items WHERE last_contract_num = ? AND common_name = ?", 
+                                  (contract, common_name)).fetchall()
+
     laundry_items = [
         item for item in [dict(row) for row in items]
         if item.get("last_contract_num", "").lower().startswith("l")
     ]
+    hand_counted = [dict(row) for row in hand_items]
 
     filter_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_common_name = request.args.get("common_name_filter", "").lower().strip()
 
-    filtered_items = laundry_items
+    filtered_items = laundry_items + hand_counted  # Merge RFID and hand-counted
     if filter_contract:
         filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
     if filter_common_name:
@@ -191,11 +197,11 @@ def subcat_data():
 
     return jsonify({
         "items": [{
-            "tag_id": item["tag_id"],
+            "tag_id": item.get("tag_id", "N/A"),  # Hand-counted has no tag_id
             "common_name": item["common_name"],
-            "status": item["status"],
-            "bin_location": item["bin_location"],
-            "quality": item["quality"],
+            "status": item.get("status", "Hand Counted"),  # Default for hand-counted
+            "bin_location": item.get("bin_location", "N/A"),
+            "quality": item.get("quality", "N/A"),
             "last_contract_num": item["last_contract_num"],
             "date_last_scanned": item.get("date_last_scanned", "N/A"),
             "last_scanned_by": item.get("last_scanned_by", "Unknown")
