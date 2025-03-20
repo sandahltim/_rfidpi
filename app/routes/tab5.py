@@ -7,10 +7,8 @@ import os
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
-# Path to new DB
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
 
-# Initialize hand-counted DB with error handling
 def init_hand_counted_db():
     try:
         if not os.path.exists(HAND_COUNTED_DB):
@@ -30,7 +28,6 @@ def init_hand_counted_db():
             conn.commit()
             conn.close()
             print("Initialized tab5_hand_counted.db")
-        # Ensure write permissions
         os.chmod(HAND_COUNTED_DB, 0o666)
     except Exception as e:
         print(f"Error initializing tab5_hand_counted.db: {e}")
@@ -38,7 +35,7 @@ def init_hand_counted_db():
 @tab5_bp.route("/")
 def show_tab5():
     print("Loading /tab5/ endpoint")
-    init_hand_counted_db()  # Ensure DB exists
+    init_hand_counted_db()
 
     try:
         with DatabaseConnection() as conn:
@@ -92,7 +89,8 @@ def show_tab5():
                 on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
                               item["status"] in ["On Rent", "Delivered"] and 
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
-                service = total_rfid - sum(1 for item in rfid_items if item["status"] == "Ready to Rent") - sum(1 for item in rfid_items if item["status"] in ["On Rent", "Delivered"])
+                # Service only for RFID items, hand-counted don't have status
+                service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
                 child_data[common_name] = {
                     "total": total_items,
                     "available": total_available,
@@ -100,10 +98,13 @@ def show_tab5():
                     "service": service
                 }
 
+            total_contract = sum(
+                len([i for i in item_list if i.get("tag_id") is not None]) + 
+                sum(i["total_items"] for i in item_list if i.get("tag_id") is None)
+            )
             parent_data.append({
                 "contract": contract,
-                "total": sum(len([i for i in items if i.get("tag_id") is not None]) + 
-                             (i["total_items"] if i.get("tag_id") is None else 0) for i in item_list)
+                "total": total_contract
             })
             child_map[contract] = child_data
 
