@@ -48,14 +48,18 @@ def show_tab5():
 
         with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
             logging.debug("Fetching hand-counted data")
-            hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
+            try:
+                hand_counted_items = conn.execute("SELECT * FROM hand_counted_items").fetchall()
+            except Exception as e:
+                logging.error(f"Hand-counted fetch failed: {e}")
+                hand_counted_items = []  # Fallback to empty list
 
         all_items = [dict(row) for row in all_items]
         laundry_items = [
             item for item in [dict(row) for row in active_items]
             if item.get("last_contract_num", "").lower().startswith("l")
         ]
-        hand_counted = [dict(row) for row in hand_counted_items]
+        hand_counted = [dict(row) for row in hand_counted_items] if hand_counted_items else []
 
         filter_contract = request.args.get("last_contract_num", "").lower().strip()
         filter_common_name = request.args.get("common_name", "").lower().strip()
@@ -107,7 +111,7 @@ def show_tab5():
             hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
             parent_data.append({
                 "contract": contract,
-                "total": rfid_total + hand_total  # Fixed: No nested sum
+                "total": rfid_total + hand_total
             })
             child_map[contract] = child_data
 
