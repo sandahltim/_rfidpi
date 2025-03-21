@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1>Active Rentals</h1>
+<h1 style="color: #2c3e50; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Active Rentals</h1>
 
-<!-- Filter inputs -->
 <div class="mb-3 row g-2">
   <div class="col-12 col-md-2">
     <input type="text" class="table-filter form-control" data-filter="contract_num" placeholder="Filter Contract Number" />
@@ -13,7 +12,6 @@
   </div>
 </div>
 
-<!-- Pagination controls (top) -->
 <nav aria-label="Page navigation" class="mb-3">
   <ul class="pagination justify-content-center flex-wrap">
     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
@@ -34,40 +32,38 @@
   </ul>
 </nav>
 
-<!-- Parent Table: Contracts -->
 <div class="table-responsive">
-  <table class="table table-striped table-bordered" id="parentTable">
-    <thead>
+  <table class="table table-striped table-bordered" id="parentTable" style="border: 3px solid #2c3e50;">
+    <thead style="background: #34495e; color: #ecf0f1;">
       <tr>
-        <th style="width: 50px;"></th> <!-- Toggle column -->
+        <th style="width: 50px;"></th>
         <th class="sortable" data-col-name="contract_num">Contract #</th>
         <th class="sortable" data-col-name="client_name">Client Name</th>
         <th class="sortable" data-col-name="total_items">Total Items</th>
         <th class="sortable" data-col-name="scan_date">Last Scan Date</th>
         <th class="sortable" data-col-name="transaction_notes">Transaction Notes</th>
+        <th style="width: 100px;">Print</th>
       </tr>
     </thead>
     <tbody>
       {% for parent in parent_data %}
       {% set parent_idx = loop.index + (current_page - 1) * 20 %}
-      <!-- Parent Row -->
-      <tr class="table-active">
+      <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-{{ parent_idx }}">+</span></td>
         <td>{{ parent.contract_num }}</td>
         <td>{{ parent.client_name }}</td>
         <td>{{ parent.total_items }}</td>
         <td>{{ parent.scan_date }}</td>
         <td>{{ parent.transaction_notes }}</td>
+        <td><button class="btn btn-outline-dark btn-sm print-btn" data-contract="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
-
-      <!-- Middle Row: Common Names -->
       <tr>
-        <td colspan="6" class="p-0">
+        <td colspan="7" class="p-0">
           <div id="middle-{{ parent_idx }}" class="collapse">
-            <table class="table mb-0 middle-table" id="middleTable-{{ parent_idx }}">
-              <thead>
+            <table class="table mb-0 middle-table" id="middleTable-{{ parent_idx }}" style="border: 2px solid #34495e;">
+              <thead style="background: #3498db; color: #fff;">
                 <tr>
-                  <th style="width: 50px;"></th> <!-- Toggle column -->
+                  <th style="width: 50px;"></th>
                   <th class="sortable" data-col-name="common_name">Common Name</th>
                   <th class="sortable" data-col-name="total_on_contract">Total on Contract</th>
                 </tr>
@@ -80,13 +76,11 @@
                   <td>{{ middle.common_name }}</td>
                   <td>{{ middle.total_on_contract }}</td>
                 </tr>
-
-                <!-- Child Row: Items -->
                 <tr>
                   <td colspan="3" class="p-0">
                     <div id="child-{{ middle_idx }}" class="collapse">
-                      <table class="table mb-0 child-table" id="childTable-{{ middle_idx }}">
-                        <thead>
+                      <table class="table mb-0 child-table" id="childTable-{{ middle_idx }}" style="border: 2px solid #2c3e50;">
+                        <thead style="background: #2c3e50; color: #ecf0f1;">
                           <tr>
                             <th class="sortable" data-col-name="tag_id">Tag ID</th>
                             <th class="sortable" data-col-name="common_name">Common Name</th>
@@ -100,7 +94,7 @@
                         </thead>
                         <tbody>
                           {% for item in contract_map[parent.contract_num][middle.common_name] %}
-                          <tr>
+                          <tr class="{% if item.status in ['On Rent', 'Delivered'] %}table-warning{% elif item.status == 'Ready to Rent' %}table-success{% endif %}">
                             <td>{{ item.tag_id }}</td>
                             <td>{{ item.common_name }}</td>
                             <td>{{ item.quality }}</td>
@@ -127,7 +121,6 @@
   </table>
 </div>
 
-<!-- Pagination controls (bottom) -->
 <nav aria-label="Page navigation" class="mt-3">
   <ul class="pagination justify-content-center flex-wrap">
     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
@@ -148,7 +141,6 @@
   </ul>
 </nav>
 
-<!-- Inline JS for sorting and filtering -->
 <script>
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
@@ -270,6 +262,74 @@ function filterTable() {
   });
 }
 
+function printContract(contract) {
+  const contractMap = {{ contract_map|tojson }};
+  const items = contractMap[contract] || {};
+
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`
+    <html>
+      <head>
+        <title>Active Rental: ${contract}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
+          th { background: #3498db; color: #fff; font-weight: bold; }
+          tr:nth-child(even) { background: #f9f9f9; }
+          tr:hover { background: #dfe6e9; }
+        </style>
+      </head>
+      <body>
+        <h1>Active Rental Contract: ${contract}</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>Tag ID</th>
+              <th>Common Name</th>
+              <th>Quality</th>
+              <th>Bin Location</th>
+              <th>Status</th>
+              <th>Last Scanned By</th>
+              <th>Date Last Scanned</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+  `);
+
+  for (const commonName in items) {
+    if (items.hasOwnProperty(commonName)) {
+      items[commonName].forEach(item => {
+        printWin.document.write(`
+          <tr>
+            <td>${item.tag_id}</td>
+            <td>${item.common_name}</td>
+            <td>${item.quality}</td>
+            <td>${item.bin_location}</td>
+            <td>${item.status}</td>
+            <td>${item.last_scanned_by}</td>
+            <td>${item.date_last_scanned}</td>
+            <td>${item.notes}</td>
+          </tr>
+        `);
+      });
+    }
+  }
+
+  printWin.document.write(`
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  printWin.document.close();
+  printWin.focus();
+  printWin.print();
+  printWin.close();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   let parentTable = document.getElementById("parentTable");
   parentTable.querySelectorAll("th.sortable").forEach(th => {
@@ -311,11 +371,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  document.querySelectorAll(".print-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const contract = btn.getAttribute("data-contract");
+      printContract(contract);
+    });
+  });
+
+  document.querySelectorAll(".btn").forEach(btn => {
+    btn.addEventListener("mouseover", () => {
+      btn.style.transform = "translateY(-2px)";
+      btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
+    });
+    btn.addEventListener("mouseout", () => {
+      btn.style.transform = "translateY(0)";
+      btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
+    });
+  });
+
   filterTable();
 });
 </script>
 
 <style>
+  .table-warning { background: #ffff99; }
+  .table-success { background: #ccffcc; }
   @media (max-width: 768px) {
     .table-filter { font-size: 0.9rem; }
     .pagination .page-link { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
@@ -323,5 +403,3 @@ document.addEventListener("DOMContentLoaded", () => {
 </style>
 
 {% endblock %}
-                
-
