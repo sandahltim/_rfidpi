@@ -65,9 +65,9 @@ def show_tab6():
     if filter_status:
         filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
     if filter_rental_class_num:
-        rental_class_nums = [int(num.strip()) for num in filter_rental_class_num.split(',') if num.strip().isdigit()]
+        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]  # Text, no int conversion
         if not rental_class_nums:  # Placeholder until tomorrow
-            rental_class_nums = [999, 998, 997]  # Swap these with real numbers
+            rental_class_nums = ["1", "998", "997"]  # Text placeholders
         filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
     # Group by category
@@ -141,9 +141,9 @@ def subcat_data():
     if filter_status:
         filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
     if filter_rental_class_num:
-        rental_class_nums = [int(num.strip()) for num in filter_rental_class_num.split(',') if num.strip().isdigit()]
+        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]  # Text, no int conversion
         if not rental_class_nums:  # Placeholder until tomorrow
-            rental_class_nums = [01, 998, 997]  # Swap these with real numbers
+            rental_class_nums = ["1", "998", "997"]  # Text placeholders
         filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
     category_items = [item for item in filtered_items if categorize_item(item) == category]
