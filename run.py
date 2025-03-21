@@ -12,7 +12,7 @@ def background_refresh():
     while True:
         refresh_data()
         print("Waiting 10 minutes before next update...")
-        time.sleep(600)
+        time.sleep(300)
 
 # Initialize Flask app globally for Gunicorn
 app = create_app()
