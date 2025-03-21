@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1>Inventory by Category</h1>
+<h1 style="color: #2c3e50; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Inventory by Category</h1>
 
-<!-- Filter inputs with URL submission -->
 <form method="GET" class="mb-3 row g-2">
   <div class="col-12 col-md-2">
     <input type="text" class="form-control" name="common_name" placeholder="Filter Common Name" value="{{ filter_common_name }}" />
@@ -21,87 +20,88 @@
     <input type="text" class="form-control" name="status" placeholder="Filter Status" value="{{ filter_status }}" />
   </div>
   <div class="col-12 col-md-2">
-    <button type="submit" class="btn btn-primary">Apply Filters</button>
+    <button type="submit" class="btn btn-primary" style="background: #e74c3c; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Apply Filters</button>
   </div>
 </form>
 
-<!-- Parent Table: Categories -->
 <div class="table-container">
-  <table class="table table-striped table-bordered" id="parentTable">
-    <thead>
+  <table class="table table-striped table-bordered" id="parentTable" style="border: 3px solid #2c3e50;">
+    <thead style="background: #34495e; color: #ecf0f1;">
       <tr>
-        <th style="width: 50px;"></th> <!-- Toggle column -->
+        <th style="width: 50px;"></th>
         <th class="sortable" data-col-name="category">Category</th>
         <th class="sortable" data-col-name="total">Total Items</th>
         <th class="sortable" data-col-name="available">Items Available</th>
         <th class="sortable" data-col-name="on_rent">Items On Rent</th>
         <th class="sortable" data-col-name="service">Service</th>
+        <th style="width: 100px;">Print Aggregate</th>
       </tr>
     </thead>
     <tbody>
       {% for parent in parent_data %}
       {% set cat_key = parent.category|lower|replace(' ', '_') %}
-      <!-- Parent Row -->
-      <tr class="table-active">
+      <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-{{ cat_key }}">+</span></td>
         <td>{{ parent.category }}</td>
         <td>{{ parent.total }}</td>
         <td>{{ parent.available }}</td>
         <td>{{ parent.on_rent }}</td>
         <td>{{ parent.service }}</td>
+        <td><button class="btn btn-outline-dark btn-sm print-aggregate-btn" data-category="{{ parent.category }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
-
-      <!-- Middle Row: Subcategory Dropdown and Aggregate Common Names -->
       <tr>
-        <td colspan="6" class="p-0">
+        <td colspan="7" class="p-0">
           <div id="middle-{{ cat_key }}" class="collapse" data-category="{{ parent.category }}" {% if expand_category == parent.category %}data-auto-expand="true"{% endif %}>
             <div class="mb-2 mx-2">
-              <select class="form-select subcategory-dropdown" data-category="{{ parent.category }}">
+              <select class="form-select subcategory-dropdown" data-category="{{ parent.category }}" style="border: 2px solid #34495e;">
                 {% for subcat in sub_map[parent.category].subcategories %}
                 <option value="{{ subcat }}" {% if selected_subcat == subcat or (not selected_subcat and loop.first) %}selected{% endif %}>{{ subcat }}</option>
                 {% endfor %}
               </select>
             </div>
-
             {% if middle_map[parent.category] %}
-            <!-- Aggregate Common Name Table -->
-            <table class="table mb-0 middle-table" id="middleTable-{{ cat_key }}">
-              <thead>
+            <table class="table mb-0 middle-table" id="middleTable-{{ cat_key }}" style="border: 2px solid #34495e;">
+              <thead style="background: #3498db; color: #fff;">
                 <tr>
-                  <th style="width: 50px;"></th> <!-- Toggle column -->
+                  <th style="width: 50px;"></th>
+                  <th class="sortable" data-col-name="category">Category</th>
+                  <th class="sortable" data-col-name="total">Total Items</th>
+                  <th class="sortable" data-col-name="available">Available</th>
+                  <th class="sortable" data-col-name="on_rent">On Rent</th>
+                  <th class="sortable" data-col-name="service">Service</th>
                   <th class="sortable" data-col-name="common_name">Common Name</th>
-                  <th class="sortable" data-col-name="total">Total</th>
+                  <th class="sortable" data-col-name="total_items">Total Items</th>
+                  <th style="width: 100px;">Print Items</th>
                 </tr>
               </thead>
               <tbody>
                 {% for middle in middle_map[parent.category] %}
                 {% set middle_idx = cat_key ~ '_' ~ loop.index %}
-                <tr>
+                <tr class="{% if parent.service > 0 %}table-danger{% elif parent.on_rent > 0 %}table-warning{% else %}table-success{% endif %}">
                   <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_idx }}">+</span></td>
+                  <td>{{ parent.category }}</td>
+                  <td>{{ parent.total }}</td>
+                  <td>{{ parent.available }}</td>
+                  <td>{{ parent.on_rent }}</td>
+                  <td>{{ parent.service }}</td>
                   <td>{{ middle.common_name }}</td>
                   <td>{{ middle.total }}</td>
+                  <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-category="{{ parent.category }}" data-common-name="{{ middle.common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                 </tr>
-
-                <!-- Grandchild Row: Items for Selected Common Name -->
                 <tr>
-                  <td colspan="3" class="p-0">
+                  <td colspan="9" class="p-0">
                     <div id="child-{{ middle_idx }}" class="collapse" data-common-name="{{ middle.common_name }}">
-                      <!-- Loading Spinner -->
                       <div id="loading-{{ middle_idx }}" class="text-center my-2" style="display: none;">
                         <div class="spinner-border text-primary" role="status">
                           <span class="visually-hidden">Loading...</span>
                         </div>
                       </div>
-
-                      <!-- Item Pagination (Above Table) -->
                       <nav aria-label="Item navigation" class="mb-2 mx-2" id="pagination-{{ middle_idx }}">
                         <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
                       </nav>
-
-                      <!-- Items Table -->
                       <div class="grandchild-table-container">
-                        <table class="table mb-0 grandchild-table" id="grandchildTable-{{ middle_idx }}">
-                          <thead>
+                        <table class="table mb-0 grandchild-table" id="grandchildTable-{{ middle_idx }}" style="border: 2px solid #2c3e50;">
+                          <thead style="background: #2c3e50; color: #ecf0f1;">
                             <tr>
                               <th class="sortable" data-col-name="tag_id">Tag ID</th>
                               <th class="sortable" data-col-name="common_name">Common Name</th>
@@ -128,7 +128,6 @@
   </table>
 </div>
 
-<!-- Inline JS for sorting, dropdown, and AJAX -->
 <script>
 function sortTable(tableEl, colName) {
   const tbody = tableEl.querySelector("tbody");
@@ -299,7 +298,165 @@ function loadSubcatData(category, subcat, commonName, page, catKey) {
     });
 }
 
-// Event delegation for sorting
+function printAggregate(category) {
+  const middleMap = {{ middle_map|tojson }};
+  const parentData = {{ parent_data|tojson }};
+  const items = middleMap[category] || [];
+  const parent = parentData.find(p => p.category === category) || {};
+
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`
+    <html>
+      <head>
+        <title>Category Aggregate: ${category}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+          .parent-info { text-align: center; margin-bottom: 20px; }
+          .parent-info span { display: inline-block; margin: 0 15px; font-size: 1em; color: #34495e; }
+          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
+          th { background: #3498db; color: #fff; font-weight: bold; }
+          tr:nth-child(even) { background: #f9f9f9; }
+          tr:hover { background: #dfe6e9; }
+          tr.table-danger { background: #ffcccc; }
+          tr.table-warning { background: #ffff99; }
+          tr.table-success { background: #ccffcc; }
+        </style>
+      </head>
+      <body>
+        <h1>Category Aggregate: ${category}</h1>
+        <div class="parent-info">
+          <span>Total Items: ${parent.total || 'N/A'}</span>
+          <span>Available: ${parent.available || 'N/A'}</span>
+          <span>On Rent: ${parent.on_rent || 'N/A'}</span>
+          <span>Service: ${parent.service || 'N/A'}</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Total Items</th>
+              <th>Available</th>
+              <th>On Rent</th>
+              <th>Service</th>
+              <th>Common Name</th>
+              <th>Total Items</th>
+            </tr>
+          </thead>
+          <tbody>
+  `);
+
+  items.forEach(item => {
+    printWin.document.write(`
+      <tr class="${parent.service > 0 ? 'table-danger' : parent.on_rent > 0 ? 'table-warning' : 'table-success'}">
+        <td>${parent.category}</td>
+        <td>${parent.total}</td>
+        <td>${parent.available}</td>
+        <td>${parent.on_rent}</td>
+        <td>${parent.service}</td>
+        <td>${item.common_name}</td>
+        <td>${item.total}</td>
+      </tr>
+    `);
+  });
+
+  printWin.document.write(`
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  printWin.document.close();
+  printWin.focus();
+  printWin.print();
+  printWin.close();
+}
+
+function printItems(category, commonName) {
+  const urlParams = new URLSearchParams(window.location.search);
+  let allItems = [];
+  let page = 1;
+  let totalPages = 1;
+
+  async function fetchAllItems() {
+    while (page <= totalPages) {
+      const params = {
+        category: category,
+        subcat: document.querySelector(`select[data-category="${category}"]`).value,
+        common_name: commonName,
+        page: page,
+        common_name_filter: urlParams.get('common_name') || '',
+        tag_id: urlParams.get('tag_id') || '',
+        bin_location: urlParams.get('bin_location') || '',
+        last_contract_num: urlParams.get('last_contract_num') || '',
+        status: urlParams.get('status') || ''
+      };
+      const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      allItems = allItems.concat(data.items);
+      totalPages = data.total_pages;
+      page++;
+    }
+  }
+
+  fetchAllItems().then(() => {
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+      <html>
+        <head>
+          <title>Category Items: ${category} - ${commonName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+            table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
+            th { background: #3498db; color: #fff; font-weight: bold; }
+            tr:nth-child(even) { background: #f9f9f9; }
+            tr:hover { background: #dfe6e9; }
+          </style>
+        </head>
+        <body>
+          <h1>Category Items: ${category} - ${commonName}</h1>
+          <table>
+            <thead>
+              <tr>
+                <th>Tag ID</th>
+                <th>Common Name</th>
+                <th>Status</th>
+                <th>Bin Location</th>
+                <th>Quality</th>
+              </tr>
+            </thead>
+            <tbody>
+    `);
+
+    allItems.forEach(item => {
+      printWin.document.write(`
+        <tr>
+          <td>${item.tag_id}</td>
+          <td>${item.common_name}</td>
+          <td>${item.status}</td>
+          <td>${item.bin_location}</td>
+          <td>${item.quality}</td>
+        </tr>
+      `);
+    });
+
+    printWin.document.write(`
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+    printWin.focus();
+    printWin.print();
+    printWin.close();
+  });
+}
+
 document.addEventListener('click', (e) => {
   const th = e.target.closest('th.sortable');
   if (th) {
@@ -309,7 +466,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Event delegation for expand/collapse
 document.addEventListener('click', (e) => {
   const toggle = e.target.closest('.expand-toggle');
   if (toggle) {
@@ -345,7 +501,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Dropdown changes with event delegation
 document.addEventListener("change", (e) => {
   if (e.target.classList.contains("subcategory-dropdown")) {
     const select = e.target;
@@ -360,25 +515,56 @@ document.addEventListener("change", (e) => {
   }
 });
 
-// Initial expand if set (static)
-const expandCat = "{{ expand_category | default('') }}";
-if (expandCat) {
-  const collapse = document.querySelector(`#middle-${expandCat.toLowerCase().replace(/ /g, '_')}`);
-  if (collapse) {
-    collapse.classList.add("show");
-    const toggle = collapse.previousElementSibling ? collapse.previousElementSibling.querySelector(".expand-toggle") : null;
-    if (toggle) toggle.textContent = "-";
-  }
-}
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const category = btn.getAttribute("data-category");
+      printAggregate(category);
+    });
+  });
 
-document.querySelectorAll(".collapse").forEach(collapse => {
-  if (!collapse.getAttribute("data-auto-expand")) {
-    collapse.classList.remove("show");
+  document.querySelectorAll(".print-items-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const category = btn.getAttribute("data-category");
+      const commonName = btn.getAttribute("data-common-name");
+      printItems(category, commonName);
+    });
+  });
+
+  document.querySelectorAll(".btn").forEach(btn => {
+    btn.addEventListener("mouseover", () => {
+      btn.style.transform = "translateY(-2px)";
+      btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
+    });
+    btn.addEventListener("mouseout", () => {
+      btn.style.transform = "translateY(0)";
+      btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
+    });
+  });
+
+  const expandCat = "{{ expand_category | default('') }}";
+  if (expandCat) {
+    const collapse = document.querySelector(`#middle-${expandCat.toLowerCase().replace(/ /g, '_')}`);
+    if (collapse) {
+      collapse.classList.add("show");
+      const toggle = collapse.previousElementSibling ? collapse.previousElementSibling.querySelector(".expand-toggle") : null;
+      if (toggle) toggle.textContent = "-";
+    }
   }
+
+  document.querySelectorAll(".collapse").forEach(collapse => {
+    if (!collapse.getAttribute("data-auto-expand")) {
+      collapse.classList.remove("show");
+    }
+  });
 });
+
 </script>
 
 <style>
+  .table-danger { background: #ffcccc; }
+  .table-warning { background: #ffff99; }
+  .table-success { background: #ccffcc; }
   body, html {
     height: 100%;
     overflow: auto;
