@@ -13,30 +13,30 @@ def get_resale_items(conn):
     return conn.execute(query).fetchall()
 
 def categorize_item(item):
-    common_name = item.get("common_name", "").lower()
-    if "haze" in common_name or "ground fog" in common_name or "bubble juice" in common_name:
+    common_name = item.get("common_name", "").upper()
+    if common_name in ["FOG SOLUTION (GROUND) 1 QUART", "FOG SOLUTION (HAZE) 1 QUART", "BUBBLE JUICE 1 QUART"]:
         return "A/V Sales"
-    elif "chocolate" in common_name:
+    elif common_name in ["CHOCOLATE BAG 2LB. DARK", "CHOCOLATE BAG 2LB. MILK"]:
         return "Chocolate"
-    elif "floss" in common_name or "cotton candy" in common_name:
+    elif common_name in ["COTTON CANDY SUGAR PINK VANILLA (52 OZ", "COTTON CANDY SUGAR BLUE RASPBERRY-52oz", "COTTON CANDY SUGAR CHERRY (52 OZ CARTON", "COTTON CANDY SUGAR STRAWBERRY (52 OZ CA", "COTTON CANDY BAGS & TIES 100 PER PKG", "COTTON CANDY CONES 100 PER PKG.", "COTTON CANDY SUGAR BUBBLE GUM (52 OZ CA"]:
         return "Cotton Candy"
-    elif "aisle cloth" in common_name or "disposable propane" in common_name or "garbage cans" in common_name or "sterno" in common_name:
+    elif common_name in ["FUEL STERNO 8 OZ -LASTS 2+HRS", "FUEL BUTANE CARTRIDGE 8 OUNCE", "AISLE CLOTH 75 WHITE", "AISLE CLOTH 100 WHITE", "GARBAGE CAN DISPOSABLE 35 GAL W/ LID"]:
         return "Disposable Sales"
-    elif "donut" in common_name or "cheese" in common_name or "popcorn" in common_name:
+    elif common_name in ["NACHO CHEESE 140oz BAG", "POPCORN/SALT/OIL PRE-MEASURED KIT", "POPCORN BAGS 50/ PKG", "NACHO CHEESE SAUCE #10 CAN", "DONUT BAGS-MINI 70ct", "DONUT SUGAR 5 LBS & DISPENSER", "MINI DONUT -70 SERVINGS- SUPPLY PACKAGE"]:
         return "Popcorn-Cheese-Donut"
-    elif "frush" in common_name:
+    elif common_name in ["FRUSHEEZE STRAWBERRY DAQ 1/2 GALLON", "FRUSHEEZE FRUIT PUNCH 1/2 GALLON", "FRUSHEEZE MARGARITA 1/2 GALLON", "FRUSHEEZE BLUE RASPBERRY 1/2 GALLON", "FRUSHEEZE PINA COLADA 1/2 GALLON", "FRUSHEEZE CHERRY 1/2 GALLON", "FRUSHEEZE LEMONADE GRANITA MIX 1 GAL (5"]:
         return "Slushie Sales"
-    elif "syrup" in common_name or "snokone cones" in common_name:
+    elif common_name in ["SNOKONE SYRUP **LIME** 1 GALLON", "SNOKONE SYRUP **GRAPE** 1 GALLON", "SNOKONE SYRUP **CHERRY** 1 GALLON", "SNOKONE SYRUP **BLUE RASPBERRY 1 GALLON", "SNOKONE KONES 200 COUNT BOX", "SNOKONE SYRUP PUMP (1 GAL)", "SNOKONE SYRUP **PINK LEMONADE** 1 GALLON"]:
         return "SnoKone"
-    elif "8' banquet" in common_name:
+    elif "8 X 30" in common_name:
         return "8' Banquet"
-    elif "6' banquet" in common_name:
+    elif "6 X 30" in common_name:
         return "6' Banquet"
-    elif "60\" round" in common_name:
+    elif "ROUND 60" in common_name:
         return "60\" Round"
-    elif "48\" round" in common_name:
+    elif "ROUND 48" in common_name:
         return "48\" Round"
-    elif "30\"/36\" round" in common_name or "30/36 round" in common_name:
+    elif "ROUND 30" in common_name or "ROUND 36" in common_name:
         return "30\"/36\" Round"
     return "Other"
 
@@ -65,9 +65,20 @@ def show_tab6():
     if filter_status:
         filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
     if filter_rental_class_num:
-        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]  # Text, no int conversion
-        if not rental_class_nums:  # Placeholder until tomorrow
-            rental_class_nums = ["1", "998", "997"]  # Text placeholders
+        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
+        if not rental_class_nums:  # Full list from your data
+            rental_class_nums = [
+                "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
+                "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
+                "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
+                "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
+                "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
+                "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
+                "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
+                "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
+                "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
+                "64918", "64919", "64920", "65495", "65498"
+            ]
         filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
     # Group by category
@@ -141,9 +152,20 @@ def subcat_data():
     if filter_status:
         filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
     if filter_rental_class_num:
-        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]  # Text, no int conversion
-        if not rental_class_nums:  # Placeholder until tomorrow
-            rental_class_nums = ["1", "998", "997"]  # Text placeholders
+        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
+        if not rental_class_nums:  # Full list from your data
+            rental_class_nums = [
+                "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
+                "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
+                "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
+                "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
+                "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
+                "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
+                "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
+                "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
+                "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
+                "64918", "64919", "64920", "65495", "65498"
+            ]
         filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
     category_items = [item for item in filtered_items if categorize_item(item) == category]
