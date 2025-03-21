@@ -8,7 +8,7 @@ import logging
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
-HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
+HAND_COUNTED_DB = "/home/tim/_rfidpi/tab5_hand_counted.db"
 logging.basicConfig(level=logging.DEBUG)
 
 def init_hand_counted_db():
