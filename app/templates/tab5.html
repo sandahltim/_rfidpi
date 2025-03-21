@@ -301,29 +301,10 @@ function loadSubcatData(contract, common_name, page, childKey) {
     });
 }
 
-async function printContract(contract) {
-  const urlParams = new URLSearchParams(window.location.search);
-  let allItems = [];
-  let page = 1;
-  let totalPages = 1;
+function printContract(contract) {
+  const childMap = {{ child_map_json|tojson }};
+  const items = childMap[contract] || {};
 
-  // Fetch all pages
-  while (page <= totalPages) {
-    const params = {
-      contract: contract,
-      page: page,
-      last_contract_num: urlParams.get('last_contract_num') || '',
-      common_name_filter: urlParams.get('common_name') || ''
-    };
-    const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    allItems = allItems.concat(data.items);
-    totalPages = data.total_pages;
-    page++;
-  }
-
-  // Create print window
   const printWin = window.open('', '_blank');
   printWin.document.write(`
     <html>
@@ -331,9 +312,9 @@ async function printContract(contract) {
         <title>Laundry Contract: ${contract}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
-          h1 { font-size: 2.5em; text-align: center; color: #333; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 2px solid #666; padding: 8px; text-align: left; }
+          h1 { font-size: 1.5em; text-align: center; color: #333; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+          th, td { border: 2px solid #666; padding: 6px; text-align: left; }
           th { background-color: #ddd; font-weight: bold; }
           tr:nth-child(even) { background-color: #f9f9f9; }
           tr:hover { background-color: #f0f0f0; }
@@ -344,33 +325,24 @@ async function printContract(contract) {
         <table>
           <thead>
             <tr>
-              <th>Tag ID</th>
               <th>Common Name</th>
-              <th>Status</th>
-              <th>Bin Location</th>
-              <th>Quality</th>
-              <th>Last Contract Num</th>
-              <th>Date Last Scanned</th>
-              <th>Last Scanned By</th>
+              <th>Total Items</th>
             </tr>
           </thead>
           <tbody>
   `);
 
-  allItems.forEach(item => {
-    printWin.document.write(`
-      <tr>
-        <td>${item.tag_id}</td>
-        <td>${item.common_name}</td>
-        <td>${item.status}</td>
-        <td>${item.bin_location}</td>
-        <td>${item.quality}</td>
-        <td>${item.last_contract_num}</td>
-        <td>${item.date_last_scanned}</td>
-        <td>${item.last_scanned_by}</td>
-      </tr>
-    `);
-  });
+  for (const commonName in items) {
+    if (items.hasOwnProperty(commonName)) {
+      const totals = items[commonName];
+      printWin.document.write(`
+        <tr>
+          <td>${commonName}</td>
+          <td>${totals.total}</td>
+        </tr>
+      `);
+    }
+  }
 
   printWin.document.write(`
           </tbody>
@@ -387,10 +359,8 @@ async function printContract(contract) {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded");
 
-  // Auto-fill date_last_scanned
   document.getElementById("date_last_scanned").value = new Date().toISOString().replace("T", " ").slice(0, 19);
 
-  // Parent table sorting
   let parentTable = document.getElementById("parentTable");
   parentTable.querySelectorAll("th.sortable").forEach(th => {
     th.addEventListener("click", () => {
@@ -399,7 +369,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Child table sorting
   document.querySelectorAll(".child-table").forEach(childTable => {
     childTable.querySelectorAll("th.sortable").forEach(th => {
       th.addEventListener("click", () => {
@@ -409,7 +378,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Grandchild table sorting (binds dynamically after load)
   function bindGrandchildSort(table) {
     table.querySelectorAll("th.sortable").forEach(th => {
       th.addEventListener("click", () => {
@@ -419,7 +387,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Expand/collapse toggles for parent (contract)
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
     let target = document.querySelector(toggle.getAttribute("data-bs-target"));
     target.addEventListener("show.bs.collapse", () => {
@@ -440,7 +407,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Print button handler
   document.querySelectorAll(".print-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const contract = btn.getAttribute("data-contract");
@@ -449,13 +415,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-function confirmSave() {
-  return confirm("Save this hand-counted entry?");
-}
-
-function confirmUpdate() {
-  return confirm("Update this hand-counted contract?");
-}
+function confirmSave() { return confirm("Save this hand-counted entry?"); }
+function confirmUpdate() { return confirm("Update this hand-counted contract?"); }
 </script>
 
 <style>
