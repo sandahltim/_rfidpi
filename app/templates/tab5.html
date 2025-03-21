@@ -6,10 +6,10 @@
 <!-- Filter inputs with URL submission -->
 <form method="GET" class="mb-3 row g-2">
   <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="last_contract_num" placeholder="Filter Contract Number" value="{{ filter_contract }}" />
+    <input type="text" class="form-control" name="last_contract_num" placeholder="Filter Contract" value="{{ filter_contract }}" />
   </div>
   <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="common_name" placeholder="Filter Common Name" value="{{ filter_common_name }}" />
+    <input type="text" class="form-control" name="common_name" placeholder="Filter Name" value="{{ filter_common_name }}" />
   </div>
   <div class="col-12 col-md-2">
     <button type="submit" class="btn btn-primary">Apply Filters</button>
@@ -22,7 +22,7 @@
     <input type="text" class="form-control" name="common_name" placeholder="Common Name" required>
   </div>
   <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="last_contract_num" placeholder="Last Contract Num" required>
+    <input type="text" class="form-control" name="last_contract_num" placeholder="Contract Number" required>
   </div>
   <div class="col-12 col-md-2">
     <input type="number" class="form-control" name="total_items" placeholder="Total Items" required>
@@ -32,8 +32,8 @@
   </div>
   <div class="col-12 col-md-2">
     <input type="hidden" name="date_last_scanned" id="date_last_scanned">
-    <button type="submit" formaction="/tab5/save_hand_counted" class="btn btn-primary" onclick="return confirmSave()">Save</button>
-    <button type="submit" formaction="/tab5/update_hand_counted" class="btn btn-success" onclick="return confirmUpdate()">Update</button>
+    <button type="submit" formaction="/tab5/save_hand_counted" class="btn btn-primary" onclick="return confirmSave()">Add New</button>
+    <button type="submit" formaction="/tab5/update_hand_counted" class="btn btn-success" onclick="return confirmUpdate()">Return</button>
   </div>
 </form>
 
@@ -309,7 +309,7 @@ function printContract(contract) {
   printWin.document.write(`
     <html>
       <head>
-        <title>Laundry Contract: ${contract}</title>
+        <title>RFID-Laundry Out: ${contract}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
           h1 { font-size: 1.5em; text-align: center; color: #333; margin-bottom: 20px; }
