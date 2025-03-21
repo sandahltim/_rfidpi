@@ -121,7 +121,7 @@ def show_tab5():
             parent_data=parent_data,
             child_map=child_map,
             filter_contract=filter_contract,
-            filter_common_name=filter_common_name
+            filter_common_name=filter_common_name,
             child_map_json=child_map
         )
     except Exception as e:
