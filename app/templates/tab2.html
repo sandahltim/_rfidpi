@@ -64,32 +64,23 @@
               <thead style="background: #3498db; color: #fff;">
                 <tr>
                   <th style="width: 50px;"></th>
-                  <th class="sortable" data-col-name="category">Category</th>
-                  <th class="sortable" data-col-name="total">Total Items</th>
-                  <th class="sortable" data-col-name="available">Available</th>
-                  <th class="sortable" data-col-name="on_rent">On Rent</th>
-                  <th class="sortable" data-col-name="service">Service</th>
                   <th class="sortable" data-col-name="common_name">Common Name</th>
-                  <th class="sortable" data-col-name="total_items">Total Items</th>
-                  <th style="width: 100px;">Print Items</th>
+                  <th class="sortable" data-col-name="total">Total</th>
+                  <!-- Placeholder for future print button -->
+                  <th style="width: 100px;"></th>
                 </tr>
               </thead>
               <tbody>
                 {% for middle in middle_map[parent.category] %}
                 {% set middle_idx = cat_key ~ '_' ~ loop.index %}
-                <tr class="{% if parent.service > 0 %}table-danger{% elif parent.on_rent > 0 %}table-warning{% else %}table-success{% endif %}">
+                <tr>
                   <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_idx }}">+</span></td>
-                  <td>{{ parent.category }}</td>
-                  <td>{{ parent.total }}</td>
-                  <td>{{ parent.available }}</td>
-                  <td>{{ parent.on_rent }}</td>
-                  <td>{{ parent.service }}</td>
                   <td>{{ middle.common_name }}</td>
                   <td>{{ middle.total }}</td>
-                  <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-category="{{ parent.category }}" data-common-name="{{ middle.common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                  <td></td>
                 </tr>
                 <tr>
-                  <td colspan="9" class="p-0">
+                  <td colspan="4" class="p-0">
                     <div id="child-{{ middle_idx }}" class="collapse" data-common-name="{{ middle.common_name }}">
                       <div id="loading-{{ middle_idx }}" class="text-center my-2" style="display: none;">
                         <div class="spinner-border text-primary" role="status">
@@ -319,9 +310,6 @@ function printAggregate(category) {
           th { background: #3498db; color: #fff; font-weight: bold; }
           tr:nth-child(even) { background: #f9f9f9; }
           tr:hover { background: #dfe6e9; }
-          tr.table-danger { background: #ffcccc; }
-          tr.table-warning { background: #ffff99; }
-          tr.table-success { background: #ccffcc; }
         </style>
       </head>
       <body>
@@ -335,11 +323,6 @@ function printAggregate(category) {
         <table>
           <thead>
             <tr>
-              <th>Category</th>
-              <th>Total Items</th>
-              <th>Available</th>
-              <th>On Rent</th>
-              <th>Service</th>
               <th>Common Name</th>
               <th>Total Items</th>
             </tr>
@@ -349,12 +332,7 @@ function printAggregate(category) {
 
   items.forEach(item => {
     printWin.document.write(`
-      <tr class="${parent.service > 0 ? 'table-danger' : parent.on_rent > 0 ? 'table-warning' : 'table-success'}">
-        <td>${parent.category}</td>
-        <td>${parent.total}</td>
-        <td>${parent.available}</td>
-        <td>${parent.on_rent}</td>
-        <td>${parent.service}</td>
+      <tr>
         <td>${item.common_name}</td>
         <td>${item.total}</td>
       </tr>
@@ -371,90 +349,6 @@ function printAggregate(category) {
   printWin.focus();
   printWin.print();
   printWin.close();
-}
-
-function printItems(category, commonName) {
-  const urlParams = new URLSearchParams(window.location.search);
-  let allItems = [];
-  let page = 1;
-  let totalPages = 1;
-
-  async function fetchAllItems() {
-    while (page <= totalPages) {
-      const params = {
-        category: category,
-        subcat: document.querySelector(`select[data-category="${category}"]`).value,
-        common_name: commonName,
-        page: page,
-        common_name_filter: urlParams.get('common_name') || '',
-        tag_id: urlParams.get('tag_id') || '',
-        bin_location: urlParams.get('bin_location') || '',
-        last_contract_num: urlParams.get('last_contract_num') || '',
-        status: urlParams.get('status') || ''
-      };
-      const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      allItems = allItems.concat(data.items);
-      totalPages = data.total_pages;
-      page++;
-    }
-  }
-
-  fetchAllItems().then(() => {
-    const printWin = window.open('', '_blank');
-    printWin.document.write(`
-      <html>
-        <head>
-          <title>Category Items: ${category} - ${commonName}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-            h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-            table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-            th { background: #3498db; color: #fff; font-weight: bold; }
-            tr:nth-child(even) { background: #f9f9f9; }
-            tr:hover { background: #dfe6e9; }
-          </style>
-        </head>
-        <body>
-          <h1>Category Items: ${category} - ${commonName}</h1>
-          <table>
-            <thead>
-              <tr>
-                <th>Tag ID</th>
-                <th>Common Name</th>
-                <th>Status</th>
-                <th>Bin Location</th>
-                <th>Quality</th>
-              </tr>
-            </thead>
-            <tbody>
-    `);
-
-    allItems.forEach(item => {
-      printWin.document.write(`
-        <tr>
-          <td>${item.tag_id}</td>
-          <td>${item.common_name}</td>
-          <td>${item.status}</td>
-          <td>${item.bin_location}</td>
-          <td>${item.quality}</td>
-        </tr>
-      `);
-    });
-
-    printWin.document.write(`
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `);
-    printWin.document.close();
-    printWin.focus();
-    printWin.print();
-    printWin.close();
-  });
 }
 
 document.addEventListener('click', (e) => {
@@ -523,14 +417,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.querySelectorAll(".print-items-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const category = btn.getAttribute("data-category");
-      const commonName = btn.getAttribute("data-common-name");
-      printItems(category, commonName);
-    });
-  });
-
   document.querySelectorAll(".btn").forEach(btn => {
     btn.addEventListener("mouseover", () => {
       btn.style.transform = "translateY(-2px)";
@@ -558,13 +444,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
 </script>
 
 <style>
-  .table-danger { background: #ffcccc; }
-  .table-warning { background: #ffff99; }
-  .table-success { background: #ccffcc; }
   body, html {
     height: 100%;
     overflow: auto;
