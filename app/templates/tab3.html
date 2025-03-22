@@ -78,6 +78,7 @@
                                       <th style="width: 50px;"></th>
                                       <th class="sortable" data-col-name="subcategory">Subcategory</th>
                                       <th class="sortable" data-col-name="total">Total Items</th>
+                                      <th style="width: 100px;">Print Items</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -87,9 +88,10 @@
                                       <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#items-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}">+</span></td>
                                       <td>{{ subcategory }}</td>
                                       <td>{{ items|length }}</td>
+                                      <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-crew="{{ crew_entry.crew }}" data-status="{{ status }}" data-category="{{ category }}" data-subcategory="{{ subcategory }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                                     </tr>
                                     <tr>
-                                      <td colspan="3" class="p-0">
+                                      <td colspan="4" class="p-0">
                                         <div id="items-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}" class="collapse" data-subcategory="{{ subcategory }}">
                                           <table class="table mb-0 items-table" id="itemsTable-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}" style="border: 2px solid #2c3e50;">
                                             <thead style="background: #2c3e50; color: #ecf0f1;">
@@ -99,7 +101,7 @@
                                                 <th class="sortable" data-col-name="status">Status</th>
                                                 <th class="sortable" data-col-name="quality">Quality</th>
                                                 <th class="sortable" data-col-name="bin_location">Bin Location</th>
-                                                <th style="width: 100px;">Print Items</th>
+                                                <th class="sortable" data-col-name="notes">Notes</th>
                                               </tr>
                                             </thead>
                                             <tbody>
@@ -111,7 +113,7 @@
                                                 <td>{{ item.status }}</td>
                                                 <td>{{ item.quality }}</td>
                                                 <td>{{ item.bin_location }}</td>
-                                                <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-crew="{{ crew_entry.crew }}" data-status="{{ status }}" data-category="{{ category }}" data-subcategory="{{ subcategory }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                                                <td>{{ item.notes | default('') }}</td>
                                               </tr>
                                               {% endfor %}
                                               {% else %}
@@ -240,6 +242,7 @@ function printItems(crew, status, category, subcategory) {
               <th>Status</th>
               <th>Quality</th>
               <th>Bin Location</th>
+              <th>Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -253,6 +256,7 @@ function printItems(crew, status, category, subcategory) {
         <td>${item.status}</td>
         <td>${item.quality}</td>
         <td>${item.bin_location}</td>
+        <td>${item.notes || ''}</td>
       </tr>
     `);
   });
