@@ -288,6 +288,82 @@ function loadSubcatData(category, subcat, commonName, page, catKey) {
     });
 }
 
+function updateMiddleData(category, subcat, catKey) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const params = {
+    category: category,
+    subcat: subcat,
+    common_name_filter: urlParams.get('common_name') || '',
+    tag_id: urlParams.get('tag_id') || '',
+    bin_location: urlParams.get('bin_location') || '',
+    last_contract_num: urlParams.get('last_contract_num') || '',
+    status: urlParams.get('status') || ''
+  };
+  const url = `/tab2/middle_data?${new URLSearchParams(params).toString()}`;
+  console.log(`Fetching Middle URL: ${url}`);
+
+  fetch(url)
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      console.log('Middle Data Response:', data);
+      const tbody = document.querySelector(`#middleTable-${catKey} tbody`);
+      if (!tbody) {
+        console.error(`Tbody not found for CatKey: ${catKey}`);
+        return;
+      }
+      tbody.innerHTML = '';
+      data.middle_data.forEach((middle, index) => {
+        const middle_idx = `${catKey}_${index}`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-${middle_idx}">+</span></td>
+          <td>${middle.common_name}</td>
+          <td>${middle.total}</td>
+          <td></td>
+        `;
+        tbody.appendChild(tr);
+
+        const childTr = document.createElement('tr');
+        childTr.innerHTML = `
+          <td colspan="4" class="p-0">
+            <div id="child-${middle_idx}" class="collapse" data-common-name="${middle.common_name}">
+              <div id="loading-${middle_idx}" class="text-center my-2" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+              <nav aria-label="Item navigation" class="mb-2 mx-2" id="pagination-${middle_idx}">
+                <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
+              </nav>
+              <div class="grandchild-table-container">
+                <table class="table mb-0 grandchild-table" id="grandchildTable-${middle_idx}" style="border: 2px solid #2c3e50;">
+                  <thead style="background: #2c3e50; color: #ecf0f1;">
+                    <tr>
+                      <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                      <th class="sortable" data-col-name="common_name">Common Name</th>
+                      <th class="sortable" data-col-name="status">Status</th>
+                      <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                      <th class="sortable" data-col-name="quality">Quality</th>
+                    </tr>
+                  </thead>
+                  <tbody id="grandchildTbody-${middle_idx}"></tbody>
+                </table>
+              </div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(childTr);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading middle data:', error);
+      alert('Failed to update middle data: ' + error.message);
+    });
+}
+
 function printAggregate(category) {
   const middleMap = {{ middle_map|tojson }};
   const parentData = {{ parent_data|tojson }};
@@ -368,17 +444,7 @@ document.addEventListener('click', (e) => {
       if (!target.classList.contains('show')) {
         console.log(`Expanding: ${target.id}`);
         toggle.textContent = "-";
-        if (target.id.startsWith("middle-") && !window.location.search.includes('expand=')) {
-          const category = target.getAttribute("data-category");
-          const select = target.querySelector(".subcategory-dropdown");
-          const subcat = select ? select.value : '';
-          const urlParams = new URLSearchParams(window.location.search);
-          urlParams.set('expand', category);
-          urlParams.set('subcat', subcat);
-          const url = `/tab2/?${urlParams.toString()}`;
-          console.log(`Auto-redirecting to: ${url}`);
-          window.location.href = url;
-        } else if (target.id.startsWith("child-")) {
+        if (target.id.startsWith("child-")) {
           const category = target.closest(".collapse[data-category]").getAttribute("data-category");
           const commonName = target.getAttribute("data-common-name");
           const catKey = target.id.split("child-")[1];
@@ -399,12 +465,8 @@ document.addEventListener("change", (e) => {
     const select = e.target;
     const category = select.getAttribute("data-category");
     const subcat = select.value;
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('expand', category);
-    urlParams.set('subcat', subcat);
-    const url = `/tab2/?${urlParams.toString()}`;
-    console.log(`Dropdown changed: ${category} -> ${subcat}, Redirecting to: ${url}`);
-    window.location.href = url;
+    const catKey = category.toLowerCase().replace(/ /g, '_');
+    updateMiddleData(category, subcat, catKey);
   }
 });
 

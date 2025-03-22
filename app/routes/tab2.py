@@ -138,7 +138,7 @@ def show_tab2():
             temp_sub_map[subcat].append(item)
         sub_map[category] = {"subcategories": list(temp_sub_map.keys())}
 
-        # Middle child: Populate ALL common names across subcats for print
+        # Middle child: All common names for print
         common_name_map = defaultdict(list)
         for item in item_list:
             common_name = item.get("common_name", "Unknown")
@@ -148,7 +148,7 @@ def show_tab2():
             for name, items in common_name_map.items()
         ]
 
-        # Middle for display: Only show selected subcat (or first if none selected)
+        # Middle for display: Selected subcat or first
         subcat_to_show = selected_subcat if selected_subcat in temp_sub_map else list(temp_sub_map.keys())[0] if temp_sub_map else None
         display_middle_map = {}
         if subcat_to_show:
@@ -175,8 +175,8 @@ def show_tab2():
     return render_template(
         "tab2.html",
         parent_data=parent_data,
-        middle_map=middle_map,  # All common names for print
-        display_middle_map=display_middle_map,  # Filtered for display
+        middle_map=middle_map,
+        display_middle_map=display_middle_map,
         sub_map=sub_map,
         expand_category=expand_category,
         selected_subcat=selected_subcat,
@@ -246,3 +246,48 @@ def subcat_data():
         "total_pages": total_pages,
         "current_page": page
     })
+
+@tab2_bp.route("/middle_data", methods=["GET"])
+def middle_data():
+    print("Hit /tab2/middle_data endpoint")
+    category = request.args.get('category')
+    subcat = request.args.get('subcat')
+
+    with DatabaseConnection() as conn:
+        rows = conn.execute("SELECT * FROM id_item_master").fetchall()
+    items = [dict(row) for row in rows]
+
+    # Apply filters from query params
+    filter_common_name = request.args.get("common_name_filter", "").lower().strip()
+    filter_tag_id = request.args.get("tag_id", "").lower().strip()
+    filter_bin_location = request.args.get("bin_location", "").lower().strip()
+    filter_last_contract = request.args.get("last_contract_num", "").lower().strip()
+    filter_status = request.args.get("status", "").lower().strip()
+
+    filtered_items = items
+    if filter_common_name:
+        filtered_items = [item for item in filtered_items if filter_common_name in (item.get("common_name") or "").lower()]
+    if filter_tag_id:
+        filtered_items = [item for item in filtered_items if filter_tag_id in (item.get("tag_id") or "").lower()]
+    if filter_bin_location:
+        filtered_items = [item for item in filtered_items if filter_bin_location in (item.get("bin_location") or "").lower()]
+    if filter_last_contract:
+        filtered_items = [item for item in filtered_items if filter_last_contract in (item.get("last_contract_num") or "").lower()]
+    if filter_status:
+        filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
+
+    category_items = [item for item in filtered_items if categorize_item(item) == category]
+    subcat_items = [item for item in category_items if subcategorize_item(category, item) == subcat]
+
+    common_name_map = defaultdict(list)
+    for item in subcat_items:
+        common_name = item.get("common_name", "Unknown")
+        common_name_map[common_name].append(item)
+    
+    middle_data = [
+        {"common_name": name, "total": len(items)}
+        for name, items in common_name_map.items()
+    ]
+
+    print(f"Middle Data: Category: {category}, Subcategory: {subcat}, Items: {len(middle_data)}")
+    return jsonify({"middle_data": middle_data})
