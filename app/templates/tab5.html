@@ -67,6 +67,7 @@
                     <th class="sortable" data-col-name="available">Available</th>
                     <th class="sortable" data-col-name="on_rent">On Rent</th>
                     <th class="sortable" data-col-name="service">Service</th>
+                    <th style="width: 100px;">Print</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -79,9 +80,10 @@
                     <td>{{ totals.available }}</td>
                     <td>{{ totals.on_rent }}</td>
                     <td>{{ totals.service }}</td>
+                    <td><button class="btn btn-outline-dark btn-sm child-print-btn" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                   </tr>
                   <tr>
-                    <td colspan="6" class="p-0">
+                    <td colspan="7" class="p-0">
                       <div id="grandchild-{{ child_key }}" class="collapse" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}">
                         <div id="loading-{{ child_key }}" class="text-center my-2" style="display: none;">
                           <div class="spinner-border text-primary" role="status">
@@ -216,154 +218,116 @@ function loadSubcatData(contract, common_name, page, childKey) {
   }
   loading.style.display = 'block';
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const params = {
-    contract: contract,
-    common_name: common_name,
-    page: page,
-    last_contract_num: urlParams.get('last_contract_num') || '',
-    common_name_filter: urlParams.get('common_name') || ''
-  };
-  const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
-  console.log(`Preparing to fetch: ${url}`);
+  console.log("Using itemMap directly...");
+  const key = `${contract}:${common_name}`;
+  const items = itemMap[key] || [];
+  console.log(`Items from itemMap for ${key}:`, items);
 
-  try {
-    console.log("Starting sync fetch...");
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, false); // Synchronous
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send();
-
-    console.log(`XHR Status: ${xhr.status}`);
-    if (xhr.status !== 200) {
-      throw new Error(`HTTP error! Status: ${xhr.status}, Response: ${xhr.responseText}`);
-    }
-
-    const data = JSON.parse(xhr.responseText);
-    console.log('Sync Response:', data);
-
-    const tbody = document.getElementById(`grandchildTbody-${childKey}`);
-    if (!tbody) {
-      console.error(`Tbody not found for ChildKey: ${childKey}`);
-      alert("Error: Table body not found!");
-      loading.style.display = 'none';
-      return;
-    }
-    tbody.innerHTML = '';
-    if (data.items && data.items.length > 0) {
-      data.items.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.tag_id}</td>
-          <td>${item.common_name}</td>
-          <td>${item.status}</td>
-          <td>${item.bin_location}</td>
-          <td>${item.quality}</td>
-          <td>${item.last_contract_num}</td>
-          <td>${item.date_last_scanned}</td>
-          <td>${item.last_scanned_by}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    } else {
-      console.warn(`No items returned for Contract: ${contract}, Common Name: ${common_name}`);
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found from server.</td></tr>';
-      // Fallback to itemMap
-      const key = `${contract}:${common_name}`;
-      const fallbackItems = itemMap[key] || [];
-      if (fallbackItems.length > 0) {
-        console.log(`Falling back to itemMap for ${key}:`, fallbackItems);
-        fallbackItems.forEach(item => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${item.tag_id || 'N/A'}</td>
-            <td>${item.common_name}</td>
-            <td>${item.status || 'Hand Counted'}</td>
-            <td>${item.bin_location || 'N/A'}</td>
-            <td>${item.quality || 'N/A'}</td>
-            <td>${item.last_contract_num}</td>
-            <td>${item.date_last_scanned || 'N/A'}</td>
-            <td>${item.last_scanned_by || 'Unknown'}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    }
-
-    const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
-    if (!pagination) {
-      console.error(`Pagination not found for ChildKey: ${childKey}`);
-    } else {
-      pagination.innerHTML = '';
-      if (data.total_pages > 1) {
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
-        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
-        pagination.appendChild(prevLi);
-
-        for (let p = 1; p <= data.total_pages; p++) {
-          const li = document.createElement('li');
-          li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
-          li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
-          pagination.appendChild(li);
-        }
-
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
-        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
-        pagination.appendChild(nextLi);
-
-        pagination.querySelectorAll('.page-link').forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const newPage = parseInt(link.getAttribute('data-page'));
-            if (!isNaN(newPage)) {
-              loadSubcatData(contract, common_name, newPage, childKey);
-            }
-          });
-        });
-      }
-    }
-    console.log("Render complete");
+  const tbody = document.getElementById(`grandchildTbody-${childKey}`);
+  if (!tbody) {
+    console.error(`Tbody not found for ChildKey: ${childKey}`);
     loading.style.display = 'none';
-  } catch (e) {
-    console.error('Sync fetch error:', e);
-    alert('Failed to load laundry items: ' + e.message);
-    loading.style.display = 'none';
-    // Fallback to itemMap
-    const key = `${contract}:${common_name}`;
-    const fallbackItems = itemMap[key] || [];
-    const tbody = document.getElementById(`grandchildTbody-${childKey}`);
-    if (tbody && fallbackItems.length > 0) {
-      console.log(`Falling back to itemMap for ${key}:`, fallbackItems);
-      tbody.innerHTML = '';
-      fallbackItems.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.tag_id || 'N/A'}</td>
-          <td>${item.common_name}</td>
-          <td>${item.status || 'Hand Counted'}</td>
-          <td>${item.bin_location || 'N/A'}</td>
-          <td>${item.quality || 'N/A'}</td>
-          <td>${item.last_contract_num}</td>
-          <td>${item.date_last_scanned || 'N/A'}</td>
-          <td>${item.last_scanned_by || 'Unknown'}</td>
-        `;
-        tbody.appendChild(tr);
+    return;
+  }
+  tbody.innerHTML = '';
+
+  if (items.length > 0) {
+    items.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.tag_id || 'N/A'}</td>
+        <td>${item.common_name}</td>
+        <td>${item.status || 'Hand Counted'}</td>
+        <td>${item.bin_location || 'N/A'}</td>
+        <td>${item.quality || 'N/A'}</td>
+        <td>${item.last_contract_num}</td>
+        <td>${item.date_last_scanned || 'N/A'}</td>
+        <td>${item.last_scanned_by || 'Unknown'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } else {
+    console.warn(`No items found in itemMap for ${key}`);
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found.</td></tr>';
+  }
+
+  // Pagination (simplified, no server call)
+  const perPage = 20;
+  const totalItems = items.length;
+  const totalPages = Math.ceil(totalItems / perPage);
+  const currentPage = page;
+  const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
+  if (!pagination) {
+    console.error(`Pagination not found for ChildKey: ${childKey}`);
+  } else {
+    pagination.innerHTML = '';
+    if (totalPages > 1) {
+      const prevLi = document.createElement('li');
+      prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+      prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
+      pagination.appendChild(prevLi);
+
+      for (let p = 1; p <= totalPages; p++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${p === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
+        pagination.appendChild(li);
+      }
+
+      const nextLi = document.createElement('li');
+      nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+      nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
+      pagination.appendChild(nextLi);
+
+      pagination.querySelectorAll('.page-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const newPage = parseInt(link.getAttribute('data-page'));
+          if (!isNaN(newPage)) {
+            loadSubcatData(contract, common_name, newPage, childKey);
+          }
+        });
       });
     }
   }
+  console.log("Render complete");
+  loading.style.display = 'none';
 }
 
-function printContract(contract) {
+function printContract(contract, commonName = null) {
   const childMap = {{ child_map_json|tojson }};
   const items = childMap[contract] || {};
-
   const printWin = window.open('', '_blank');
+  let title = `RFID-Laundry Out: ${contract}`;
+  let rows = '';
+
+  if (commonName) {
+    title += ` - ${commonName}`;
+    const totals = items[commonName] || {};
+    rows = `
+      <tr>
+        <td>${commonName}</td>
+        <td>${totals.total || 0}</td>
+      </tr>
+    `;
+  } else {
+    for (const name in items) {
+      if (items.hasOwnProperty(name)) {
+        const totals = items[name];
+        rows += `
+          <tr>
+            <td>${name}</td>
+            <td>${totals.total}</td>
+          </tr>
+        `;
+      }
+    }
+  }
+
   printWin.document.write(`
     <html>
       <head>
-        <title>RFID-Laundry Out: ${contract}</title>
+        <title>${title}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
           h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
@@ -375,7 +339,7 @@ function printContract(contract) {
         </style>
       </head>
       <body>
-        <h1>RFID-Laundry Out: ${contract}</h1>
+        <h1>${title}</h1>
         <table>
           <thead>
             <tr>
@@ -384,21 +348,7 @@ function printContract(contract) {
             </tr>
           </thead>
           <tbody>
-  `);
-
-  for (const commonName in items) {
-    if (items.hasOwnProperty(commonName)) {
-      const totals = items[commonName];
-      printWin.document.write(`
-        <tr>
-          <td>${commonName}</td>
-          <td>${totals.total}</td>
-        </tr>
-      `);
-    }
-  }
-
-  printWin.document.write(`
+            ${rows}
           </tbody>
         </table>
       </body>
@@ -473,6 +423,14 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => {
       const contract = btn.getAttribute("data-contract");
       printContract(contract);
+    });
+  });
+
+  document.querySelectorAll(".child-print-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const contract = btn.getAttribute("data-contract");
+      const commonName = btn.getAttribute("data-common-name");
+      printContract(contract, commonName);
     });
   });
 
