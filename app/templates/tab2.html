@@ -330,8 +330,9 @@ function updateMiddleData(category, subcat, catKey) {
     })
     .then(data => {
       console.log('Middle Data Response:', data);
+      const sortedData = data.middle_data.sort((a, b) => a.common_name.localeCompare(b.common_name));
       tbody.innerHTML = '';
-      data.middle_data.forEach((middle, index) => {
+      sortedData.forEach((middle, index) => {
         const middle_idx = `${catKey}_${index}`;
         const tr = document.createElement('tr');
         tr.innerHTML = `
