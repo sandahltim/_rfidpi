@@ -28,7 +28,7 @@
   <ul class="pagination justify-content-center flex-wrap">
     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('tab4_bp.show_tab4', page=current_page-1, common_name=filter_common_name, tag_id=filter_tag_id, bin_location=filter_bin_location, last_contract_num=filter_last_contract, status=filter_status) }}" aria-label="Previous">
-        <span aria-hidden="true">&laquo; Prev</span>
+        <span aria-hidden="true">« Prev</span>
       </a>
     </li>
     {% for p in range(1, total_pages + 1) %}
@@ -38,7 +38,7 @@
     {% endfor %}
     <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('tab4_bp.show_tab4', page=current_page+1, common_name=filter_common_name, tag_id=filter_tag_id, bin_location=filter_bin_location, last_contract_num=filter_last_contract, status=filter_status) }}" aria-label="Next">
-        <span aria-hidden="true">Next &raquo;</span>
+        <span aria-hidden="true">Next »</span>
       </a>
     </li>
   </ul>
@@ -89,18 +89,19 @@
                 </tr>
               </thead>
               <tbody>
+                {% if item_map[parent.common_name] %}
                 {% for item in item_map[parent.common_name] %}
                 <tr class="{% if item.status in ['On Rent', 'Delivered'] %}on-rent{% elif item.status == 'Ready to Rent' %}ready{% else %}service{% endif %}">
                   <td>{{ item.tag_id }}</td>
-                  <td>{{ item.uuid_accounts_fk }}</td>
-                  <td>{{ item.serial_number }}</td>
-                  <td>{{ item.client_name }}</td>
-                  <td>{{ item.rental_class_num }}</td>
-                  <td>{{ item.quality }}</td>
-                  <td>{{ item.bin_location }}</td>
-                  <td>{{ item.status }}</td>
-                  <td>{{ item.last_contract_num }}</td>
-                  <td>{{ item.last_scanned_by }}</td>
+                  <td>{{ item.uuid_accounts_fk | default('') }}</td>
+                  <td>{{ item.serial_number | default('') }}</td>
+                  <td>{{ item.client_name | default('') }}</td>
+                  <td>{{ item.rental_class_num | default('') }}</td>
+                  <td>{{ item.quality | default('') }}</td>
+                  <td>{{ item.bin_location | default('') }}</td>
+                  <td>{{ item.status | default('') }}</td>
+                  <td>{{ item.last_contract_num | default('') }}</td>
+                  <td>{{ item.last_scanned_by | default('') }}</td>
                   <td>{{ item.notes | default('') }}</td>
                   <td>{{ item.status_notes | default('') }}</td>
                   <td>{{ item.long | default('') }}</td>
@@ -110,6 +111,11 @@
                   <td>{{ item.date_updated | default('') }}</td>
                 </tr>
                 {% endfor %}
+                {% else %}
+                <tr>
+                  <td colspan="17" class="text-center">No items found.</td>
+                </tr>
+                {% endif %}
               </tbody>
             </table>
           </div>
@@ -124,7 +130,7 @@
   <ul class="pagination justify-content-center flex-wrap">
     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('tab4_bp.show_tab4', page=current_page-1, common_name=filter_common_name, tag_id=filter_tag_id, bin_location=filter_bin_location, last_contract_num=filter_last_contract, status=filter_status) }}" aria-label="Previous">
-        <span aria-hidden="true">&laquo; Prev</span>
+        <span aria-hidden="true">« Prev</span>
       </a>
     </li>
     {% for p in range(1, total_pages + 1) %}
@@ -134,7 +140,7 @@
     {% endfor %}
     <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('tab4_bp.show_tab4', page=current_page+1, common_name=filter_common_name, tag_id=filter_tag_id, bin_location=filter_bin_location, last_contract_num=filter_last_contract, status=filter_status) }}" aria-label="Next">
-        <span aria-hidden="true">Next &raquo;</span>
+        <span aria-hidden="true">Next »</span>
       </a>
     </li>
   </ul>
