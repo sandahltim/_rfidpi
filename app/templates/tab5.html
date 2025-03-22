@@ -223,7 +223,9 @@ function loadSubcatData(contract, common_name, page, childKey) {
   fetch(url)
     .then(response => {
       console.log(`Response Status: ${response.status}`);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      if (!response.ok) {
+        return response.text().then(text => { throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`); });
+      }
       return response.json();
     })
     .then(data => {
@@ -235,20 +237,25 @@ function loadSubcatData(contract, common_name, page, childKey) {
         return;
       }
       tbody.innerHTML = '';
-      data.items.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.tag_id}</td>
-          <td>${item.common_name}</td>
-          <td>${item.status}</td>
-          <td>${item.bin_location}</td>
-          <td>${item.quality}</td>
-          <td>${item.last_contract_num}</td>
-          <td>${item.date_last_scanned}</td>
-          <td>${item.last_scanned_by}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+      if (data.items && data.items.length > 0) {
+        data.items.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.tag_id}</td>
+            <td>${item.common_name}</td>
+            <td>${item.status}</td>
+            <td>${item.bin_location}</td>
+            <td>${item.quality}</td>
+            <td>${item.last_contract_num}</td>
+            <td>${item.date_last_scanned}</td>
+            <td>${item.last_scanned_by}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        console.warn(`No items returned for Contract: ${contract}, Common Name: ${common_name}`);
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found.</td></tr>';
+      }
 
       const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
       pagination.innerHTML = '';
