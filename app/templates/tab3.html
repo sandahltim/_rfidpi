@@ -99,6 +99,7 @@
                                                 <th class="sortable" data-col-name="status">Status</th>
                                                 <th class="sortable" data-col-name="quality">Quality</th>
                                                 <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                                                <th style="width: 100px;">Print Items</th>
                                               </tr>
                                             </thead>
                                             <tbody>
@@ -110,11 +111,12 @@
                                                 <td>{{ item.status }}</td>
                                                 <td>{{ item.quality }}</td>
                                                 <td>{{ item.bin_location }}</td>
+                                                <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-crew="{{ crew_entry.crew }}" data-status="{{ status }}" data-category="{{ category }}" data-subcategory="{{ subcategory }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                                               </tr>
                                               {% endfor %}
                                               {% else %}
                                               <tr>
-                                                <td colspan="5" class="text-center">No items in this subcategory.</td>
+                                                <td colspan="6" class="text-center">No items in this subcategory.</td>
                                               </tr>
                                               {% endif %}
                                             </tbody>
@@ -209,6 +211,64 @@ function sortTable(tableEl, colName) {
   }
 }
 
+function printItems(crew, status, category, subcategory) {
+  const crewMap = {{ crew_map|tojson }};
+  const items = crewMap[crew][status][category].subcategories[subcategory] || [];
+
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`
+    <html>
+      <head>
+        <title>Items: ${crew} - ${status} - ${category} - ${subcategory}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
+          th { background: #3498db; color: #fff; font-weight: bold; }
+          tr:nth-child(even) { background: #f9f9f9; }
+          tr:hover { background: #dfe6e9; }
+        </style>
+      </head>
+      <body>
+        <h1>Items: ${crew} - ${status} - ${category} - ${subcategory}</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>Tag ID</th>
+              <th>Common Name</th>
+              <th>Status</th>
+              <th>Quality</th>
+              <th>Bin Location</th>
+            </tr>
+          </thead>
+          <tbody>
+  `);
+
+  items.forEach(item => {
+    printWin.document.write(`
+      <tr>
+        <td>${item.tag_id}</td>
+        <td>${item.common_name}</td>
+        <td>${item.status}</td>
+        <td>${item.quality}</td>
+        <td>${item.bin_location}</td>
+      </tr>
+    `);
+  });
+
+  printWin.document.write(`
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  printWin.document.close();
+  printWin.focus();
+  printWin.print();
+  printWin.close();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".sortable").forEach(th => {
     th.addEventListener("click", () => {
@@ -227,6 +287,27 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         toggle.textContent = "-";
       }
+    });
+  });
+
+  document.querySelectorAll(".print-items-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const crew = btn.getAttribute("data-crew");
+      const status = btn.getAttribute("data-status");
+      const category = btn.getAttribute("data-category");
+      const subcategory = btn.getAttribute("data-subcategory");
+      printItems(crew, status, category, subcategory);
+    });
+  });
+
+  document.querySelectorAll(".btn").forEach(btn => {
+    btn.addEventListener("mouseover", () => {
+      btn.style.transform = "translateY(-2px)";
+      btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
+    });
+    btn.addEventListener("mouseout", () => {
+      btn.style.transform = "translateY(0)";
+      btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
     });
   });
 
