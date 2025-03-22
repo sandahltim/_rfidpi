@@ -78,14 +78,15 @@ def show_tab5():
 
         parent_data = []
         child_map = {}
-        item_map = defaultdict(list)  # Store items for subcat_data
+        item_map = {}  # Use string keys
         for contract, item_list in contract_map.items():
             logging.debug(f"Processing contract: {contract}")
             common_name_map = defaultdict(list)
             for item in item_list:
                 common_name = item.get("common_name", "Unknown")
                 common_name_map[common_name].append(item)
-                item_map[(contract, common_name)].append(item)
+                key = f"{contract}:{common_name}"
+                item_map[key] = item_map.get(key, []) + [item]
 
             child_data = {}
             for common_name, items in common_name_map.items():
@@ -125,7 +126,7 @@ def show_tab5():
             filter_contract=filter_contract,
             filter_common_name=filter_common_name,
             child_map_json=child_map,
-            item_map_json=item_map  # Pass item_map for subcat_data
+            item_map_json=item_map  # String-keyed item_map
         )
     except Exception as e:
         logging.error(f"Error in show_tab5: {e}")
@@ -219,14 +220,17 @@ def subcat_data():
 
     logging.debug(f"Params - Contract: {contract}, Common Name: {common_name}, Page: {page}")
 
-    # Use item_map_json from session or template context
-    item_map = request.args.get('item_map_json', {})
-    if not item_map:
-        logging.error("item_map_json not provided in request")
+    # Parse item_map_json from request params
+    item_map_json = request.args.get('item_map_json', '{}')
+    try:
+        item_map = json.loads(item_map_json)
+    except json.JSONDecodeError:
+        logging.error("Failed to parse item_map_json")
         return jsonify({"items": [], "total_items": 0, "total_pages": 1, "current_page": 1}), 200
 
-    filtered_items = item_map.get((contract, common_name), [])
-    logging.debug(f"Filtered items from item_map: {len(filtered_items)} for {contract}, {common_name}")
+    key = f"{contract}:{common_name}"
+    filtered_items = item_map.get(key, [])
+    logging.debug(f"Filtered items from item_map: {len(filtered_items)} for {key}")
 
     total_items = len(filtered_items)
     total_pages = (total_items + per_page - 1) // per_page
@@ -235,7 +239,7 @@ def subcat_data():
     end = start + per_page
     paginated_items = filtered_items[start:end]
 
-    logging.debug(f"Returning: Total Items: {total_items}, Total Pages: {total_pages}, Current Page: {page}, Items: {len(paginated_items)}")
+    logging.debug(f"Returning: Total Items: {total_items}, Total Pages: {total_pages}, Current Page: {page},_ITEMS: {len(paginated_items)}")
 
     response = {
         "items": [{

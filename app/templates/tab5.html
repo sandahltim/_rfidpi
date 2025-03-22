@@ -123,8 +123,9 @@
   </table>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/json5@2/dist/index.min.js"></script>
 <script>
-const itemMap = {{ item_map_json|tojson }};
+const itemMap = JSON5.parse('{{ item_map_json|tojson }}');
 
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
