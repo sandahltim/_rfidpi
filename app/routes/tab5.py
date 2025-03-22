@@ -116,12 +116,15 @@ def show_tab5():
         logging.debug("Sorting parent data")
         parent_data.sort(key=lambda x: x["contract"].lower())
 
-        logging.debug(f"Item map keys: {list(item_map.keys())}")
+        for key, items in item_map.items():
+            logging.debug(f"Item map entry: {key} -> {len(items)} items: {items}")
+
         logging.debug("Rendering Tab 5")
         return render_template(
             "tab5.html",
             parent_data=parent_data,
             child_map=child_map,
+            item_map=item_map,
             filter_contract=filter_contract,
             filter_common_name=filter_common_name,
             child_map_json=child_map,

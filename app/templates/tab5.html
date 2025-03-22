@@ -85,14 +85,6 @@
                   <tr>
                     <td colspan="7" class="p-0">
                       <div id="grandchild-{{ child_key }}" class="collapse" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}">
-                        <div id="loading-{{ child_key }}" class="text-center my-2" style="display: none;">
-                          <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                          </div>
-                        </div>
-                        <nav aria-label="Item navigation" class="mb-2 mx-2" id="pagination-{{ child_key }}">
-                          <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
-                        </nav>
                         <div class="grandchild-table-container">
                           <table class="table mb-0 grandchild-table" id="grandchildTable-{{ child_key }}" style="border: 2px solid #2c3e50;">
                             <thead style="background: #2c3e50; color: #ecf0f1;">
@@ -107,7 +99,21 @@
                                 <th class="sortable" data-col-name="last_scanned_by">Last Scanned By</th>
                               </tr>
                             </thead>
-                            <tbody id="grandchildTbody-{{ child_key }}"></tbody>
+                            <tbody id="grandchildTbody-{{ child_key }}">
+                              {% set key = parent.contract ~ ':' ~ common_name %}
+                              {% for item in item_map[key] %}
+                              <tr class="{% if item.status in ['On Rent', 'Delivered'] %}table-warning{% elif item.status == 'Ready to Rent' %}table-success{% endif %}">
+                                <td>{{ item.tag_id | default('N/A') }}</td>
+                                <td>{{ item.common_name }}</td>
+                                <td>{{ item.status | default('Hand Counted') }}</td>
+                                <td>{{ item.bin_location | default('N/A') }}</td>
+                                <td>{{ item.quality | default('N/A') }}</td>
+                                <td>{{ item.last_contract_num }}</td>
+                                <td>{{ item.date_last_scanned | default('N/A') }}</td>
+                                <td>{{ item.last_scanned_by | default('Unknown') }}</td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
                           </table>
                         </div>
                       </div>
@@ -208,94 +214,6 @@ function sortTable(tableEl, colName) {
     tbody.innerHTML = "";
     rows.forEach(row => tbody.appendChild(row));
   }
-}
-
-function loadSubcatData(contract, common_name, page, childKey) {
-  console.log(`Loading Subcat - Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
-  const loading = document.getElementById(`loading-${childKey}`);
-  if (!loading) {
-    console.error(`Loading element not found for ChildKey: ${childKey}`);
-    return;
-  }
-  loading.style.display = 'block';
-
-  const key = `${contract}:${common_name}`;
-  const allItems = itemMap[key] || [];
-  console.log(`All items from itemMap for ${key}:`, allItems);
-
-  const perPage = 20;
-  const totalItems = allItems.length;
-  const totalPages = Math.ceil(totalItems / perPage);
-  const currentPage = Math.max(1, Math.min(page, totalPages));
-  const start = (currentPage - 1) * perPage;
-  const end = Math.min(start + perPage, totalItems);
-  const items = allItems.slice(start, end);
-  console.log(`Paginated items: Page ${currentPage}, Start ${start}, End ${end}, Items:`, items);
-
-  const tbody = document.getElementById(`grandchildTbody-${childKey}`);
-  if (!tbody) {
-    console.error(`Tbody not found for ChildKey: ${childKey}`);
-    loading.style.display = 'none';
-    return;
-  }
-  tbody.innerHTML = '';
-
-  if (items.length > 0) {
-    items.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.tag_id || 'N/A'}</td>
-        <td>${item.common_name}</td>
-        <td>${item.status || 'Hand Counted'}</td>
-        <td>${item.bin_location || 'N/A'}</td>
-        <td>${item.quality || 'N/A'}</td>
-        <td>${item.last_contract_num}</td>
-        <td>${item.date_last_scanned || 'N/A'}</td>
-        <td>${item.last_scanned_by || 'Unknown'}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } else {
-    console.warn(`No items found in itemMap for ${key}`);
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found.</td></tr>';
-  }
-
-  const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
-  if (!pagination) {
-    console.error(`Pagination not found for ChildKey: ${childKey}`);
-  } else {
-    pagination.innerHTML = '';
-    if (totalPages > 1) {
-      const prevLi = document.createElement('li');
-      prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-      prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
-      pagination.appendChild(prevLi);
-
-      for (let p = 1; p <= totalPages; p++) {
-        const li = document.createElement('li');
-        li.className = `page-item ${p === currentPage ? 'active' : ''}`;
-        li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
-        pagination.appendChild(li);
-      }
-
-      const nextLi = document.createElement('li');
-      nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-      nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
-      pagination.appendChild(nextLi);
-
-      pagination.querySelectorAll('.page-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const newPage = parseInt(link.getAttribute('data-page'));
-          if (!isNaN(newPage)) {
-            loadSubcatData(contract, common_name, newPage, childKey);
-          }
-        });
-      });
-    }
-  }
-  console.log("Render complete");
-  loading.style.display = 'none';
 }
 
 function printAggregate(contract) {
@@ -440,14 +358,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  function bindGrandchildSort(table) {
-    table.querySelectorAll("th.sortable").forEach(th => {
+  document.querySelectorAll(".grandchild-table").forEach(grandTable => {
+    grandTable.querySelectorAll("th.sortable").forEach(th => {
       th.addEventListener("click", () => {
         let colName = th.getAttribute("data-col-name");
-        sortTable(table, colName);
+        sortTable(grandTable, colName);
       });
     });
-  }
+  });
 
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
     toggle.addEventListener("click", () => {
@@ -457,17 +375,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (target) {
         if (!target.classList.contains('show')) {
           toggle.textContent = "-";
-          if (target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
-            const contract = target.getAttribute("data-contract");
-            const common_name = target.getAttribute("data-common-name");
-            const childKey = targetId.split("grandchild-")[1];
-            console.log(`Calling loadSubcatData for ${contract}, ${common_name}, ${childKey}`);
-            loadSubcatData(contract, common_name, 1, childKey);
-            setTimeout(() => {
-              const grandTable = document.getElementById(`grandchildTable-${childKey}`);
-              if (grandTable) bindGrandchildSort(grandTable);
-            }, 100);
-          }
         } else {
           toggle.textContent = "+";
         }
