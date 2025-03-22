@@ -59,7 +59,6 @@
                 {% endfor %}
               </select>
             </div>
-            {% if display_middle_map[parent.category] %}
             <table class="table mb-0 middle-table" id="middleTable-{{ cat_key }}" style="border: 2px solid #34495e;">
               <thead style="background: #3498db; color: #fff;">
                 <tr>
@@ -70,6 +69,7 @@
                 </tr>
               </thead>
               <tbody>
+                {% if display_middle_map[parent.category] %}
                 {% for middle in display_middle_map[parent.category] %}
                 {% set middle_idx = cat_key ~ '_' ~ loop.index %}
                 <tr>
@@ -107,9 +107,9 @@
                   </td>
                 </tr>
                 {% endfor %}
+                {% endif %}
               </tbody>
             </table>
-            {% endif %}
           </div>
         </td>
       </tr>
@@ -295,10 +295,18 @@ function updateMiddleData(category, subcat, catKey) {
     console.error(`Collapse not found for CatKey: ${catKey}`);
     return;
   }
-  const toggle = collapse.previousElementSibling.querySelector('.expand-toggle');
-  if (!collapse.classList.contains('show')) {
-    collapse.classList.add('show');
-    if (toggle) toggle.textContent = "-";
+  const collapseInstance = bootstrap.Collapse.getOrCreateInstance(collapse);
+  collapseInstance.show();
+
+  const table = document.getElementById(`middleTable-${catKey}`);
+  if (!table) {
+    console.error(`Table not found for CatKey: ${catKey}`);
+    return;
+  }
+  const tbody = table.querySelector('tbody');
+  if (!tbody) {
+    console.error(`Tbody not found in middleTable-${catKey}`);
+    return;
   }
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -322,16 +330,6 @@ function updateMiddleData(category, subcat, catKey) {
     })
     .then(data => {
       console.log('Middle Data Response:', data);
-      const table = document.getElementById(`middleTable-${catKey}`);
-      if (!table) {
-        console.error(`Table not found for CatKey: ${catKey}`);
-        return;
-      }
-      const tbody = table.querySelector('tbody');
-      if (!tbody) {
-        console.error(`Tbody not found in middleTable-${catKey}`);
-        return;
-      }
       tbody.innerHTML = '';
       data.middle_data.forEach((middle, index) => {
         const middle_idx = `${catKey}_${index}`;
@@ -511,17 +509,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (expandCat) {
     const collapse = document.querySelector(`#middle-${expandCat.toLowerCase().replace(/ /g, '_')}`);
     if (collapse) {
-      collapse.classList.add("show");
-      const toggle = collapse.previousElementSibling ? collapse.previousElementSibling.querySelector(".expand-toggle") : null;
-      if (toggle) toggle.textContent = "-";
+      const collapseInstance = bootstrap.Collapse.getOrCreateInstance(collapse);
+      collapseInstance.show();
     }
   }
-
-  document.querySelectorAll(".collapse").forEach(collapse => {
-    if (!collapse.getAttribute("data-auto-expand")) {
-      collapse.classList.remove("show");
-    }
-  });
 });
 </script>
 
