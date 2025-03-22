@@ -254,8 +254,8 @@ function printItems(crew, status, category, subcategory) {
         <td>${item.tag_id}</td>
         <td>${item.common_name}</td>
         <td>${item.status}</td>
-        <td>${item.quality}</td>
-        <td>${item.bin_location}</td>
+        <td>${item.quality || ''}</td>
+        <td>${item.bin_location || ''}</td>
         <td>${item.notes || ''}</td>
       </tr>
     `);

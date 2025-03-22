@@ -2,8 +2,10 @@ from flask import Blueprint, render_template
 from collections import defaultdict
 from db_connection import DatabaseConnection
 import re
+import logging
 
 tab3_bp = Blueprint("tab3_bp", __name__, url_prefix="/tab3")
+logging.basicConfig(level=logging.DEBUG)
 
 def tokenize_name(name):
     return re.split(r'\W+', name.lower())
@@ -86,13 +88,11 @@ def subcategorize_item(category, item):
         return 'Unspecified Subcategory'
 
 def needs_service(item):
-    """Filter items to only those relevant to the service department."""
     service_statuses = {"repair", "wash", "wet", "needs to be inspected"}
-    status = item.get("status") or ""  # Handle None with empty string
-    return status.lower() in service_statuses
+    status = item.get("status", "").lower()
+    return status in service_statuses
 
 def assign_crew(item):
-    """Assign items to crews based on category."""
     category = categorize_item(item)
     if category == 'Tent Tops':
         return 'Tent Crew'
@@ -103,58 +103,55 @@ def assign_crew(item):
 
 @tab3_bp.route("/")
 def show_tab3():
-    with DatabaseConnection() as conn:
-        rows = conn.execute("SELECT * FROM id_item_master").fetchall()
-    items = [dict(row) for row in rows if needs_service(dict(row))]
-    print(f"Service items found: {len(items)}")  # Debug log
+    try:
+        with DatabaseConnection() as conn:
+            rows = conn.execute("SELECT * FROM id_item_master").fetchall()
+        items = [dict(row) for row in rows if needs_service(dict(row))]
+        print(f"Service items found: {len(items)}")
+        logging.debug(f"Total service items: {len(items)}")
 
-    # Build crew_map: crew -> status -> category -> subcategory -> items
-    crew_map = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-    for item in items:
-        crew = assign_crew(item)
-        status = item.get("status", "")
-        category = categorize_item(item)
-        subcategory = subcategorize_item(category, item)
-        
-        if 'item_list' not in crew_map[crew][status][category]:
-            crew_map[crew][status][category]['item_list'] = []
-            crew_map[crew][status][category]['subcategories'] = defaultdict(list)
-        crew_map[crew][status][category]['item_list'].append(item)
-        crew_map[crew][status][category]['subcategories'][subcategory].append(item)
+        crew_map = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        for item in items:
+            crew = assign_crew(item)
+            status = item.get("status", "")
+            category = categorize_item(item)
+            subcategory = subcategorize_item(category, item)
+            
+            if 'item_list' not in crew_map[crew][status][category]:
+                crew_map[crew][status][category]['item_list'] = []
+                crew_map[crew][status][category]['subcategories'] = defaultdict(list)
+            crew_map[crew][status][category]['item_list'].append(item)
+            crew_map[crew][status][category]['subcategories'][subcategory].append(item)
 
-    # Build crew_data with totals
-    crew_data = []
-    for crew, status_dict in crew_map.items():
-        crew_total = 0
-        status_counts = defaultdict(int)
-        for status, cat_dict in status_dict.items():
-            status_total = 0
-            for cat, sub_dict in cat_dict.items():
-                item_count = len(sub_dict['item_list'])
-                status_total += item_count
-                sub_dict['total'] = item_count
-                sub_dict['service'] = item_count
-            status_counts[status] = status_total
-            crew_total += status_total
-        crew_data.append({
-            "crew": crew,
-            "total": crew_total,
-            "status_counts": status_counts
-        })
+        crew_data = []
+        for crew, status_dict in crew_map.items():
+            crew_total = 0
+            status_counts = defaultdict(int)
+            for status, cat_dict in status_dict.items():
+                status_total = 0
+                for cat, sub_dict in cat_dict.items():
+                    item_count = len(sub_dict['item_list'])
+                    status_total += item_count
+                    sub_dict['total'] = item_count
+                    sub_dict['service'] = item_count
+                status_counts[status] = status_total
+                crew_total += status_total
+            crew_data.append({
+                "crew": crew,
+                "total": crew_total,
+                "status_counts": status_counts
+            })
+            logging.debug(f"Crew: {crew}, Total: {crew_total}, Status Counts: {dict(status_counts)}")
 
-    crew_data.sort(key=lambda x: x["crew"])
-    items_found = len(items) > 0
+        crew_data.sort(key=lambda x: x["crew"])
+        items_found = len(items) > 0
 
-    # Debug crew_map structure
-    for crew, status_dict in crew_map.items():
-        print(f"Crew: {crew}")
-        for status, cat_dict in status_dict.items():
-            print(f"  Status: {status}")
-            for cat, sub_dict in cat_dict.items():
-                print(f"    Category: {cat}, Items: {len(sub_dict['item_list'])}, Subcategories: {len(sub_dict['subcategories'])}")
-                for subcat, sub_items in sub_dict['subcategories'].items():
-                    print(f"      Subcategory: {subcat}, Items: {len(sub_items)}")
-                    for item in sub_items:
-                        print(f"        Item: {item['tag_id']}")
-
-    return render_template("tab3.html", crew_data=crew_data, crew_map=crew_map, items_found=items_found)
+        return render_template(
+            "tab3.html",
+            crew_data=crew_data,
+            crew_map=crew_map,
+            items_found=items_found
+        )
+    except Exception as e:
+        logging.error(f"Error in show_tab3: {str(e)}", exc_info=True)
+        raise
