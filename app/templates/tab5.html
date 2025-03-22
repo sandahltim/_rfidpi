@@ -128,6 +128,7 @@
 <script>
 const itemMap = {{ item_map_json|tojson }};
 console.log("Loaded itemMap:", itemMap);
+console.log("itemMap keys:", Object.keys(itemMap));
 
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
@@ -220,8 +221,17 @@ function loadSubcatData(contract, common_name, page, childKey) {
 
   console.log("Using itemMap directly...");
   const key = `${contract}:${common_name}`;
-  const items = itemMap[key] || [];
-  console.log(`Items from itemMap for ${key}:`, items);
+  const allItems = itemMap[key] || [];
+  console.log(`All items from itemMap for ${key}:`, allItems);
+
+  const perPage = 20;
+  const totalItems = allItems.length;
+  const totalPages = Math.ceil(totalItems / perPage);
+  const currentPage = Math.max(1, Math.min(page, totalPages));
+  const start = (currentPage - 1) * perPage;
+  const end = Math.min(start + perPage, totalItems);
+  const items = allItems.slice(start, end);
+  console.log(`Paginated items: Page ${currentPage}, Start ${start}, End ${end}, Items:`, items);
 
   const tbody = document.getElementById(`grandchildTbody-${childKey}`);
   if (!tbody) {
@@ -251,11 +261,6 @@ function loadSubcatData(contract, common_name, page, childKey) {
     tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found.</td></tr>';
   }
 
-  // Pagination (simplified, no server call)
-  const perPage = 20;
-  const totalItems = items.length;
-  const totalPages = Math.ceil(totalItems / perPage);
-  const currentPage = page;
   const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
   if (!pagination) {
     console.error(`Pagination not found for ChildKey: ${childKey}`);
@@ -295,32 +300,34 @@ function loadSubcatData(contract, common_name, page, childKey) {
 }
 
 function printContract(contract, commonName = null) {
-  const childMap = {{ child_map_json|tojson }};
-  const items = childMap[contract] || {};
+  const items = commonName ? { [commonName]: itemMap[`${contract}:${commonName}`] || [] } : {};
+  if (!commonName) {
+    for (const key in itemMap) {
+      if (key.startsWith(`${contract}:`)) {
+        const name = key.split(':')[1];
+        items[name] = itemMap[key];
+      }
+    }
+  }
+  console.log(`Printing for ${contract}${commonName ? ' - ' + commonName : ''}:`, items);
+
   const printWin = window.open('', '_blank');
-  let title = `RFID-Laundry Out: ${contract}`;
+  let title = `RFID-Laundry Out: ${contract}${commonName ? ' - ' + commonName : ''}`;
   let rows = '';
 
-  if (commonName) {
-    title += ` - ${commonName}`;
-    const totals = items[commonName] || {};
-    rows = `
-      <tr>
-        <td>${commonName}</td>
-        <td>${totals.total || 0}</td>
-      </tr>
-    `;
-  } else {
-    for (const name in items) {
-      if (items.hasOwnProperty(name)) {
-        const totals = items[name];
+  for (const name in items) {
+    if (items.hasOwnProperty(name)) {
+      const itemList = items[name];
+      itemList.forEach(item => {
         rows += `
           <tr>
-            <td>${name}</td>
-            <td>${totals.total}</td>
+            <td>${item.common_name}</td>
+            <td>${item.tag_id || 'N/A'}</td>
+            <td>${item.status || 'Hand Counted'}</td>
+            <td>${item.last_contract_num}</td>
           </tr>
         `;
-      }
+      });
     }
   }
 
@@ -344,7 +351,9 @@ function printContract(contract, commonName = null) {
           <thead>
             <tr>
               <th>Item Name</th>
-              <th>Total Items</th>
+              <th>Tag ID</th>
+              <th>Status</th>
+              <th>Last Contract Num</th>
             </tr>
           </thead>
           <tbody>
