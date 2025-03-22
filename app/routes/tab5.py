@@ -1,19 +1,15 @@
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for
 from collections import defaultdict
 from db_connection import DatabaseConnection
 from data_service import get_active_rental_contracts, get_active_rental_items
 import sqlite3
 import os
 import logging
-import json
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
-logging.basicConfig(level=logging.DEBUG, force=True)  # Force logging
-
-# Global item_map (temporary hack)
-global_item_map = {}
+logging.basicConfig(level=logging.DEBUG, force=True)
 
 def init_hand_counted_db():
     try:
@@ -65,7 +61,7 @@ def show_tab5():
         filter_contract = request.args.get("last_contract_num", "").lower().strip()
         filter_common_name = request.args.get("common_name", "").lower().strip()
 
-        filtered_items = laundry_items
+        filtered_items = laundry_items + hand_counted
         if filter_contract:
             filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
         if filter_common_name:
@@ -73,24 +69,22 @@ def show_tab5():
 
         logging.debug("Merging data")
         contract_map = defaultdict(list)
+        item_map = {}
         for item in filtered_items:
             contract = item.get("last_contract_num", "Unknown")
             contract_map[contract].append(item)
-        for item in hand_counted:
-            contract = item.get("last_contract_num", "Unknown")
-            contract_map[contract].append(item)
+            common_name = item.get("common_name", "Unknown")
+            key = f"{contract}:{common_name}"
+            item_map[key] = item_map.get(key, []) + [item]
 
         parent_data = []
         child_map = {}
-        item_map = {}  # String-keyed item_map
         for contract, item_list in contract_map.items():
             logging.debug(f"Processing contract: {contract}")
             common_name_map = defaultdict(list)
             for item in item_list:
                 common_name = item.get("common_name", "Unknown")
                 common_name_map[common_name].append(item)
-                key = f"{contract}:{common_name}"
-                item_map[key] = item_map.get(key, []) + [item]
 
             child_data = {}
             for common_name, items in common_name_map.items():
@@ -122,11 +116,7 @@ def show_tab5():
         logging.debug("Sorting parent data")
         parent_data.sort(key=lambda x: x["contract"].lower())
 
-        # Store globally (temporary)
-        global global_item_map
-        global_item_map = item_map
-        logging.debug(f"Stored global_item_map: {len(item_map)} keys")
-
+        logging.debug(f"Item map keys: {list(item_map.keys())}")
         logging.debug("Rendering Tab 5")
         return render_template(
             "tab5.html",
@@ -218,45 +208,3 @@ def update_hand_counted():
     except Exception as e:
         logging.error(f"Error updating hand-counted entry: {e}")
         return "Internal Server Error", 500
-
-@tab5_bp.route("/subcat_data", methods=["GET"])
-def subcat_data():
-    logging.debug("Hit /tab5/subcat_data endpoint")
-    contract = request.args.get('contract')
-    common_name = request.args.get('common_name')
-    page = int(request.args.get('page', 1))
-    per_page = 20
-
-    logging.debug(f"Params - Contract: {contract}, Common Name: {common_name}, Page: {page}")
-
-    # Use global_item_map
-    key = f"{contract}:{common_name}"
-    filtered_items = global_item_map.get(key, [])
-    logging.debug(f"Filtered items from global_item_map: {len(filtered_items)} for {key}")
-
-    total_items = len(filtered_items)
-    total_pages = (total_items + per_page - 1) // per_page
-    page = max(1, min(page, total_pages))
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_items = filtered_items[start:end]
-
-    logging.debug(f"Returning: Total Items: {total_items}, Total Pages: {total_pages}, Current Page: {page}, Items: {len(paginated_items)}")
-
-    response = {
-        "items": [{
-            "tag_id": item.get("tag_id", "N/A"),
-            "common_name": item["common_name"],
-            "status": item.get("status", "Hand Counted"),
-            "bin_location": item.get("bin_location", "N/A"),
-            "quality": item.get("quality", "N/A"),
-            "last_contract_num": item["last_contract_num"],
-            "date_last_scanned": item.get("date_last_scanned", "N/A"),
-            "last_scanned_by": item.get("last_scanned_by", "Unknown")
-        } for item in paginated_items],
-        "total_items": total_items,
-        "total_pages": total_pages,
-        "current_page": page
-    }
-    logging.debug(f"Response: {response}")
-    return jsonify(response)
