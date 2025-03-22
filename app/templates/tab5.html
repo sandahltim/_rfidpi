@@ -123,9 +123,9 @@
   </table>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/json5@2/dist/index.min.js"></script>
 <script>
-const itemMap = JSON5.parse('{{ item_map_json|tojson }}');
+const itemMap = {{ item_map_json|safe }};
+console.log("Loaded itemMap:", itemMap);
 
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
@@ -218,8 +218,8 @@ function loadSubcatData(contract, common_name, page, childKey) {
     common_name: common_name,
     page: page,
     last_contract_num: urlParams.get('last_contract_num') || '',
-    common_name_filter: urlParams.get('common_name') || '',
-    item_map_json: JSON.stringify(itemMap)
+    common_name_filter: urlParams.get('common_name') || ''
+    // Removed item_map_json from params, using global_item_map on server
   };
   const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
   console.log(`Fetching URL: ${url}`);
@@ -297,6 +297,28 @@ function loadSubcatData(contract, common_name, page, childKey) {
       console.error('Error loading subcat data:', error);
       alert('Failed to load laundry items: ' + error.message);
       loading.style.display = 'none';
+      // Fallback: Pre-populate from itemMap
+      const key = `${contract}:${common_name}`;
+      const fallbackItems = itemMap[key] || [];
+      const tbody = document.getElementById(`grandchildTbody-${childKey}`);
+      if (tbody && fallbackItems.length > 0) {
+        console.log(`Falling back to itemMap for ${key}:`, fallbackItems);
+        tbody.innerHTML = '';
+        fallbackItems.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.tag_id || 'N/A'}</td>
+            <td>${item.common_name}</td>
+            <td>${item.status || 'Hand Counted'}</td>
+            <td>${item.bin_location || 'N/A'}</td>
+            <td>${item.quality || 'N/A'}</td>
+            <td>${item.last_contract_num}</td>
+            <td>${item.date_last_scanned || 'N/A'}</td>
+            <td>${item.last_scanned_by || 'Unknown'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
     });
 }
 

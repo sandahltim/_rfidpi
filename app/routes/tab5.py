@@ -5,11 +5,15 @@ from data_service import get_active_rental_contracts, get_active_rental_items
 import sqlite3
 import os
 import logging
+import json
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, force=True)  # Force logging
+
+# Global item_map (temporary hack)
+global_item_map = {}
 
 def init_hand_counted_db():
     try:
@@ -78,7 +82,7 @@ def show_tab5():
 
         parent_data = []
         child_map = {}
-        item_map = {}  # Use string keys
+        item_map = {}  # String-keyed item_map
         for contract, item_list in contract_map.items():
             logging.debug(f"Processing contract: {contract}")
             common_name_map = defaultdict(list)
@@ -118,6 +122,11 @@ def show_tab5():
         logging.debug("Sorting parent data")
         parent_data.sort(key=lambda x: x["contract"].lower())
 
+        # Store globally (temporary)
+        global global_item_map
+        global_item_map = item_map
+        logging.debug(f"Stored global_item_map: {len(item_map)} keys")
+
         logging.debug("Rendering Tab 5")
         return render_template(
             "tab5.html",
@@ -126,7 +135,7 @@ def show_tab5():
             filter_contract=filter_contract,
             filter_common_name=filter_common_name,
             child_map_json=child_map,
-            item_map_json=item_map  # String-keyed item_map
+            item_map_json=item_map
         )
     except Exception as e:
         logging.error(f"Error in show_tab5: {e}")
@@ -220,17 +229,10 @@ def subcat_data():
 
     logging.debug(f"Params - Contract: {contract}, Common Name: {common_name}, Page: {page}")
 
-    # Parse item_map_json from request params
-    item_map_json = request.args.get('item_map_json', '{}')
-    try:
-        item_map = json.loads(item_map_json)
-    except json.JSONDecodeError:
-        logging.error("Failed to parse item_map_json")
-        return jsonify({"items": [], "total_items": 0, "total_pages": 1, "current_page": 1}), 200
-
+    # Use global_item_map
     key = f"{contract}:{common_name}"
-    filtered_items = item_map.get(key, [])
-    logging.debug(f"Filtered items from item_map: {len(filtered_items)} for {key}")
+    filtered_items = global_item_map.get(key, [])
+    logging.debug(f"Filtered items from global_item_map: {len(filtered_items)} for {key}")
 
     total_items = len(filtered_items)
     total_pages = (total_items + per_page - 1) // per_page
@@ -239,7 +241,7 @@ def subcat_data():
     end = start + per_page
     paginated_items = filtered_items[start:end]
 
-    logging.debug(f"Returning: Total Items: {total_items}, Total Pages: {total_pages}, Current Page: {page},_ITEMS: {len(paginated_items)}")
+    logging.debug(f"Returning: Total Items: {total_items}, Total Pages: {total_pages}, Current Page: {page}, Items: {len(paginated_items)}")
 
     response = {
         "items": [{
