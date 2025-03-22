@@ -78,12 +78,14 @@ def show_tab5():
 
         parent_data = []
         child_map = {}
+        item_map = defaultdict(list)  # Store items for subcat_data
         for contract, item_list in contract_map.items():
             logging.debug(f"Processing contract: {contract}")
             common_name_map = defaultdict(list)
             for item in item_list:
                 common_name = item.get("common_name", "Unknown")
                 common_name_map[common_name].append(item)
+                item_map[(contract, common_name)].append(item)
 
             child_data = {}
             for common_name, items in common_name_map.items():
@@ -122,7 +124,8 @@ def show_tab5():
             child_map=child_map,
             filter_contract=filter_contract,
             filter_common_name=filter_common_name,
-            child_map_json=child_map
+            child_map_json=child_map,
+            item_map_json=item_map  # Pass item_map for subcat_data
         )
     except Exception as e:
         logging.error(f"Error in show_tab5: {e}")
@@ -216,35 +219,14 @@ def subcat_data():
 
     logging.debug(f"Params - Contract: {contract}, Common Name: {common_name}, Page: {page}")
 
-    with DatabaseConnection() as conn:
-        items = get_active_rental_items(conn)
-        logging.debug(f"Fetched {len(items)} active rental items")
+    # Use item_map_json from session or template context
+    item_map = request.args.get('item_map_json', {})
+    if not item_map:
+        logging.error("item_map_json not provided in request")
+        return jsonify({"items": [], "total_items": 0, "total_pages": 1, "current_page": 1}), 200
 
-    with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
-        conn.row_factory = sqlite3.Row
-        hand_items = conn.execute(
-            "SELECT * FROM hand_counted_items WHERE last_contract_num = ? AND common_name = ?", 
-            (contract, common_name)
-        ).fetchall()
-        logging.debug(f"Fetched {len(hand_items)} hand-counted items for {contract}, {common_name}")
-
-    laundry_items = [
-        item for item in [dict(row) for row in items]
-        if item.get("last_contract_num", "") == contract and item.get("common_name", "") == common_name
-    ]
-    hand_counted = [dict(row) for row in hand_items]
-
-    filter_contract = request.args.get("last_contract_num", "").lower().strip()
-    filter_common_name = request.args.get("common_name_filter", "").lower().strip()
-
-    filtered_items = laundry_items + hand_counted
-    logging.debug(f"Combined items: {len(filtered_items)} before filters")
-    if filter_contract:
-        filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
-        logging.debug(f"After contract filter: {len(filtered_items)}")
-    if filter_common_name:
-        filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
-        logging.debug(f"After common_name filter: {len(filtered_items)}")
+    filtered_items = item_map.get((contract, common_name), [])
+    logging.debug(f"Filtered items from item_map: {len(filtered_items)} for {contract}, {common_name}")
 
     total_items = len(filtered_items)
     total_pages = (total_items + per_page - 1) // per_page

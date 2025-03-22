@@ -124,6 +124,8 @@
 </div>
 
 <script>
+const itemMap = {{ item_map_json|tojson }};
+
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
   if (!tbody) return;
@@ -215,7 +217,8 @@ function loadSubcatData(contract, common_name, page, childKey) {
     common_name: common_name,
     page: page,
     last_contract_num: urlParams.get('last_contract_num') || '',
-    common_name_filter: urlParams.get('common_name') || ''
+    common_name_filter: urlParams.get('common_name') || '',
+    item_map_json: JSON.stringify(itemMap)
   };
   const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
   console.log(`Fetching URL: ${url}`);
