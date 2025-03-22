@@ -210,6 +210,10 @@ function sortTable(tableEl, colName) {
 function loadSubcatData(contract, common_name, page, childKey) {
   console.log(`Loading Subcat - Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
   const loading = document.getElementById(`loading-${childKey}`);
+  if (!loading) {
+    console.error(`Loading element not found for ChildKey: ${childKey}`);
+    return;
+  }
   loading.style.display = 'block';
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -221,48 +225,115 @@ function loadSubcatData(contract, common_name, page, childKey) {
     common_name_filter: urlParams.get('common_name') || ''
   };
   const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
-  console.log(`Fetching URL: ${url}`);
+  console.log(`Preparing to fetch: ${url}`);
 
-  fetch(url)
-    .then(response => {
-      console.log(`Response Status: ${response.status}`);
-      if (!response.ok) {
-        return response.text().then(text => { throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`); });
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('AJAX Response:', data);
-      const tbody = document.getElementById(`grandchildTbody-${childKey}`);
-      if (!tbody) {
-        console.error(`Tbody not found for ChildKey: ${childKey}`);
-        alert("Error: Table body not found!");
-        return;
-      }
-      tbody.innerHTML = '';
-      if (data.items && data.items.length > 0) {
-        data.items.forEach(item => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${item.tag_id}</td>
-            <td>${item.common_name}</td>
-            <td>${item.status}</td>
-            <td>${item.bin_location}</td>
-            <td>${item.quality}</td>
-            <td>${item.last_contract_num}</td>
-            <td>${item.date_last_scanned}</td>
-            <td>${item.last_scanned_by}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } else {
-        console.warn(`No items returned for Contract: ${contract}, Common Name: ${common_name}`);
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found from server.</td></tr>';
+  try {
+    console.log("Starting fetch...");
+    fetch(url)
+      .then(response => {
+        console.log(`Fetch response received: Status ${response.status}`);
+        if (!response.ok) {
+          return response.text().then(text => { throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`); });
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('AJAX Response:', data);
+        const tbody = document.getElementById(`grandchildTbody-${childKey}`);
+        if (!tbody) {
+          console.error(`Tbody not found for ChildKey: ${childKey}`);
+          alert("Error: Table body not found!");
+          loading.style.display = 'none';
+          return;
+        }
+        tbody.innerHTML = '';
+        if (data.items && data.items.length > 0) {
+          data.items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.tag_id}</td>
+              <td>${item.common_name}</td>
+              <td>${item.status}</td>
+              <td>${item.bin_location}</td>
+              <td>${item.quality}</td>
+              <td>${item.last_contract_num}</td>
+              <td>${item.date_last_scanned}</td>
+              <td>${item.last_scanned_by}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          console.warn(`No items returned for Contract: ${contract}, Common Name: ${common_name}`);
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found from server.</td></tr>';
+          // Fallback to itemMap
+          const key = `${contract}:${common_name}`;
+          const fallbackItems = itemMap[key] || [];
+          if (fallbackItems.length > 0) {
+            console.log(`Falling back to itemMap for ${key}:`, fallbackItems);
+            fallbackItems.forEach(item => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td>${item.tag_id || 'N/A'}</td>
+                <td>${item.common_name}</td>
+                <td>${item.status || 'Hand Counted'}</td>
+                <td>${item.bin_location || 'N/A'}</td>
+                <td>${item.quality || 'N/A'}</td>
+                <td>${item.last_contract_num}</td>
+                <td>${item.date_last_scanned || 'N/A'}</td>
+                <td>${item.last_scanned_by || 'Unknown'}</td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+        }
+
+        const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
+        if (!pagination) {
+          console.error(`Pagination not found for ChildKey: ${childKey}`);
+        } else {
+          pagination.innerHTML = '';
+          if (data.total_pages > 1) {
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
+            pagination.appendChild(prevLi);
+
+            for (let p = 1; p <= data.total_pages; p++) {
+              const li = document.createElement('li');
+              li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
+              li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
+              pagination.appendChild(li);
+            }
+
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
+            pagination.appendChild(nextLi);
+
+            pagination.querySelectorAll('.page-link').forEach(link => {
+              link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const newPage = parseInt(link.getAttribute('data-page'));
+                if (!isNaN(newPage)) {
+                  loadSubcatData(contract, common_name, newPage, childKey);
+                }
+              });
+            });
+          }
+        }
+        loading.style.display = 'none';
+      })
+      .catch(error => {
+        console.error('Fetch error:', error);
+        alert('Failed to load laundry items: ' + error.message);
+        loading.style.display = 'none';
         // Fallback to itemMap
         const key = `${contract}:${common_name}`;
         const fallbackItems = itemMap[key] || [];
-        if (fallbackItems.length > 0) {
+        const tbody = document.getElementById(`grandchildTbody-${childKey}`);
+        if (tbody && fallbackItems.length > 0) {
           console.log(`Falling back to itemMap for ${key}:`, fallbackItems);
+          tbody.innerHTML = '';
           fallbackItems.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -278,67 +349,12 @@ function loadSubcatData(contract, common_name, page, childKey) {
             tbody.appendChild(tr);
           });
         }
-      }
-
-      const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
-      pagination.innerHTML = '';
-      if (data.total_pages > 1) {
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
-        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
-        pagination.appendChild(prevLi);
-
-        for (let p = 1; p <= data.total_pages; p++) {
-          const li = document.createElement('li');
-          li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
-          li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
-          pagination.appendChild(li);
-        }
-
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
-        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
-        pagination.appendChild(nextLi);
-
-        pagination.querySelectorAll('.page-link').forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const newPage = parseInt(link.getAttribute('data-page'));
-            if (!isNaN(newPage)) {
-              loadSubcatData(contract, common_name, newPage, childKey);
-            }
-          });
-        });
-      }
-      loading.style.display = 'none';
-    })
-    .catch(error => {
-      console.error('Error loading subcat data:', error);
-      alert('Failed to load laundry items: ' + error.message);
-      loading.style.display = 'none';
-      // Fallback to itemMap
-      const key = `${contract}:${common_name}`;
-      const fallbackItems = itemMap[key] || [];
-      const tbody = document.getElementById(`grandchildTbody-${childKey}`);
-      if (tbody && fallbackItems.length > 0) {
-        console.log(`Falling back to itemMap for ${key}:`, fallbackItems);
-        tbody.innerHTML = '';
-        fallbackItems.forEach(item => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${item.tag_id || 'N/A'}</td>
-            <td>${item.common_name}</td>
-            <td>${item.status || 'Hand Counted'}</td>
-            <td>${item.bin_location || 'N/A'}</td>
-            <td>${item.quality || 'N/A'}</td>
-            <td>${item.last_contract_num}</td>
-            <td>${item.date_last_scanned || 'N/A'}</td>
-            <td>${item.last_scanned_by || 'Unknown'}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    });
+      });
+    console.log("Fetch completed or errored");
+  } catch (e) {
+    console.error('Unexpected error in loadSubcatData:', e);
+    loading.style.display = 'none';
+  }
 }
 
 function printContract(contract) {
