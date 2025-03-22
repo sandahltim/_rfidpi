@@ -2,8 +2,10 @@ from flask import Blueprint, render_template, request, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
 import re
+import logging
 
 tab2_bp = Blueprint("tab2_bp", __name__, url_prefix="/tab2")
+logging.basicConfig(level=logging.DEBUG)
 
 def tokenize_name(name):
     return re.split(r'\W+', name.lower())
@@ -88,18 +90,17 @@ def subcategorize_item(category, item):
 @tab2_bp.route("/")
 def show_tab2():
     print("Loading /tab2/ endpoint")
+    logging.debug("Starting /tab2/ endpoint")
     with DatabaseConnection() as conn:
         rows = conn.execute("SELECT * FROM id_item_master").fetchall()
     items = [dict(row) for row in rows]
 
-    # Get filter parameters
     filter_common_name = request.args.get("common_name", "").lower().strip()
     filter_tag_id = request.args.get("tag_id", "").lower().strip()
     filter_bin_location = request.args.get("bin_location", "").lower().strip()
     filter_last_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_status = request.args.get("status", "").lower().strip()
 
-    # Filter items
     filtered_items = items
     if filter_common_name:
         filtered_items = [item for item in filtered_items if filter_common_name in (item.get("common_name") or "").lower()]
@@ -112,13 +113,11 @@ def show_tab2():
     if filter_status:
         filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
 
-    # Group by category
     category_map = defaultdict(list)
     for item in filtered_items:
         cat = categorize_item(item)
         category_map[cat].append(item)
 
-    # Parent data (categories)
     parent_data = []
     sub_map = {}
     middle_map = {}
@@ -131,24 +130,22 @@ def show_tab2():
         service = sum(1 for item in item_list if item["status"] not in ["Ready to Rent", "On Rent", "Delivered"])
         total = len(item_list)
 
-        # Subcategories for dropdown
         temp_sub_map = defaultdict(list)
         for item in item_list:
             subcat = subcategorize_item(category, item)
             temp_sub_map[subcat].append(item)
         sub_map[category] = {"subcategories": list(temp_sub_map.keys())}
 
-        # Middle child: All common names for print
         common_name_map = defaultdict(list)
         for item in item_list:
             common_name = item.get("common_name", "Unknown")
             common_name_map[common_name].append(item)
         middle_map[category] = [
             {"common_name": name, "total": len(items)}
-            for name, items in common_name_map.items()
+            for name, items in sorted(common_name_map.items(), key=lambda x: x[0].lower())
         ]
+        logging.debug(f"Middle Map for {category}: {middle_map[category]}")
 
-        # Middle for display: Selected subcat or first
         subcat_to_show = selected_subcat if selected_subcat in temp_sub_map else list(temp_sub_map.keys())[0] if temp_sub_map else None
         display_middle_map = {}
         if subcat_to_show:
@@ -159,8 +156,9 @@ def show_tab2():
                 display_common_name_map[common_name].append(item)
             display_middle_map[category] = [
                 {"common_name": name, "total": len(items)}
-                for name, items in display_common_name_map.items()
+                for name, items in sorted(display_common_name_map.items(), key=lambda x: x[0].lower())
             ]
+            logging.debug(f"Display Middle Map for {category}, Subcat {subcat_to_show}: {display_middle_map[category]}")
 
         parent_data.append({
             "category": category,
@@ -200,7 +198,6 @@ def subcat_data():
         rows = conn.execute("SELECT * FROM id_item_master").fetchall()
     items = [dict(row) for row in rows]
 
-    # Apply filters from query params
     filter_common_name = request.args.get("common_name_filter", "").lower().strip()
     filter_tag_id = request.args.get("tag_id", "").lower().strip()
     filter_bin_location = request.args.get("bin_location", "").lower().strip()
@@ -257,7 +254,6 @@ def middle_data():
         rows = conn.execute("SELECT * FROM id_item_master").fetchall()
     items = [dict(row) for row in rows]
 
-    # Apply filters from query params
     filter_common_name = request.args.get("common_name_filter", "").lower().strip()
     filter_tag_id = request.args.get("tag_id", "").lower().strip()
     filter_bin_location = request.args.get("bin_location", "").lower().strip()
@@ -286,8 +282,9 @@ def middle_data():
     
     middle_data = [
         {"common_name": name, "total": len(items)}
-        for name, items in common_name_map.items()
+        for name, items in sorted(common_name_map.items(), key=lambda x: x[0].lower())
     ]
 
     print(f"Middle Data: Category: {category}, Subcategory: {subcat}, Items: {len(middle_data)}")
+    logging.debug(f"Middle Data Response: {middle_data}")
     return jsonify({"middle_data": middle_data})

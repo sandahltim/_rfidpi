@@ -472,8 +472,12 @@ function printItems(category, subcat, commonName) {
 function printAggregate(category) {
   const middleMap = {{ middle_map|tojson }};
   const parentData = {{ parent_data|tojson }};
-  const items = middleMap[category] || [];
+  let items = middleMap[category] || [];
   const parent = parentData.find(p => p.category === category) || {};
+
+  // Ensure items are sorted alphabetically
+  items = items.sort((a, b) => a.common_name.localeCompare(b.common_name));
+  console.log(`Sorted Items for ${category}:`, items);
 
   const printWin = window.open('', '_blank');
   printWin.document.write(`
