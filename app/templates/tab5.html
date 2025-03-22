@@ -124,7 +124,7 @@
 </div>
 
 <script>
-const itemMap = {{ item_map_json|safe }};
+const itemMap = {{ item_map_json|tojson }};
 console.log("Loaded itemMap:", itemMap);
 
 function sortTable(tableEl, colName) {
