@@ -168,7 +168,6 @@ def update_hand_counted():
         with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            # Find matching open L contract
             cursor.execute("""
                 SELECT id, total_items FROM hand_counted_items 
                 WHERE last_contract_num = ? AND common_name = ?
@@ -186,7 +185,6 @@ def update_hand_counted():
                 logging.error(f"Returned quantity {returned_qty} exceeds original {orig_total}")
                 return "Returned quantity exceeds original total", 400
 
-            # Update original L contract
             if new_total == 0:
                 cursor.execute("DELETE FROM hand_counted_items WHERE id = ?", (orig_id,))
             else:
@@ -195,7 +193,6 @@ def update_hand_counted():
                     WHERE id = ?
                 """, (new_total, orig_id))
 
-            # Add new C contract entry
             closed_contract = "C" + last_contract_num[1:]
             cursor.execute("""
                 INSERT INTO hand_counted_items (last_contract_num, common_name, total_items, tag_id, date_last_scanned, last_scanned_by)
@@ -217,17 +214,23 @@ def subcat_data():
     page = int(request.args.get('page', 1))
     per_page = 20
 
+    logging.debug(f"Params - Contract: {contract}, Common Name: {common_name}, Page: {page}")
+
     with DatabaseConnection() as conn:
         items = get_active_rental_items(conn)
+        logging.debug(f"Fetched {len(items)} active rental items")
 
     with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
         conn.row_factory = sqlite3.Row
-        hand_items = conn.execute("SELECT * FROM hand_counted_items WHERE last_contract_num LIKE 'L%' AND last_contract_num = ? AND common_name = ?", 
-                                  (contract, common_name)).fetchall()
+        hand_items = conn.execute(
+            "SELECT * FROM hand_counted_items WHERE last_contract_num = ? AND common_name = ?", 
+            (contract, common_name)
+        ).fetchall()
+        logging.debug(f"Fetched {len(hand_items)} hand-counted items for {contract}, {common_name}")
 
     laundry_items = [
         item for item in [dict(row) for row in items]
-        if item.get("last_contract_num", "").lower().startswith("l")
+        if item.get("last_contract_num", "") == contract and item.get("common_name", "") == common_name
     ]
     hand_counted = [dict(row) for row in hand_items]
 
@@ -235,26 +238,24 @@ def subcat_data():
     filter_common_name = request.args.get("common_name_filter", "").lower().strip()
 
     filtered_items = laundry_items + hand_counted
+    logging.debug(f"Combined items: {len(filtered_items)} before filters")
     if filter_contract:
         filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
+        logging.debug(f"After contract filter: {len(filtered_items)}")
     if filter_common_name:
         filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
+        logging.debug(f"After common_name filter: {len(filtered_items)}")
 
-    subcat_items = [
-        item for item in filtered_items
-        if item.get("last_contract_num") == contract and item.get("common_name") == common_name
-    ]
-
-    total_items = len(subcat_items)
+    total_items = len(filtered_items)
     total_pages = (total_items + per_page - 1) // per_page
     page = max(1, min(page, total_pages))
     start = (page - 1) * per_page
     end = start + per_page
-    paginated_items = subcat_items[start:end]
+    paginated_items = filtered_items[start:end]
 
-    logging.debug(f"AJAX: Contract: {contract}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
+    logging.debug(f"Returning: Total Items: {total_items}, Total Pages: {total_pages}, Current Page: {page}, Items: {len(paginated_items)}")
 
-    return jsonify({
+    response = {
         "items": [{
             "tag_id": item.get("tag_id", "N/A"),
             "common_name": item["common_name"],
@@ -268,4 +269,6 @@ def subcat_data():
         "total_items": total_items,
         "total_pages": total_pages,
         "current_page": page
-    })
+    }
+    logging.debug(f"Response: {response}")
+    return jsonify(response)
