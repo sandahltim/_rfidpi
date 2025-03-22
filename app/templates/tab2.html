@@ -65,7 +65,7 @@
                   <th style="width: 50px;"></th>
                   <th class="sortable" data-col-name="common_name">Common Name</th>
                   <th class="sortable" data-col-name="total">Total</th>
-                  <th style="width: 100px;"></th>
+                  <th style="width: 100px;">Print Items</th>
                 </tr>
               </thead>
               <tbody>
@@ -76,7 +76,7 @@
                   <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_idx }}">+</span></td>
                   <td>{{ middle.common_name }}</td>
                   <td>{{ middle.total }}</td>
-                  <td></td>
+                  <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-category="{{ parent.category }}" data-common-name="{{ middle.common_name }}" data-subcat="{{ selected_subcat | default(sub_map[parent.category].subcategories[0]) }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                 </tr>
                 <tr>
                   <td colspan="4" class="p-0">
@@ -338,7 +338,7 @@ function updateMiddleData(category, subcat, catKey) {
           <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-${middle_idx}">+</span></td>
           <td>${middle.common_name}</td>
           <td>${middle.total}</td>
-          <td></td>
+          <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-category="${category}" data-common-name="${middle.common_name}" data-subcat="${subcat}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
         `;
         tbody.appendChild(tr);
 
@@ -378,6 +378,95 @@ function updateMiddleData(category, subcat, catKey) {
       console.error('Error loading middle data:', error);
       alert('Failed to update middle data: ' + error.message);
     });
+}
+
+function printItems(category, subcat, commonName) {
+  let allItems = [];
+  let page = 1;
+  let totalPages = 1;
+
+  async function fetchAllItems() {
+    while (page <= totalPages) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const params = {
+        category: category,
+        subcat: subcat,
+        common_name: commonName,
+        page: page,
+        common_name_filter: urlParams.get('common_name') || '',
+        tag_id: urlParams.get('tag_id') || '',
+        bin_location: urlParams.get('bin_location') || '',
+        last_contract_num: urlParams.get('last_contract_num') || '',
+        status: urlParams.get('status') || ''
+      };
+      const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
+      console.log(`Fetching Items URL: ${url}`);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      const data = await response.json();
+      allItems = allItems.concat(data.items);
+      totalPages = data.total_pages;
+      page++;
+    }
+  }
+
+  fetchAllItems().then(() => {
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+      <html>
+        <head>
+          <title>Items: ${category} - ${subcat} - ${commonName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+            table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
+            th { background: #3498db; color: #fff; font-weight: bold; }
+            tr:nth-child(even) { background: #f9f9f9; }
+            tr:hover { background: #dfe6e9; }
+          </style>
+        </head>
+        <body>
+          <h1>Items: ${category} - ${subcat} - ${commonName}</h1>
+          <table>
+            <thead>
+              <tr>
+                <th>Tag ID</th>
+                <th>Common Name</th>
+                <th>Status</th>
+                <th>Bin Location</th>
+                <th>Quality</th>
+              </tr>
+            </thead>
+            <tbody>
+    `);
+
+    allItems.forEach(item => {
+      printWin.document.write(`
+        <tr>
+          <td>${item.tag_id}</td>
+          <td>${item.common_name}</td>
+          <td>${item.status}</td>
+          <td>${item.bin_location}</td>
+          <td>${item.quality}</td>
+        </tr>
+      `);
+    });
+
+    printWin.document.write(`
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+    printWin.focus();
+    printWin.print();
+    printWin.close();
+  }).catch(error => {
+    console.error('Error printing items:', error);
+    alert('Failed to print items: ' + error.message);
+  });
 }
 
 function printAggregate(category) {
@@ -473,6 +562,16 @@ document.addEventListener('click', (e) => {
         toggle.textContent = "+";
       }
     }
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const printBtn = e.target.closest('.print-items-btn');
+  if (printBtn) {
+    const category = printBtn.getAttribute('data-category');
+    const commonName = printBtn.getAttribute('data-common-name');
+    const subcat = printBtn.getAttribute('data-subcat');
+    printItems(category, subcat, commonName);
   }
 });
 
