@@ -7,6 +7,10 @@ from config import DB_FILE, ITEM_MASTER_URL, TRANSACTION_URL, API_USERNAME, API_
 TOKEN = None
 TOKEN_EXPIRY = None
 
+# Refresh intervals
+FULL_REFRESH_INTERVAL = 300  # 5 minutes
+FAST_REFRESH_INTERVAL = 30   # 30 seconds
+
 def get_access_token():
     """Fetch and cache API access token."""
     global TOKEN, TOKEN_EXPIRY
@@ -227,7 +231,6 @@ def fast_refresh():
         print(" No access token. Aborting fast refresh.")
         return
 
-    # Assuming API supports status filter (e.g., "!Ready to Rent")
     item_master_data = fetch_paginated_data(ITEM_MASTER_URL, token, status_filter="!Ready to Rent")
     update_item_master(item_master_data)
     print(f"Fast refresh complete. Waiting {FAST_REFRESH_INTERVAL} seconds...")

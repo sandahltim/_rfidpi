@@ -3,22 +3,29 @@ import logging
 import time
 import threading
 from db_utils import initialize_db
-from refresh_logic import fast_refresh, full_refresh
+from refresh_logic import fast_refresh, full_refresh, FAST_REFRESH_INTERVAL, FULL_REFRESH_INTERVAL
 from app import create_app
 from werkzeug.serving import is_running_from_reloader
-from config import FULL_REFRESH_INTERVAL, FAST_REFRESH_INTERVAL
 
 def background_fast_refresh():
-    """Run fast refresh every 30 seconds."""
+    """Run fast refresh every 30 seconds with error handling."""
     while True:
-        fast_refresh()
-        time.sleep(FAST_REFRESH_INTERVAL)
+        try:
+            fast_refresh()
+            time.sleep(FAST_REFRESH_INTERVAL)
+        except Exception as e:
+            print(f"Fast refresh thread crashed: {e}")
+            time.sleep(FAST_REFRESH_INTERVAL)  # Retry after delay
 
 def background_full_refresh():
-    """Run full refresh every 5 minutes."""
+    """Run full refresh every 5 minutes with error handling."""
     while True:
-        full_refresh()
-        time.sleep(FULL_REFRESH_INTERVAL)
+        try:
+            full_refresh()
+            time.sleep(FULL_REFRESH_INTERVAL)
+        except Exception as e:
+            print(f"Full refresh thread crashed: {e}")
+            time.sleep(FULL_REFRESH_INTERVAL)  # Retry after delay
 
 # Initialize Flask app globally for Gunicorn
 app = create_app()
