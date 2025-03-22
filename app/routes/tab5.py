@@ -107,9 +107,13 @@ def show_tab5():
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
             hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
+            # Get the latest date_last_scanned for this contract
+            dates = [item.get("date_last_scanned") for item in item_list if item.get("date_last_scanned")]
+            latest_date = max(dates) if dates else "N/A"
             parent_data.append({
                 "contract": contract,
-                "total": rfid_total + hand_total
+                "total": rfid_total + hand_total,
+                "date_last_scanned": latest_date
             })
             child_map[contract] = child_data
 
