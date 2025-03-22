@@ -290,6 +290,17 @@ function loadSubcatData(category, subcat, commonName, page, catKey) {
 
 function updateMiddleData(category, subcat, catKey) {
   console.log(`Updating Middle: Category: ${category}, Subcat: ${subcat}, CatKey: ${catKey}`);
+  const collapse = document.getElementById(`middle-${catKey}`);
+  if (!collapse) {
+    console.error(`Collapse not found for CatKey: ${catKey}`);
+    return;
+  }
+  const toggle = collapse.previousElementSibling.querySelector('.expand-toggle');
+  if (!collapse.classList.contains('show')) {
+    collapse.classList.add('show');
+    if (toggle) toggle.textContent = "-";
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
   const params = {
     category: category,
