@@ -289,6 +289,7 @@ function loadSubcatData(category, subcat, commonName, page, catKey) {
 }
 
 function updateMiddleData(category, subcat, catKey) {
+  console.log(`Updating Middle: Category: ${category}, Subcat: ${subcat}, CatKey: ${catKey}`);
   const urlParams = new URLSearchParams(window.location.search);
   const params = {
     category: category,
@@ -304,14 +305,20 @@ function updateMiddleData(category, subcat, catKey) {
 
   fetch(url)
     .then(response => {
+      console.log(`Response Status: ${response.status}`);
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       return response.json();
     })
     .then(data => {
       console.log('Middle Data Response:', data);
-      const tbody = document.querySelector(`#middleTable-${catKey} tbody`);
+      const table = document.getElementById(`middleTable-${catKey}`);
+      if (!table) {
+        console.error(`Table not found for CatKey: ${catKey}`);
+        return;
+      }
+      const tbody = table.querySelector('tbody');
       if (!tbody) {
-        console.error(`Tbody not found for CatKey: ${catKey}`);
+        console.error(`Tbody not found in middleTable-${catKey}`);
         return;
       }
       tbody.innerHTML = '';
