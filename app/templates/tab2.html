@@ -59,19 +59,18 @@
                 {% endfor %}
               </select>
             </div>
-            {% if middle_map[parent.category] %}
+            {% if display_middle_map[parent.category] %}
             <table class="table mb-0 middle-table" id="middleTable-{{ cat_key }}" style="border: 2px solid #34495e;">
               <thead style="background: #3498db; color: #fff;">
                 <tr>
                   <th style="width: 50px;"></th>
                   <th class="sortable" data-col-name="common_name">Common Name</th>
                   <th class="sortable" data-col-name="total">Total</th>
-                  <!-- Placeholder for future print button -->
                   <th style="width: 100px;"></th>
                 </tr>
               </thead>
               <tbody>
-                {% for middle in middle_map[parent.category] %}
+                {% for middle in display_middle_map[parent.category] %}
                 {% set middle_idx = cat_key ~ '_' ~ loop.index %}
                 <tr>
                   <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_idx }}">+</span></td>
@@ -315,10 +314,10 @@ function printAggregate(category) {
       <body>
         <h1>Category Aggregate: ${category}</h1>
         <div class="parent-info">
-          <span>Total Items: ${parent.total || 'N/A'}</span>
-          <span>Available: ${parent.available || 'N/A'}</span>
-          <span>On Rent: ${parent.on_rent || 'N/A'}</span>
-          <span>Service: ${parent.service || 'N/A'}</span>
+          <span>Total Items: ${parent.total || 0}</span>
+          <span>Available: ${parent.available || 0}</span>
+          <span>On Rent: ${parent.on_rent || 0}</span>
+          <span>Service: ${parent.service || 0}</span>
         </div>
         <table>
           <thead>

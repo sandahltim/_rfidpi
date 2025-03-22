@@ -128,7 +128,8 @@ def show_tab2():
     for category, item_list in category_map.items():
         available = sum(1 for item in item_list if item["status"] == "Ready to Rent")
         on_rent = sum(1 for item in item_list if item["status"] in ["On Rent", "Delivered"])
-        service = len(item_list) - available - on_rent
+        service = sum(1 for item in item_list if item["status"] not in ["Ready to Rent", "On Rent", "Delivered"])
+        total = len(item_list)
 
         # Subcategories for dropdown
         temp_sub_map = defaultdict(list)
@@ -137,22 +138,33 @@ def show_tab2():
             temp_sub_map[subcat].append(item)
         sub_map[category] = {"subcategories": list(temp_sub_map.keys())}
 
-        # Middle child: Always populate for first subcat if no expand, or selected subcat
+        # Middle child: Populate ALL common names across subcats for print
+        common_name_map = defaultdict(list)
+        for item in item_list:
+            common_name = item.get("common_name", "Unknown")
+            common_name_map[common_name].append(item)
+        middle_map[category] = [
+            {"common_name": name, "total": len(items)}
+            for name, items in common_name_map.items()
+        ]
+
+        # Middle for display: Only show selected subcat (or first if none selected)
         subcat_to_show = selected_subcat if selected_subcat in temp_sub_map else list(temp_sub_map.keys())[0] if temp_sub_map else None
+        display_middle_map = {}
         if subcat_to_show:
             cat_items = temp_sub_map[subcat_to_show]
-            common_name_map = defaultdict(list)
+            display_common_name_map = defaultdict(list)
             for item in cat_items:
                 common_name = item.get("common_name", "Unknown")
-                common_name_map[common_name].append(item)
-            middle_map[category] = [
+                display_common_name_map[common_name].append(item)
+            display_middle_map[category] = [
                 {"common_name": name, "total": len(items)}
-                for name, items in common_name_map.items()
+                for name, items in display_common_name_map.items()
             ]
 
         parent_data.append({
             "category": category,
-            "total": len(item_list),
+            "total": total,
             "available": available,
             "on_rent": on_rent,
             "service": service
@@ -163,7 +175,8 @@ def show_tab2():
     return render_template(
         "tab2.html",
         parent_data=parent_data,
-        middle_map=middle_map,
+        middle_map=middle_map,  # All common names for print
+        display_middle_map=display_middle_map,  # Filtered for display
         sub_map=sub_map,
         expand_category=expand_category,
         selected_subcat=selected_subcat,
@@ -209,7 +222,6 @@ def subcat_data():
     category_items = [item for item in filtered_items if categorize_item(item) == category]
     subcat_items = [item for item in category_items if subcategorize_item(category, item) == subcat]
     
-    # Filter by specific common_name if provided
     if common_name:
         subcat_items = [item for item in subcat_items if item.get("common_name", "Unknown") == common_name]
 
