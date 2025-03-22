@@ -208,7 +208,7 @@ function sortTable(tableEl, colName) {
 }
 
 function loadSubcatData(contract, common_name, page, childKey) {
-  console.log(`Loading: Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
+  console.log(`Loading Subcat - Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
   const loading = document.getElementById(`loading-${childKey}`);
   loading.style.display = 'block';
 
@@ -219,7 +219,6 @@ function loadSubcatData(contract, common_name, page, childKey) {
     page: page,
     last_contract_num: urlParams.get('last_contract_num') || '',
     common_name_filter: urlParams.get('common_name') || ''
-    // Removed item_map_json from params, using global_item_map on server
   };
   const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
   console.log(`Fetching URL: ${url}`);
@@ -258,7 +257,27 @@ function loadSubcatData(contract, common_name, page, childKey) {
         });
       } else {
         console.warn(`No items returned for Contract: ${contract}, Common Name: ${common_name}`);
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found from server.</td></tr>';
+        // Fallback to itemMap
+        const key = `${contract}:${common_name}`;
+        const fallbackItems = itemMap[key] || [];
+        if (fallbackItems.length > 0) {
+          console.log(`Falling back to itemMap for ${key}:`, fallbackItems);
+          fallbackItems.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${item.tag_id || 'N/A'}</td>
+              <td>${item.common_name}</td>
+              <td>${item.status || 'Hand Counted'}</td>
+              <td>${item.bin_location || 'N/A'}</td>
+              <td>${item.quality || 'N/A'}</td>
+              <td>${item.last_contract_num}</td>
+              <td>${item.date_last_scanned || 'N/A'}</td>
+              <td>${item.last_scanned_by || 'Unknown'}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
       }
 
       const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
@@ -297,7 +316,7 @@ function loadSubcatData(contract, common_name, page, childKey) {
       console.error('Error loading subcat data:', error);
       alert('Failed to load laundry items: ' + error.message);
       loading.style.display = 'none';
-      // Fallback: Pre-populate from itemMap
+      // Fallback to itemMap
       const key = `${contract}:${common_name}`;
       const fallbackItems = itemMap[key] || [];
       const tbody = document.getElementById(`grandchildTbody-${childKey}`);
@@ -410,6 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
     toggle.addEventListener("click", () => {
+      console.log("Toggle clicked:", toggle.getAttribute("data-bs-target"));
       const targetId = toggle.getAttribute("data-bs-target");
       const target = document.querySelector(targetId);
       if (target) {
@@ -419,6 +439,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const contract = target.getAttribute("data-contract");
             const common_name = target.getAttribute("data-common-name");
             const childKey = targetId.split("grandchild-")[1];
+            console.log(`Calling loadSubcatData for ${contract}, ${common_name}, ${childKey}`);
             loadSubcatData(contract, common_name, 1, childKey);
             setTimeout(() => {
               const grandTable = document.getElementById(`grandchildTable-${childKey}`);
@@ -428,6 +449,8 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           toggle.textContent = "+";
         }
+      } else {
+        console.error(`Target not found for ID: ${targetId}`);
       }
     });
   });
