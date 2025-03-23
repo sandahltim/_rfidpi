@@ -120,7 +120,8 @@ def show_tab6():
         filter_tag_id=filter_tag_id,
         filter_last_contract=filter_last_contract,
         filter_status=filter_status,
-        filter_rental_class_num=filter_rental_class_num
+        filter_rental_class_num=filter_rental_class_num,
+        middle_map_json=middle_map  # Add this to fix JSON error
     )
 
 @tab6_bp.route("/subcat_data", methods=["GET"])
