@@ -6,10 +6,11 @@ import sqlite3
 import os
 import logging
 
+logging.basicConfig(level=logging.DEBUG, force=True)
+
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
-logging.basicConfig(level=logging.DEBUG, force=True)
 
 def init_hand_counted_db():
     try:
@@ -86,7 +87,7 @@ def show_tab5():
                 common_name = item.get("common_name", "Unknown")
                 common_name_map[common_name].append(item)
 
-            child_data = {}
+            child_data = []
             for common_name, items in common_name_map.items():
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
@@ -98,12 +99,13 @@ def show_tab5():
                               item["status"] in ["On Rent", "Delivered"] and 
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
                 service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
-                child_data[common_name] = {
+                child_data.append({
+                    "common_name": common_name,
                     "total": total_items,
                     "available": total_available,
                     "on_rent": on_rent,
                     "service": service
-                }
+                })
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
             hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
@@ -258,7 +260,7 @@ def refresh_data():
                 common_name = item.get("common_name", "Unknown")
                 common_name_map[common_name].append(item)
 
-            child_data = {}
+            child_data = []
             for common_name, items in common_name_map.items():
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
@@ -270,12 +272,13 @@ def refresh_data():
                               item["status"] in ["On Rent", "Delivered"] and 
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
                 service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
-                child_data[common_name] = {
+                child_data.append({
+                    "common_name": common_name,
                     "total": total_items,
                     "available": total_available,
                     "on_rent": on_rent,
                     "service": service
-                }
+                })
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
             hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
@@ -290,6 +293,7 @@ def refresh_data():
 
         parent_data.sort(key=lambda x: x["contract"].lower())
 
+        logging.debug(f"Tab5 refresh data: parent_data={parent_data}, child_map={child_map}")
         return jsonify({
             "parent_data": parent_data,
             "child_map": child_map

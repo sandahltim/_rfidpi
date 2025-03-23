@@ -1,6 +1,9 @@
 from flask import Blueprint, render_template, request, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
+import logging
+
+logging.basicConfig(level=logging.DEBUG, force=True)
 
 tab6_bp = Blueprint("tab6_bp", __name__, url_prefix="/tab6")
 
@@ -42,7 +45,7 @@ def categorize_item(item):
 
 @tab6_bp.route("/")
 def show_tab6():
-    print("Loading /tab6/ endpoint")
+    logging.debug("Loading /tab6/ endpoint")
     try:
         with DatabaseConnection() as conn:
             rows = get_resale_items(conn)
@@ -64,20 +67,18 @@ def show_tab6():
         if filter_status:
             filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
         if filter_rental_class_num:
-            rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
-            if not rental_class_nums:
-                rental_class_nums = [
-                    "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
-                    "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
-                    "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
-                    "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
-                    "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
-                    "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
-                    "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
-                    "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
-                    "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
-                    "64918", "64919", "64920", "65495", "65498"
-                ]
+            rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()] or [
+                "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
+                "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
+                "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
+                "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
+                "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
+                "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
+                "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
+                "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
+                "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
+                "64918", "64919", "64920", "65495", "65498"
+            ]
             filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
         category_map = defaultdict(list)
@@ -108,6 +109,7 @@ def show_tab6():
 
         parent_data.sort(key=lambda x: x["category"])
 
+        logging.debug(f"Rendering tab6 with parent_data: {parent_data}")
         return render_template(
             "tab6.html",
             parent_data=parent_data,
@@ -121,12 +123,12 @@ def show_tab6():
         )
     except Exception as e:
         import traceback
-        print(f"Error in show_tab6: {e}\n{traceback.format_exc()}")
+        logging.error(f"Error in show_tab6: {e}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
 
 @tab6_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
-    print("Hit /tab6/subcat_data endpoint")
+    logging.debug("Hit /tab6/subcat_data endpoint")
     category = request.args.get('category')
     common_name = request.args.get('common_name')
     page = int(request.args.get('page', 1))
@@ -152,20 +154,18 @@ def subcat_data():
     if filter_status:
         filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
     if filter_rental_class_num:
-        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
-        if not rental_class_nums:
-            rental_class_nums = [
-                "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
-                "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
-                "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
-                "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
-                "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
-                "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
-                "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
-                "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
-                "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
-                "64918", "64919", "64920", "65495", "65498"
-            ]
+        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()] or [
+            "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
+            "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
+            "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
+            "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
+            "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
+            "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
+            "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
+            "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
+            "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
+            "64918", "64919", "64920", "65495", "65498"
+        ]
         filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
     category_items = [item for item in filtered_items if categorize_item(item) == category]
@@ -178,8 +178,7 @@ def subcat_data():
     end = start + per_page
     paginated_items = subcat_items[start:end]
 
-    print(f"AJAX: Category: {category}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
-
+    logging.debug(f"AJAX: Category: {category}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
     return jsonify({
         "items": [{
             "tag_id": item["tag_id"],
@@ -197,7 +196,7 @@ def subcat_data():
 
 @tab6_bp.route("/refresh_data", methods=["GET"])
 def refresh_data():
-    print("Hit /tab6/refresh_data endpoint")
+    logging.debug("Hit /tab6/refresh_data endpoint")
     try:
         with DatabaseConnection() as conn:
             rows = get_resale_items(conn)
@@ -219,20 +218,18 @@ def refresh_data():
         if filter_status:
             filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
         if filter_rental_class_num:
-            rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
-            if not rental_class_nums:
-                rental_class_nums = [
-                    "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
-                    "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
-                    "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
-                    "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
-                    "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
-                    "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
-                    "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
-                    "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
-                    "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
-                    "64918", "64919", "64920", "65495", "65498"
-                ]
+            rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()] or [
+                "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
+                "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
+                "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
+                "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
+                "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
+                "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
+                "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
+                "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
+                "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
+                "64918", "64919", "64920", "65495", "65498"
+            ]
             filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
         category_map = defaultdict(list)
@@ -263,11 +260,12 @@ def refresh_data():
 
         parent_data.sort(key=lambda x: x["category"])
 
+        logging.debug(f"Refresh data: parent_data={parent_data}, middle_map={middle_map}")
         return jsonify({
             "parent_data": parent_data,
             "middle_map": middle_map
         })
     except Exception as e:
         import traceback
-        print(f"Error in refresh_data: {e}\n{traceback.format_exc()}")
+        logging.error(f"Error in tab6 refresh_data: {e}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
