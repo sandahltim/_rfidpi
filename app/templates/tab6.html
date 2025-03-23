@@ -102,31 +102,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Tab6 DOM Content Loaded");
 
-    // Initial expand toggle listeners
-    document.querySelectorAll(".expand-toggle").forEach(toggle => {
-        toggle.addEventListener("click", () => {
-            const targetId = toggle.getAttribute("data-bs-target");
-            const target = document.querySelector(targetId);
-            if (target) {
-                console.log(`Toggle clicked: ${targetId}`);
-                if (!target.classList.contains('show')) {
-                    toggle.textContent = "-";
-                    if (target.id.startsWith("child-")) {
-                        const category = target.getAttribute("data-category");
-                        const commonName = target.getAttribute("data-common-name");
-                        const middleKey = target.id.split("child-")[1];
-                        console.log(`Calling loadSubcatData for ${middleKey}`);
-                        window.loadSubcatData(category, commonName, middleKey); // Call from base.html
-                    }
-                } else {
-                    toggle.textContent = "+";
-                }
-            } else {
-                console.error(`Target not found: ${targetId}`);
-            }
-        });
-    });
-
     function sortTable(tableEl, colName) {
         let tbody = tableEl.querySelector("tbody");
         if (!tbody) return;
