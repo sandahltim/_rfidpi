@@ -93,8 +93,8 @@
 document.addEventListener("DOMContentLoaded", function() {
     console.log("Tab1 DOM Content Loaded");
 
-    // Override base.html's refreshTableData for Tab1
-    function refreshTableData() {
+    // Tab1-specific refresh function
+    function tab1RefreshTableData() {
         var currentPath = window.location.pathname;
         var urlParams = new URLSearchParams(window.location.search);
         var refreshUrl = currentPath.endsWith("/") ? currentPath : currentPath + "/";
@@ -156,105 +156,15 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     });
 
-                    // Rebind sort listeners
-                    document.querySelectorAll(".sortable").forEach(function(th) {
-                        th.addEventListener("click", function() {
-                            console.log("Sorting table by " + th.getAttribute("data-col-name"));
-                            var table = th.closest("table");
-                            var colName = th.getAttribute("data-col-name");
-                            sortTable(table, colName);
-                        });
-                    });
-
-                    // Rebind expand toggles
-                    document.querySelectorAll(".expand-toggle").forEach(function(toggle) {
-                        toggle.addEventListener("click", function() {
-                            var targetId = toggle.getAttribute("data-bs-target");
-                            console.log("Toggle clicked: " + targetId);
-                            var target = document.querySelector(targetId);
-                            if (target && !target.classList.contains("show")) {
-                                toggle.textContent = "-";
-                            } else if (target) {
-                                toggle.textContent = "+";
-                            }
-                        });
-                    });
-
-                    // Custom print for Tab1
-                    document.querySelectorAll(".tab1-print-btn").forEach(function(btn) {
-                        btn.addEventListener("click", function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            var contract = btn.getAttribute("data-contract");
-                            console.log("Tab1 Printing contract: " + contract);
-                            var parentRow = Array.from(document.querySelectorAll("#parentTable tr.table-active"))
-                                .find(function(row) { return row.querySelector("td:nth-child(2)").innerText === contract; });
-                            var middleTbody = document.querySelector("#middleTable-" + contract.toLowerCase().replace(/\s+/g, "_") + " tbody");
-                            var middleRows = middleTbody 
-                                ? Array.from(middleTbody.querySelectorAll("tr")).map(function(row) {
-                                    return "<tr><td>" + row.cells[0].innerText + "</td><td>" + row.cells[1].innerText + "</td></tr>";
-                                }).join("") 
-                                : "<tr><td colspan=\"2\">No items</td></tr>";
-                            var printWin = window.open("", "_blank");
-                            printWin.document.write(
-                                "<html>" +
-                                "<head>" +
-                                    "<title>Active Rental Contract " + contract + "</title>" +
-                                    "<style>" +
-                                        "body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }" +
-                                        "h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }" +
-                                        "table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }" +
-                                        "th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }" +
-                                        "th { background: #3498db; color: #fff; font-weight: bold; }" +
-                                        "tr:nth-child(even) { background: #f9f9f9; }" +
-                                        "tr:hover { background: #dfe6e9; }" +
-                                    "</style>" +
-                                "</head>" +
-                                "<body>" +
-                                    "<h1>Active Rental Contract " + contract + "</h1>" +
-                                    "<table>" +
-                                        "<thead>" +
-                                            "<tr>" +
-                                                "<th>Contract Number</th>" +
-                                                "<th>Client Name</th>" +
-                                                "<th>Total Items</th>" +
-                                                "<th>Last Scan Date</th>" +
-                                                "<th>Transaction Notes</th>" +
-                                            "</tr>" +
-                                        "</thead>" +
-                                        "<tbody>" +
-                                            "<tr>" +
-                                                "<td>" + parentRow.cells[1].innerText + "</td>" +
-                                                "<td>" + parentRow.cells[2].innerText + "</td>" +
-                                                "<td>" + parentRow.cells[3].innerText + "</td>" +
-                                                "<td>" + parentRow.cells[4].innerText + "</td>" +
-                                                "<td>" + parentRow.cells[5].innerText + "</td>" +
-                                            "</tr>" +
-                                        "</tbody>" +
-                                    "</table>" +
-                                    "<h2>Items</h2>" +
-                                    "<table>" +
-                                        "<thead>" +
-                                            "<tr>" +
-                                                "<th>Common Name</th>" +
-                                                "<th>Total on Contract</th>" +
-                                            "</tr>" +
-                                        "</thead>" +
-                                        "<tbody>" + middleRows + "</tbody>" +
-                                    "</table>" +
-                                    "<script>window.print(); window.close();</script>" +
-                                "</body>" +
-                                "</html>"
-                            );
-                            printWin.document.close();
-                        });
-                    });
+                    // Rebind listeners
+                    bindTab1Listeners();
                 }
             })
             .catch(function(error) { console.error("Tab1 Refresh Error:", error); });
     }
 
-    function sortTable(tableEl, colName) {
+    // Tab1-specific sort function
+    function tab1SortTable(tableEl, colName) {
         console.log("Sorting " + tableEl.id + " by " + colName);
         var tbody = tableEl.querySelector("tbody");
         if (!tbody) return;
@@ -310,10 +220,117 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // Initial override and refresh
-    window.refreshTableData = refreshTableData;
-    refreshTableData();
-    setInterval(refreshTableData, 60000);
+    // Tab1-specific print function
+    function tab1PrintAggregate(contract, middleMap) {
+        var items = middleMap[contract] || [];
+        var printWin = window.open('', '_blank');
+        printWin.document.write(
+            "<html>" +
+            "<head>" +
+                "<title>Active Rental Contract " + contract + "</title>" +
+                "<style>" +
+                    "body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }" +
+                    "h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }" +
+                    "table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }" +
+                    "th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }" +
+                    "th { background: #3498db; color: #fff; font-weight: bold; }" +
+                    "tr:nth-child(even) { background: #f9f9f9; }" +
+                    "tr:hover { background: #dfe6e9; }" +
+                "</style>" +
+            "</head>" +
+            "<body>" +
+                "<h1>Active Rental Contract " + contract + "</h1>" +
+                "<table>" +
+                    "<thead>" +
+                        "<tr>" +
+                            "<th>Contract Number</th>" +
+                            "<th>Client Name</th>" +
+                            "<th>Total Items</th>" +
+                            "<th>Last Scan Date</th>" +
+                            "<th>Transaction Notes</th>" +
+                        "</tr>" +
+                    "</thead>" +
+                    "<tbody>" +
+                        "<tr>" +
+                            "<td>" + document.querySelector("td:contains('" + contract + "')").parentNode.cells[1].innerText + "</td>" +
+                            "<td>" + document.querySelector("td:contains('" + contract + "')").parentNode.cells[2].innerText + "</td>" +
+                            "<td>" + document.querySelector("td:contains('" + contract + "')").parentNode.cells[3].innerText + "</td>" +
+                            "<td>" + document.querySelector("td:contains('" + contract + "')").parentNode.cells[4].innerText + "</td>" +
+                            "<td>" + document.querySelector("td:contains('" + contract + "')").parentNode.cells[5].innerText + "</td>" +
+                        "</tr>" +
+                    "</tbody>" +
+                "</table>" +
+                "<h2>Items</h2>" +
+                "<table>" +
+                    "<thead>" +
+                        "<tr>" +
+                            "<th>Common Name</th>" +
+                            "<th>Total on Contract</th>" +
+                        "</tr>" +
+                    "</thead>" +
+                    "<tbody>"
+        );
+        items.forEach(function(item) {
+            printWin.document.write(
+                "<tr>" +
+                    "<td>" + item.common_name + "</td>" +
+                    "<td>" + item.total_on_contract + "</td>" +
+                "</tr>"
+            );
+        });
+        printWin.document.write(
+                    "</tbody>" +
+                "</table>" +
+                "<script>window.print(); window.close();</script>" +
+            "</body>" +
+            "</html>"
+        );
+        printWin.document.close();
+        printWin.focus();
+        printWin.print();
+        printWin.close();
+    }
+
+    // Bind Tab1-specific listeners
+    function bindTab1Listeners() {
+        document.querySelectorAll(".sortable").forEach(function(th) {
+            th.addEventListener("click", function() {
+                console.log("Sorting table by " + th.getAttribute("data-col-name"));
+                var table = th.closest("table");
+                var colName = th.getAttribute("data-col-name");
+                tab1SortTable(table, colName);
+            });
+        });
+
+        document.querySelectorAll(".expand-toggle").forEach(function(toggle) {
+            toggle.addEventListener("click", function() {
+                var targetId = toggle.getAttribute("data-bs-target");
+                console.log("Toggle clicked: " + targetId);
+                var target = document.querySelector(targetId);
+                if (target && !target.classList.contains("show")) {
+                    toggle.textContent = "-";
+                } else if (target) {
+                    toggle.textContent = "+";
+                }
+            });
+        });
+
+        document.querySelectorAll(".tab1-print-btn").forEach(function(btn) {
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var contract = btn.getAttribute("data-contract");
+                console.log("Tab1 Printing contract: " + contract);
+                tab1PrintAggregate(contract, window.middleMap || {});
+            });
+        });
+    }
+
+    // Initial setup
+    bindTab1Listeners();
+    window.tab1RefreshTableData = tab1RefreshTableData;
+    tab1RefreshTableData();
+    setInterval(tab1RefreshTableData, 60000);
 });
 </script>
 
