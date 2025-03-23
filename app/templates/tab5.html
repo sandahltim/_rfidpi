@@ -1,37 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 style="color: #2c3e50; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Laundry Inventory</h1>
+<h1 style="color: #2c3e50; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Laundry Contracts</h1>
 
 <form method="GET" class="mb-3 row g-2">
   <div class="col-12 col-md-2">
     <input type="text" class="form-control" name="last_contract_num" placeholder="Filter Contract" value="{{ filter_contract }}" />
   </div>
   <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="common_name" placeholder="Filter Name" value="{{ filter_common_name }}" />
+    <input type="text" class="form-control" name="common_name" placeholder="Filter Common Name" value="{{ filter_common_name }}" />
   </div>
   <div class="col-12 col-md-2">
     <button type="submit" class="btn btn-primary" style="background: #e74c3c; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Apply Filters</button>
-  </div>
-</form>
-
-<form id="hand-counted-form" method="POST" class="mb-3 row g-2">
-  <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="common_name" placeholder="Common Name" required>
-  </div>
-  <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="last_contract_num" placeholder="Contract Number" required>
-  </div>
-  <div class="col-12 col-md-2">
-    <input type="number" class="form-control" name="total_items" placeholder="Total Items" required>
-  </div>
-  <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="last_scanned_by" placeholder="Entered By" required>
-  </div>
-  <div class="col-12 col-md-2">
-    <input type="hidden" name="date_last_scanned" id="date_last_scanned">
-    <button type="submit" formaction="/tab5/save_hand_counted" class="btn btn-primary" style="background: #3498db; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;" onclick="return confirmSave()">Add New</button>
-    <button type="submit" formaction="/tab5/update_hand_counted" class="btn btn-success" style="background: #2ecc71; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;" onclick="return confirmUpdate()">Return</button>
   </div>
 </form>
 
@@ -40,27 +20,27 @@
     <thead style="background: #34495e; color: #ecf0f1;">
       <tr>
         <th style="width: 50px;"></th>
-        <th class="sortable" data-col-name="contract">Last Contract Num</th>
+        <th class="sortable" data-col-name="contract">Contract</th>
         <th class="sortable" data-col-name="total">Total Items</th>
-        <th class="sortable" data-col-name="date_last_scanned">Last Scan Date</th>
+        <th class="sortable" data-col-name="date_last_scanned">Date Last Scanned</th>
         <th style="width: 100px;">Print Aggregate</th>
       </tr>
     </thead>
     <tbody>
       {% for parent in parent_data %}
-      {% set contract_key = parent.contract|lower|replace(' ', '_') %}
+      {% set contract_key = parent.contract|lower|replace(' ', '_')|replace('/', '_') %}
       <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
-        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ contract_key }}">+</span></td>
+        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-{{ contract_key }}">+</span></td>
         <td>{{ parent.contract }}</td>
         <td>{{ parent.total }}</td>
         <td>{{ parent.date_last_scanned }}</td>
-        <td><button class="btn btn-outline-dark btn-sm print-aggregate-btn" data-contract="{{ parent.contract }}" data-date="{{ parent.date_last_scanned }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+        <td><button class="btn btn-outline-dark btn-sm print-aggregate-btn" data-contract="{{ parent.contract }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="5" class="p-0">
-          <div id="child-{{ contract_key }}" class="collapse" data-contract="{{ parent.contract }}">
+          <div id="middle-{{ contract_key }}" class="collapse" data-contract="{{ parent.contract }}">
             <div class="child-table-container">
-              <table class="table table-striped table-bordered child-table" id="childTable-{{ contract_key }}" style="border: 2px solid #34495e;">
+              <table class="table table-striped table-bordered middle-table" id="middleTable-{{ contract_key }}" style="border: 2px solid #34495e;">
                 <thead style="background: #3498db; color: #fff;">
                   <tr>
                     <th style="width: 50px;"></th>
@@ -73,22 +53,22 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for common_name, totals in child_map[parent.contract].items() %}
-                  {% set child_key = contract_key ~ '_' ~ common_name|lower|replace(' ', '_') %}
-                  <tr class="child-row {% if totals.service > 0 %}table-danger{% elif totals.on_rent > 0 %}table-warning{% else %}table-success{% endif %}">
-                    <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#grandchild-{{ child_key }}">+</span></td>
-                    <td>{{ common_name }}</td>
-                    <td>{{ totals.total }}</td>
-                    <td>{{ totals.available }}</td>
-                    <td>{{ totals.on_rent }}</td>
-                    <td>{{ totals.service }}</td>
-                    <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                  {% for child in child_map[parent.contract] %}
+                  {% set middle_key = contract_key ~ '_' ~ child.common_name|lower|replace(' ', '_') %}
+                  <tr class="child-row {{ child.service > 0 ? 'table-danger' : child.on_rent > 0 ? 'table-warning' : 'table-success' }}">
+                    <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_key }}">+</span></td>
+                    <td>{{ child.common_name }}</td>
+                    <td>{{ child.total }}</td>
+                    <td>{{ child.available }}</td>
+                    <td>{{ child.on_rent }}</td>
+                    <td>{{ child.service }}</td>
+                    <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-contract="{{ parent.contract }}" data-common-name="{{ child.common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                   </tr>
                   <tr>
                     <td colspan="7" class="p-0">
-                      <div id="grandchild-{{ child_key }}" class="collapse" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}">
+                      <div id="child-{{ middle_key }}" class="collapse" data-contract="{{ parent.contract }}" data-common-name="{{ child.common_name }}">
                         <div class="grandchild-table-container">
-                          <table class="table mb-0 grandchild-table" id="grandchildTable-{{ child_key }}" style="border: 2px solid #2c3e50;">
+                          <table class="table mb-0 grandchild-table" id="grandchildTable-{{ middle_key }}" style="border: 2px solid #2c3e50;">
                             <thead style="background: #2c3e50; color: #ecf0f1;">
                               <tr>
                                 <th class="sortable" data-col-name="tag_id">Tag ID</th>
@@ -96,26 +76,11 @@
                                 <th class="sortable" data-col-name="status">Status</th>
                                 <th class="sortable" data-col-name="bin_location">Bin Location</th>
                                 <th class="sortable" data-col-name="quality">Quality</th>
-                                <th class="sortable" data-col-name="last_contract_num">Last Contract Num</th>
                                 <th class="sortable" data-col-name="date_last_scanned">Date Last Scanned</th>
                                 <th class="sortable" data-col-name="last_scanned_by">Last Scanned By</th>
                               </tr>
                             </thead>
-                            <tbody id="grandchildTbody-{{ child_key }}">
-                              {% set key = parent.contract ~ ':' ~ common_name %}
-                              {% for item in item_map[key] %}
-                              <tr class="{% if item.status in ['On Rent', 'Delivered'] %}table-warning{% elif item.status == 'Ready to Rent' %}table-success{% endif %}">
-                                <td>{{ item.tag_id | default('N/A') }}</td>
-                                <td>{{ item.common_name }}</td>
-                                <td>{{ item.status | default('Hand Counted') }}</td>
-                                <td>{{ item.bin_location | default('N/A') }}</td>
-                                <td>{{ item.quality | default('N/A') }}</td>
-                                <td>{{ item.last_contract_num }}</td>
-                                <td>{{ item.date_last_scanned | default('N/A') }}</td>
-                                <td>{{ item.last_scanned_by | default('Unknown') }}</td>
-                              </tr>
-                              {% endfor %}
-                            </tbody>
+                            <tbody id="grandchildTbody-{{ middle_key }}"></tbody>
                           </table>
                         </div>
                       </div>
@@ -134,286 +99,96 @@
 </div>
 
 <script>
-const itemMap = {{ item_map_json|tojson }};
-console.log("Loaded itemMap:", itemMap);
-console.log("itemMap keys:", Object.keys(itemMap));
-
-function sortTable(tableEl, colName) {
-  let tbody = tableEl.querySelector("tbody");
-  if (!tbody) return;
-
-  let asc = tableEl.getAttribute("data-sort-col") === colName 
-            ? tableEl.getAttribute("data-sort-dir") !== "asc" 
-            : true;
-  tableEl.setAttribute("data-sort-col", colName);
-  tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
-
-  let headers = Array.from(tableEl.querySelectorAll("th"));
-  let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
-
-  if (tableEl.id === "parentTable") {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let parentRow = rows[i];
-      let childRow = rows[i + 1] || null;
-      if (parentRow && parentRow.classList.contains("table-active")) {
-        pairs.push({ parent: parentRow, child: childRow });
-      }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.parent);
-      if (pair.child) tbody.appendChild(pair.child);
-    });
-  } else if (tableEl.classList.contains("child-table")) {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let childRow = rows[i];
-      let grandRow = rows[i + 1] || null;
-      if (childRow && childRow.classList.contains("child-row")) {
-        pairs.push({ child: childRow, grand: grandRow });
-      }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.child.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.child.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.child);
-      if (pair.grand) tbody.appendChild(pair.grand);
-    });
-  } else {
-    let rows = Array.from(tbody.querySelectorAll("tr"));
-    rows.sort((a, b) => {
-      let cellA = a.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    rows.forEach(row => tbody.appendChild(row));
-  }
-}
-
-function printAggregate(contract, dateLastScanned) {
-  const childMap = {{ child_map_json|tojson }};
-  const items = childMap[contract] || {};
-
-  const printWin = window.open('', '_blank');
-  printWin.document.write(`
-    <html>
-      <head>
-        <title>Laundry Aggregate: ${contract}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-          p { font-size: 1em; text-align: center; color: #34495e; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-          th { background: #3498db; color: #fff; font-weight: bold; }
-          tr:nth-child(even) { background: #f9f9f9; }
-          tr:hover { background: #dfe6e9; }
-        </style>
-      </head>
-      <body>
-        <h1>Laundry Aggregate: ${contract}</h1>
-        <p>Last Scan Date: ${dateLastScanned}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Common Name</th>
-              <th>Total Items</th>
-            </tr>
-          </thead>
-          <tbody>
-  `);
-
-  for (const commonName in items) {
-    if (items.hasOwnProperty(commonName)) {
-      const totals = items[commonName];
-      printWin.document.write(`
-        <tr>
-          <td>${commonName}</td>
-          <td>${totals.total}</td>
-        </tr>
-      `);
-    }
-  }
-
-  printWin.document.write(`
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `);
-  printWin.document.close();
-  printWin.focus();
-  printWin.print();
-  printWin.close();
-}
-
-function printItems(contract, commonName) {
-  const key = `${contract}:${commonName}`;
-  const items = itemMap[key] || [];
-  console.log(`Printing items for ${key}:`, items);
-
-  const printWin = window.open('', '_blank');
-  printWin.document.write(`
-    <html>
-      <head>
-        <title>Laundry Items: ${contract} - ${commonName}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-          th { background: #3498db; color: #fff; font-weight: bold; }
-          tr:nth-child(even) { background: #f9f9f9; }
-          tr:hover { background: #dfe6e9; }
-        </style>
-      </head>
-      <body>
-        <h1>Laundry Items: ${contract} - ${commonName}</h1>
-        <table>
-          <thead>
-            <tr>
-              <th>Tag ID</th>
-              <th>Common Name</th>
-              <th>Status</th>
-              <th>Bin Location</th>
-              <th>Quality</th>
-              <th>Last Contract Num</th>
-              <th>Date Last Scanned</th>
-              <th>Last Scanned By</th>
-            </tr>
-          </thead>
-          <tbody>
-  `);
-
-  items.forEach(item => {
-    printWin.document.write(`
-      <tr>
-        <td>${item.tag_id || 'N/A'}</td>
-        <td>${item.common_name}</td>
-        <td>${item.status || 'Hand Counted'}</td>
-        <td>${item.bin_location || 'N/A'}</td>
-        <td>${item.quality || 'N/A'}</td>
-        <td>${item.last_contract_num}</td>
-        <td>${item.date_last_scanned || 'N/A'}</td>
-        <td>${item.last_scanned_by || 'Unknown'}</td>
-      </tr>
-    `);
-  });
-
-  printWin.document.write(`
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `);
-  printWin.document.close();
-  printWin.focus();
-  printWin.print();
-  printWin.close();
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM Content Loaded");
+    console.log("Tab5 DOM Content Loaded");
 
-  document.getElementById("date_last_scanned").value = new Date().toISOString().replace("T", " ").slice(0, 19);
+    function sortTable(tableEl, colName) {
+        let tbody = tableEl.querySelector("tbody");
+        if (!tbody) return;
 
-  let parentTable = document.getElementById("parentTable");
-  parentTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
-      sortTable(parentTable, colName);
-    });
-  });
+        let asc = tableEl.getAttribute("data-sort-col") === colName 
+                  ? tableEl.getAttribute("data-sort-dir") !== "asc" 
+                  : true;
+        tableEl.setAttribute("data-sort-col", colName);
+        tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
 
-  document.querySelectorAll(".child-table").forEach(childTable => {
-    childTable.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(childTable, colName);
-      });
-    });
-  });
+        let headers = Array.from(tableEl.querySelectorAll("th"));
+        let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
 
-  document.querySelectorAll(".grandchild-table").forEach(grandTable => {
-    grandTable.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(grandTable, colName);
-      });
-    });
-  });
-
-  document.querySelectorAll(".expand-toggle").forEach(toggle => {
-    toggle.addEventListener("click", () => {
-      console.log("Toggle clicked:", toggle.getAttribute("data-bs-target"));
-      const targetId = toggle.getAttribute("data-bs-target");
-      const target = document.querySelector(targetId);
-      if (target) {
-        if (!target.classList.contains('show')) {
-          toggle.textContent = "-";
+        if (tableEl.id === "parentTable") {
+            let rows = Array.from(tbody.children);
+            let pairs = [];
+            for (let i = 0; i < rows.length; i += 2) {
+                let parentRow = rows[i];
+                let childRow = rows[i + 1] || null;
+                if (parentRow && parentRow.classList.contains("table-active")) {
+                    pairs.push({ parent: parentRow, child: childRow });
+                }
+            }
+            pairs.sort((a, b) => {
+                let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
+                let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
+                let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+                let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return asc ? numA - numB : numB - numA;
+                }
+                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+            tbody.innerHTML = "";
+            pairs.forEach(pair => {
+                tbody.appendChild(pair.parent);
+                if (pair.child) tbody.appendChild(pair.child);
+            });
+        } else if (tableEl.classList.contains("middle-table")) {
+            let rows = Array.from(tbody.children);
+            let pairs = [];
+            for (let i = 0; i < rows.length; i += 2) {
+                let childRow = rows[i];
+                let grandRow = rows[i + 1] || null;
+                if (childRow && childRow.classList.contains("child-row")) {
+                    pairs.push({ child: childRow, grand: grandRow });
+                }
+            }
+            pairs.sort((a, b) => {
+                let cellA = a.child.cells[colIndex]?.innerText.trim() || "";
+                let cellB = b.child.cells[colIndex]?.innerText.trim() || "";
+                let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+                let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return asc ? numA - numB : numB - numA;
+                }
+                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+            tbody.innerHTML = "";
+            pairs.forEach(pair => {
+                tbody.appendChild(pair.child);
+                if (pair.grand) tbody.appendChild(pair.grand);
+            });
         } else {
-          toggle.textContent = "+";
+            let rows = Array.from(tbody.querySelectorAll("tr"));
+            rows.sort((a, b) => {
+                let cellA = a.cells[colIndex]?.innerText.trim() || "";
+                let cellB = b.cells[colIndex]?.innerText.trim() || "";
+                let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+                let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return asc ? numA - numB : numB - numA;
+                }
+                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+            tbody.innerHTML = "";
+            rows.forEach(row => tbody.appendChild(row));
         }
-      } else {
-        console.error(`Target not found for ID: ${targetId}`);
-      }
-    });
-  });
+    }
 
-  document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const contract = btn.getAttribute("data-contract");
-      const dateLastScanned = btn.getAttribute("data-date");
-      printAggregate(contract, dateLastScanned);
+    document.querySelectorAll(".sortable").forEach(th => {
+        th.addEventListener("click", () => {
+            const table = th.closest("table");
+            const colName = th.getAttribute("data-col-name");
+            sortTable(table, colName);
+        });
     });
-  });
-
-  document.querySelectorAll(".print-items-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const contract = btn.getAttribute("data-contract");
-      const commonName = btn.getAttribute("data-common-name");
-      printItems(contract, commonName);
-    });
-  });
-
-  document.querySelectorAll(".btn").forEach(btn => {
-    btn.addEventListener("mouseover", () => {
-      btn.style.transform = "translateY(-2px)";
-      btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
-    });
-    btn.addEventListener("mouseout", () => {
-      btn.style.transform = "translateY(0)";
-      btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
-    });
-  });
 });
 </script>
 
@@ -454,9 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   .collapse {
     width: 100%;
-  }
-  @media (max-width: 768px) {
-    .pagination .page-link { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
   }
 </style>
 
