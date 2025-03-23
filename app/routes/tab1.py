@@ -54,6 +54,16 @@ def show_tab1():
                 "transaction_notes": trans_info["notes"]
             })
 
+        # Apply filters
+        filter_contract_num = request.args.get("contract_num", "").lower().strip()
+        filter_client_name = request.args.get("client_name", "").lower().strip()
+
+        filtered_parent_data = parent_data
+        if filter_contract_num:
+            filtered_parent_data = [item for item in filtered_parent_data if filter_contract_num in item["contract_num"].lower()]
+        if filter_client_name:
+            filtered_parent_data = [item for item in filtered_parent_data if filter_client_name in item["client_name"].lower()]
+
         middle_data = {}
         for contract, common_names in contract_map.items():
             middle_data[contract] = [
@@ -62,13 +72,13 @@ def show_tab1():
             ]
 
         per_page = 20
-        total_items = len(parent_data)
+        total_items = len(filtered_parent_data)
         total_pages = (total_items + per_page - 1) // per_page
         page = request.args.get("page", 1, type=int)
         page = max(1, min(page, total_pages))
         start = (page - 1) * per_page
         end = start + per_page
-        paginated_data = parent_data[start:end]
+        paginated_data = filtered_parent_data[start:end]
 
         logging.debug(f"Rendering tab1 with parent_data: {paginated_data}")
         return render_template(
@@ -77,7 +87,9 @@ def show_tab1():
             middle_data=middle_data,
             contract_map=contract_map,
             current_page=page,
-            total_pages=total_pages
+            total_pages=total_pages,
+            filter_contract_num=filter_contract_num,
+            filter_client_name=filter_client_name
         )
     except Exception as e:
         import traceback
