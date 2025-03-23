@@ -5,6 +5,7 @@ import threading
 from db_utils import initialize_db
 from refresh_logic import fast_refresh, full_refresh, FAST_REFRESH_INTERVAL, FULL_REFRESH_INTERVAL
 from app import create_app
+from flask import jsonify
 from werkzeug.serving import is_running_from_reloader
 
 def background_fast_refresh():
@@ -29,6 +30,10 @@ def background_full_refresh():
 
 # Initialize Flask app globally for Gunicorn
 app = create_app()
+@app.route("/refresh_data", methods=["GET"])
+def refresh_data():
+    # Stub for root refresh
+    return jsonify({"status": "ok", "message": "Root refresh not implemented"})
 
 # Check and initialize DB if needed
 db_path = os.path.join(os.path.dirname(__file__), "inventory.db")

@@ -34,7 +34,7 @@
     </thead>
     <tbody>
       {% for parent in parent_data %}
-      {% set cat_key = parent.category|lower|replace('[^a-z0-9_]', '', 'g') %}
+      {% set cat_key = parent.category|lower|replace(' ', '_')|replace(',', '')|replace('.', '')|replace('(', '')|replace(')', '') %}
       <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-{{ cat_key }}">+</span></td>
         <td>{{ parent.category }}</td>
@@ -57,7 +57,7 @@
                 </thead>
                 <tbody>
                   {% for middle in middle_map[parent.category] %}
-                  {% set middle_key = cat_key ~ '_' ~ middle.common_name|lower|replace('[^a-z0-9_]', '', 'g') %}
+                  {% set middle_key = cat_key ~ '_' ~ middle.common_name|lower|replace(' ', '_')|replace(',', '')|replace('.', '')|replace('(', '')|replace(')', '') %}
                   <tr class="child-row table-success">
                     <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_key }}">+</span></td>
                     <td>{{ middle.common_name }}</td>
