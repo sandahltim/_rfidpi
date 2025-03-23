@@ -99,85 +99,122 @@
 </div>
 
 <script>
-function sortTable(tableEl, colName) {
-  let tbody = tableEl.querySelector("tbody");
-  if (!tbody) return;
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("Tab6 DOM Content Loaded");
 
-  let asc = tableEl.getAttribute("data-sort-col") === colName 
-            ? tableEl.getAttribute("data-sort-dir") !== "asc" 
-            : true;
-  tableEl.setAttribute("data-sort-col", colName);
-  tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+    // Initial expand toggle listeners
+    document.querySelectorAll(".expand-toggle").forEach(toggle => {
+        toggle.addEventListener("click", () => {
+            const targetId = toggle.getAttribute("data-bs-target");
+            const target = document.querySelector(targetId);
+            if (target) {
+                console.log(`Toggle clicked: ${targetId}`);
+                if (!target.classList.contains('show')) {
+                    toggle.textContent = "-";
+                    if (target.id.startsWith("child-")) {
+                        const category = target.getAttribute("data-category");
+                        const commonName = target.getAttribute("data-common-name");
+                        const middleKey = target.id.split("child-")[1];
+                        console.log(`Calling loadSubcatData for ${middleKey}`);
+                        window.loadSubcatData(category, commonName, middleKey); // Call from base.html
+                    }
+                } else {
+                    toggle.textContent = "+";
+                }
+            } else {
+                console.error(`Target not found: ${targetId}`);
+            }
+        });
+    });
 
-  let headers = Array.from(tableEl.querySelectorAll("th"));
-  let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
+    function sortTable(tableEl, colName) {
+        let tbody = tableEl.querySelector("tbody");
+        if (!tbody) return;
 
-  if (tableEl.id === "parentTable") {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let parentRow = rows[i];
-      let childRow = rows[i + 1] || null;
-      if (parentRow && parentRow.classList.contains("table-active")) {
-        pairs.push({ parent: parentRow, child: childRow });
-      }
+        let asc = tableEl.getAttribute("data-sort-col") === colName 
+                  ? tableEl.getAttribute("data-sort-dir") !== "asc" 
+                  : true;
+        tableEl.setAttribute("data-sort-col", colName);
+        tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+
+        let headers = Array.from(tableEl.querySelectorAll("th"));
+        let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
+
+        if (tableEl.id === "parentTable") {
+            let rows = Array.from(tbody.children);
+            let pairs = [];
+            for (let i = 0; i < rows.length; i += 2) {
+                let parentRow = rows[i];
+                let childRow = rows[i + 1] || null;
+                if (parentRow && parentRow.classList.contains("table-active")) {
+                    pairs.push({ parent: parentRow, child: childRow });
+                }
+            }
+            pairs.sort((a, b) => {
+                let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
+                let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
+                let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+                let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return asc ? numA - numB : numB - numA;
+                }
+                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+            tbody.innerHTML = "";
+            pairs.forEach(pair => {
+                tbody.appendChild(pair.parent);
+                if (pair.child) tbody.appendChild(pair.child);
+            });
+        } else if (tableEl.classList.contains("middle-table")) {
+            let rows = Array.from(tbody.children);
+            let pairs = [];
+            for (let i = 0; i < rows.length; i += 2) {
+                let childRow = rows[i];
+                let grandRow = rows[i + 1] || null;
+                if (childRow && childRow.classList.contains("child-row")) {
+                    pairs.push({ child: childRow, grand: grandRow });
+                }
+            }
+            pairs.sort((a, b) => {
+                let cellA = a.child.cells[colIndex]?.innerText.trim() || "";
+                let cellB = b.child.cells[colIndex]?.innerText.trim() || "";
+                let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+                let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return asc ? numA - numB : numB - numA;
+                }
+                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+            tbody.innerHTML = "";
+            pairs.forEach(pair => {
+                tbody.appendChild(pair.child);
+                if (pair.grand) tbody.appendChild(pair.grand);
+            });
+        } else {
+            let rows = Array.from(tbody.querySelectorAll("tr"));
+            rows.sort((a, b) => {
+                let cellA = a.cells[colIndex]?.innerText.trim() || "";
+                let cellB = b.cells[colIndex]?.innerText.trim() || "";
+                let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+                let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return asc ? numA - numB : numB - numA;
+                }
+                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+            tbody.innerHTML = "";
+            rows.forEach(row => tbody.appendChild(row));
+        }
     }
-    pairs.sort((a, b) => {
-      let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+
+    document.querySelectorAll(".sortable").forEach(th => {
+        th.addEventListener("click", () => {
+            const table = th.closest("table");
+            const colName = th.getAttribute("data-col-name");
+            sortTable(table, colName);
+        });
     });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.parent);
-      if (pair.child) tbody.appendChild(pair.child);
-    });
-  } else if (tableEl.classList.contains("middle-table")) {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let childRow = rows[i];
-      let grandRow = rows[i + 1] || null;
-      if (childRow && childRow.classList.contains("child-row")) {
-        pairs.push({ child: childRow, grand: grandRow });
-      }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.child.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.child.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.child);
-      if (pair.grand) tbody.appendChild(pair.grand);
-    });
-  } else {
-    let rows = Array.from(tbody.querySelectorAll("tr"));
-    rows.sort((a, b) => {
-      let cellA = a.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    rows.forEach(row => tbody.appendChild(row));
-  }
-}
+});
 </script>
 
 <style>

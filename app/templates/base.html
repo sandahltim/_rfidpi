@@ -230,7 +230,6 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(data => {
                 console.log("Refresh Data:", data);
 
-                // Update Parent Table
                 const parentTbody = document.querySelector("#parentTable tbody");
                 if (parentTbody) {
                     const expandedMiddle = new Set();
@@ -264,7 +263,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         parentTbody.appendChild(middleTr);
                     });
 
-                    // Update Middle Tables
                     const middleMap = data.middle_map || data.child_map;
                     Object.keys(middleMap).forEach(key => {
                         const middleDiv = document.querySelector(`#middle-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')}`);
@@ -355,26 +353,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
 
                     // Rebind event listeners after table update
-                    document.querySelectorAll(".expand-toggle").forEach(toggle => {
-                        toggle.addEventListener("click", () => {
-                            const targetId = toggle.getAttribute("data-bs-target");
-                            const target = document.querySelector(targetId);
-                            if (target) {
-                                if (!target.classList.contains('show')) {
-                                    toggle.textContent = "-";
-                                    if (target.id.startsWith("child-")) {
-                                        const category = target.getAttribute("data-category") || target.getAttribute("data-contract");
-                                        const commonName = target.getAttribute("data-common-name");
-                                        const middleKey = target.id.split("child-")[1];
-                                        loadSubcatData(category, commonName, middleKey);
-                                    }
-                                } else {
-                                    toggle.textContent = "+";
-                                }
-                            }
-                        });
-                    });
-
                     document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
                         btn.addEventListener("click", () => {
                             const category = btn.getAttribute("data-category") || btn.getAttribute("data-contract");
