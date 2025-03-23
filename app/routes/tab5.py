@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
 from data_service import get_active_rental_contracts, get_active_rental_items
@@ -107,7 +107,6 @@ def show_tab5():
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
             hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
-            # Get the latest date_last_scanned for this contract
             dates = [item.get("date_last_scanned") for item in item_list if item.get("date_last_scanned")]
             latest_date = max(dates) if dates else "N/A"
             parent_data.append({
@@ -214,4 +213,87 @@ def update_hand_counted():
         return redirect(url_for("tab5_bp.show_tab5"))
     except Exception as e:
         logging.error(f"Error updating hand-counted entry: {e}")
+        return "Internal Server Error", 500
+
+@tab5_bp.route("/refresh_data", methods=["GET"])
+def refresh_data():
+    logging.debug("Hit /tab5/refresh_data endpoint")
+    try:
+        with DatabaseConnection() as conn:
+            logging.debug("Fetching RFID data")
+            all_items = conn.execute("SELECT * FROM id_item_master").fetchall()
+            active_items = get_active_rental_items(conn)
+
+        with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
+            logging.debug("Fetching hand-counted data")
+            conn.row_factory = sqlite3.Row
+            hand_counted_items = conn.execute("SELECT * FROM hand_counted_items WHERE last_contract_num LIKE 'L%'").fetchall()
+
+        all_items = [dict(row) for row in all_items]
+        laundry_items = [
+            item for item in [dict(row) for row in active_items]
+            if item.get("last_contract_num", "").lower().startswith("l")
+        ]
+        hand_counted = [dict(row) for row in hand_counted_items] if hand_counted_items else []
+
+        filter_contract = request.args.get("last_contract_num", "").lower().strip()
+        filter_common_name = request.args.get("common_name", "").lower().strip()
+
+        filtered_items = laundry_items + hand_counted
+        if filter_contract:
+            filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
+        if filter_common_name:
+            filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
+
+        contract_map = defaultdict(list)
+        for item in filtered_items:
+            contract = item.get("last_contract_num", "Unknown")
+            contract_map[contract].append(item)
+
+        parent_data = []
+        child_map = {}
+        for contract, item_list in contract_map.items():
+            common_name_map = defaultdict(list)
+            for item in item_list:
+                common_name = item.get("common_name", "Unknown")
+                common_name_map[common_name].append(item)
+
+            child_data = {}
+            for common_name, items in common_name_map.items():
+                rfid_items = [i for i in items if i.get("tag_id") is not None]
+                hand_items = [i for i in items if i.get("tag_id") is None]
+                total_rfid = len(rfid_items)
+                total_hand = sum(i.get("total_items", 0) for i in hand_items)
+                total_items = total_rfid + total_hand
+                total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
+                on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
+                              item["status"] in ["On Rent", "Delivered"] and 
+                              (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
+                service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
+                child_data[common_name] = {
+                    "total": total_items,
+                    "available": total_available,
+                    "on_rent": on_rent,
+                    "service": service
+                }
+
+            rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
+            hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
+            dates = [item.get("date_last_scanned") for item in item_list if item.get("date_last_scanned")]
+            latest_date = max(dates) if dates else "N/A"
+            parent_data.append({
+                "contract": contract,
+                "total": rfid_total + hand_total,
+                "date_last_scanned": latest_date
+            })
+            child_map[contract] = child_data
+
+        parent_data.sort(key=lambda x: x["contract"].lower())
+
+        return jsonify({
+            "parent_data": parent_data,
+            "child_map": child_map
+        })
+    except Exception as e:
+        logging.error(f"Error in tab5 refresh_data: {e}")
         return "Internal Server Error", 500

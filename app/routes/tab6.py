@@ -43,86 +43,86 @@ def categorize_item(item):
 @tab6_bp.route("/")
 def show_tab6():
     print("Loading /tab6/ endpoint")
-    with DatabaseConnection() as conn:
-        rows = get_resale_items(conn)
-    items = [dict(row) for row in rows]
+    try:
+        with DatabaseConnection() as conn:
+            rows = get_resale_items(conn)
+        items = [dict(row) for row in rows]
 
-    # Get filter parameters (exact match)
-    filter_common_name = request.args.get("common_name", "").strip()
-    filter_tag_id = request.args.get("tag_id", "").strip()
-    filter_last_contract = request.args.get("last_contract_num", "").strip()
-    filter_status = request.args.get("status", "").strip()
-    filter_rental_class_num = request.args.get("rental_class_num", "").strip()
+        filter_common_name = request.args.get("common_name", "").strip()
+        filter_tag_id = request.args.get("tag_id", "").strip()
+        filter_last_contract = request.args.get("last_contract_num", "").strip()
+        filter_status = request.args.get("status", "").strip()
+        filter_rental_class_num = request.args.get("rental_class_num", "").strip()
 
-    # Filter items (exact match)
-    filtered_items = items
-    if filter_common_name:
-        filtered_items = [item for item in filtered_items if item.get("common_name") == filter_common_name]
-    if filter_tag_id:
-        filtered_items = [item for item in filtered_items if item.get("tag_id") == filter_tag_id]
-    if filter_last_contract:
-        filtered_items = [item for item in filtered_items if item.get("last_contract_num") == filter_last_contract]
-    if filter_status:
-        filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
-    if filter_rental_class_num:
-        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
-        if not rental_class_nums:  # Full list from your data
-            rental_class_nums = [
-                "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
-                "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
-                "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
-                "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
-                "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
-                "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
-                "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
-                "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
-                "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
-                "64918", "64919", "64920", "65495", "65498"
+        filtered_items = items
+        if filter_common_name:
+            filtered_items = [item for item in filtered_items if item.get("common_name") == filter_common_name]
+        if filter_tag_id:
+            filtered_items = [item for item in filtered_items if item.get("tag_id") == filter_tag_id]
+        if filter_last_contract:
+            filtered_items = [item for item in filtered_items if item.get("last_contract_num") == filter_last_contract]
+        if filter_status:
+            filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
+        if filter_rental_class_num:
+            rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
+            if not rental_class_nums:
+                rental_class_nums = [
+                    "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
+                    "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
+                    "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
+                    "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
+                    "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
+                    "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
+                    "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
+                    "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
+                    "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
+                    "64918", "64919", "64920", "65495", "65498"
+                ]
+            filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
+
+        category_map = defaultdict(list)
+        for item in filtered_items:
+            cat = categorize_item(item)
+            category_map[cat].append(item)
+
+        parent_data = []
+        middle_map = {}
+        for category, item_list in category_map.items():
+            total_amount = len(item_list)
+            on_contract = sum(1 for item in item_list if item["status"] in ["Delivered", "On Rent"])
+
+            common_name_map = defaultdict(list)
+            for item in item_list:
+                common_name = item.get("common_name", "Unknown")
+                common_name_map[common_name].append(item)
+            middle_map[category] = [
+                {"common_name": name, "total": len(items)}
+                for name, items in common_name_map.items()
             ]
-        filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
-    # Group by category
-    category_map = defaultdict(list)
-    for item in filtered_items:
-        cat = categorize_item(item)
-        category_map[cat].append(item)
+            parent_data.append({
+                "category": category,
+                "total_amount": total_amount,
+                "on_contract": on_contract
+            })
 
-    # Parent data (categories)
-    parent_data = []
-    middle_map = {}
-    for category, item_list in category_map.items():
-        total_amount = len(item_list)
-        on_contract = sum(1 for item in item_list if item["status"] in ["Delivered", "On Rent"])
+        parent_data.sort(key=lambda x: x["category"])
 
-        # Middle child: Common names
-        common_name_map = defaultdict(list)
-        for item in item_list:
-            common_name = item.get("common_name", "Unknown")
-            common_name_map[common_name].append(item)
-        middle_map[category] = [
-            {"common_name": name, "total": len(items)}
-            for name, items in common_name_map.items()
-        ]
-
-        parent_data.append({
-            "category": category,
-            "total_amount": total_amount,
-            "on_contract": on_contract
-        })
-
-    parent_data.sort(key=lambda x: x["category"])
-
-    return render_template(
-        "tab6.html",
-        parent_data=parent_data,
-        middle_map=middle_map,
-        filter_common_name=filter_common_name,
-        filter_tag_id=filter_tag_id,
-        filter_last_contract=filter_last_contract,
-        filter_status=filter_status,
-        filter_rental_class_num=filter_rental_class_num,
-        middle_map_json=middle_map  # Add this to fix JSON error
-    )
+        return render_template(
+            "tab6.html",
+            parent_data=parent_data,
+            middle_map=middle_map,
+            filter_common_name=filter_common_name,
+            filter_tag_id=filter_tag_id,
+            filter_last_contract=filter_last_contract,
+            filter_status=filter_status,
+            filter_rental_class_num=filter_rental_class_num,
+            middle_map_json=middle_map
+        )
+    except Exception as e:
+        import traceback
+        print(f"Error in show_tab6: {e}\n{traceback.format_exc()}")
+        return "Internal Server Error", 500
 
 @tab6_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
@@ -136,7 +136,6 @@ def subcat_data():
         rows = get_resale_items(conn)
     items = [dict(row) for row in rows]
 
-    # Apply filters from query params (exact match)
     filter_common_name = request.args.get("common_name_filter", "").strip()
     filter_tag_id = request.args.get("tag_id", "").strip()
     filter_last_contract = request.args.get("last_contract_num", "").strip()
@@ -154,7 +153,7 @@ def subcat_data():
         filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
     if filter_rental_class_num:
         rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
-        if not rental_class_nums:  # Full list from your data
+        if not rental_class_nums:
             rental_class_nums = [
                 "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
                 "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
@@ -199,75 +198,76 @@ def subcat_data():
 @tab6_bp.route("/refresh_data", methods=["GET"])
 def refresh_data():
     print("Hit /tab6/refresh_data endpoint")
-    with DatabaseConnection() as conn:
-        rows = get_resale_items(conn)
-    items = [dict(row) for row in rows]
+    try:
+        with DatabaseConnection() as conn:
+            rows = get_resale_items(conn)
+        items = [dict(row) for row in rows]
 
-    # Apply filters from query params (exact match)
-    filter_common_name = request.args.get("common_name", "").strip()
-    filter_tag_id = request.args.get("tag_id", "").strip()
-    filter_last_contract = request.args.get("last_contract_num", "").strip()
-    filter_status = request.args.get("status", "").strip()
-    filter_rental_class_num = request.args.get("rental_class_num", "").strip()
+        filter_common_name = request.args.get("common_name", "").strip()
+        filter_tag_id = request.args.get("tag_id", "").strip()
+        filter_last_contract = request.args.get("last_contract_num", "").strip()
+        filter_status = request.args.get("status", "").strip()
+        filter_rental_class_num = request.args.get("rental_class_num", "").strip()
 
-    filtered_items = items
-    if filter_common_name:
-        filtered_items = [item for item in filtered_items if item.get("common_name") == filter_common_name]
-    if filter_tag_id:
-        filtered_items = [item for item in filtered_items if item.get("tag_id") == filter_tag_id]
-    if filter_last_contract:
-        filtered_items = [item for item in filtered_items if item.get("last_contract_num") == filter_last_contract]
-    if filter_status:
-        filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
-    if filter_rental_class_num:
-        rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
-        if not rental_class_nums:
-            rental_class_nums = [
-                "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
-                "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
-                "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
-                "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
-                "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
-                "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
-                "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
-                "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
-                "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
-                "64918", "64919", "64920", "65495", "65498"
+        filtered_items = items
+        if filter_common_name:
+            filtered_items = [item for item in filtered_items if item.get("common_name") == filter_common_name]
+        if filter_tag_id:
+            filtered_items = [item for item in filtered_items if item.get("tag_id") == filter_tag_id]
+        if filter_last_contract:
+            filtered_items = [item for item in filtered_items if item.get("last_contract_num") == filter_last_contract]
+        if filter_status:
+            filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
+        if filter_rental_class_num:
+            rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
+            if not rental_class_nums:
+                rental_class_nums = [
+                    "64815", "64816", "64817", "3168", "3169", "64840", "64841", "64842", "64843", "64847", "64848", "64849",
+                    "64819", "64824", "64836", "64837", "64876", "3903", "64852", "64853", "64854", "66742", "66743", "66747",
+                    "64864", "64865", "64866", "64867", "64868", "64869", "64874", "64855", "64856", "64857", "64858", "64860",
+                    "64861", "65808", "63442", "64921", "64922", "64923", "64924", "64925", "64926", "64927", "64928", "64929",
+                    "64930", "64932", "64933", "64934", "65493", "65496", "64935", "64936", "64937", "64938", "64939", "64940",
+                    "64941", "64942", "64943", "64944", "64945", "64946", "64947", "64948", "64949", "65494", "65497", "64888",
+                    "64889", "64890", "64891", "64892", "64893", "65604", "65605", "65606", "65607", "65608", "65609", "63440",
+                    "64894", "64895", "64896", "64897", "64898", "64899", "64900", "64901", "64902", "64904", "64905", "65611",
+                    "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
+                    "64918", "64919", "64920", "65495", "65498"
+                ]
+            filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
+
+        category_map = defaultdict(list)
+        for item in filtered_items:
+            cat = categorize_item(item)
+            category_map[cat].append(item)
+
+        parent_data = []
+        middle_map = {}
+        for category, item_list in category_map.items():
+            total_amount = len(item_list)
+            on_contract = sum(1 for item in item_list if item["status"] in ["Delivered", "On Rent"])
+
+            common_name_map = defaultdict(list)
+            for item in item_list:
+                common_name = item.get("common_name", "Unknown")
+                common_name_map[common_name].append(item)
+            middle_map[category] = [
+                {"common_name": name, "total": len(items)}
+                for name, items in common_name_map.items()
             ]
-        filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
-    # Group by category
-    category_map = defaultdict(list)
-    for item in filtered_items:
-        cat = categorize_item(item)
-        category_map[cat].append(item)
+            parent_data.append({
+                "category": category,
+                "total_amount": total_amount,
+                "on_contract": on_contract
+            })
 
-    # Parent data (categories)
-    parent_data = []
-    middle_map = {}
-    for category, item_list in category_map.items():
-        total_amount = len(item_list)
-        on_contract = sum(1 for item in item_list if item["status"] in ["Delivered", "On Rent"])
+        parent_data.sort(key=lambda x: x["category"])
 
-        # Middle child: Common names
-        common_name_map = defaultdict(list)
-        for item in item_list:
-            common_name = item.get("common_name", "Unknown")
-            common_name_map[common_name].append(item)
-        middle_map[category] = [
-            {"common_name": name, "total": len(items)}
-            for name, items in common_name_map.items()
-        ]
-
-        parent_data.append({
-            "category": category,
-            "total_amount": total_amount,
-            "on_contract": on_contract
+        return jsonify({
+            "parent_data": parent_data,
+            "middle_map": middle_map
         })
-
-    parent_data.sort(key=lambda x: x["category"])
-
-    return jsonify({
-        "parent_data": parent_data,
-        "middle_map": middle_map
-    })
+    except Exception as e:
+        import traceback
+        print(f"Error in refresh_data: {e}\n{traceback.format_exc()}")
+        return "Internal Server Error", 500
