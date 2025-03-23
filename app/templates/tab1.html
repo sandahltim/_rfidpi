@@ -55,7 +55,7 @@
         <td>{{ parent.total_items }}</td>
         <td>{{ parent.scan_date }}</td>
         <td>{{ parent.transaction_notes }}</td>
-        <td><button class="btn btn-outline-dark btn-sm aggregateTab1-btn" data-contract="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+        <td><button class="btn btn-outline-dark btn-sm tab1PrintBtn" data-contract="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="7" class="p-0">
@@ -142,375 +142,387 @@
 </nav>
 
 <script>
-function sortTable(tableEl, colName) {
-  let tbody = tableEl.querySelector("tbody");
-  if (!tbody) return;
+document.addEventListener("DOMContentLoaded", () => {
+  console.log('Tab1 DOM Content Loaded');
 
-  let asc = tableEl.getAttribute("data-sort-col") === colName 
-            ? tableEl.getAttribute("data-sort-dir") !== "asc" 
-            : true;
-  tableEl.setAttribute("data-sort-col", colName);
-  tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
-
-  let headers = Array.from(tableEl.querySelectorAll("th"));
-  let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
-
-  if (tableEl.id === "parentTable") {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let parentRow = rows[i];
-      let middleRow = rows[i + 1] || null;
-      if (parentRow && parentRow.classList.contains("table-active")) {
-        pairs.push({ parent: parentRow, middle: middleRow });
-      }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.parent);
-      if (pair.middle) tbody.appendChild(pair.middle);
-    });
-  } else if (tableEl.classList.contains("middle-table")) {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let middleRow = rows[i];
-      let childRow = rows[i + 1] || null;
-      if (middleRow) {
-        pairs.push({ middle: middleRow, child: childRow });
-      }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.middle.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.middle.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.middle);
-      if (pair.child) tbody.appendChild(pair.child);
-    });
-  } else {
-    let rows = Array.from(tbody.querySelectorAll("tr"));
-    rows.sort((a, b) => {
-      let cellA = a.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    rows.forEach(row => tbody.appendChild(row));
-  }
-}
-
-function filterTable() {
-  let filters = {
-    contract_num: document.querySelector("[data-filter='contract_num']").value.toLowerCase().trim(),
-    common_name: document.querySelector("[data-filter='common_name']").value.toLowerCase().trim()
+  // Block base.html's refreshTableData
+  window.refreshTableData = function() {
+    console.log("Base refreshTableData blocked for Tab1");
   };
 
-  let parentRows = document.querySelectorAll("#parentTable tbody tr.table-active");
-  parentRows.forEach(parentRow => {
-    let middleRow = parentRow.nextElementSibling;
-    let middleTable = middleRow.querySelector(".middle-table tbody");
-    let middleItems = middleTable.querySelectorAll("tr:not(.collapse)");
-    let anyMiddleMatch = false;
+  function tab1SortTable(tableEl, colName) {
+    console.log('Sorting ' + tableEl.id + ' by ' + colName);
+    let tbody = tableEl.querySelector("tbody");
+    if (!tbody) return;
 
-    middleItems.forEach(middle => {
-      let childRow = middle.nextElementSibling;
-      let childTable = childRow.querySelector(".child-table tbody");
-      let childItems = childTable.querySelectorAll("tr");
-      let anyChildMatch = false;
+    let asc = tableEl.getAttribute("data-sort-col") === colName 
+              ? tableEl.getAttribute("data-sort-dir") !== "asc" 
+              : true;
+    tableEl.setAttribute("data-sort-col", colName);
+    tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
 
-      childItems.forEach(item => {
-        let contractNum = parentRow.cells[1].innerText.toLowerCase();
-        let commonName = item.cells[1].innerText.toLowerCase();
+    let headers = Array.from(tableEl.querySelectorAll("th"));
+    let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
 
-        let matches = (!filters.contract_num || contractNum.includes(filters.contract_num)) &&
-                      (!filters.common_name || commonName.includes(filters.common_name));
-
-        item.style.display = matches ? "" : "none";
-        if (matches) anyChildMatch = true;
-      });
-
-      middle.style.display = anyChildMatch ? "" : "none";
-      childRow.style.display = anyChildMatch ? "" : "none";
-      if (anyChildMatch) anyMiddleMatch = true;
-    });
-
-    parentRow.style.display = anyMiddleMatch ? "" : "none";
-    middleRow.style.display = anyMiddleMatch ? "" : "none";
-  });
-}
-
-function tab1RefreshTableData() {
-  const path = window.location.pathname;
-  const params = new URLSearchParams(window.location.search);
-  const url = path.endsWith('/') ? path : path + '/' + 'refresh_data?' + params.toString();
-
-  fetch(url)
-    .then(response => {
-      console.log('Tab1 Refresh Fetch Status: ' + response.status);
-      if (!response.ok) throw new Error('HTTP error! Status: ' + response.status);
-      return response.json();
-    })
-    .then(data => {
-      console.log('Tab1 Refresh Data:', data);
-      const tbody = document.querySelector('#parentTable tbody');
-      if (tbody) {
-        const expandedMiddle = new Set();
-        const expandedChild = new Set();
-        document.querySelectorAll('.collapse.show').forEach(el => {
-          if (el.id.startsWith('middle-')) expandedMiddle.add(el.id);
-          if (el.id.startsWith('child-')) expandedChild.add(el.id);
-        });
-
-        tbody.innerHTML = '';
-        data.parent_data.forEach((parent, parentIndex) => {
-          const parentIdx = parentIndex + (data.current_page - 1) * 20;
-          const parentRow = document.createElement('tr');
-          parentRow.className = 'table-active';
-          parentRow.style.background = 'linear-gradient(to right, #ecf0f1, #dfe6e9)';
-
-          const toggleTd = document.createElement('td');
-          const toggleSpan = document.createElement('span');
-          toggleSpan.className = 'expand-toggle';
-          toggleSpan.setAttribute('data-bs-toggle', 'collapse');
-          toggleSpan.setAttribute('data-bs-target', '#middle-' + parentIdx);
-          toggleSpan.textContent = '+';
-          toggleTd.appendChild(toggleSpan);
-          parentRow.appendChild(toggleTd);
-
-          const fields = ['contract_num', 'client_name', 'total_items', 'scan_date', 'transaction_notes'];
-          fields.forEach(field => {
-            const td = document.createElement('td');
-            td.textContent = parent[field];
-            parentRow.appendChild(td);
-          });
-
-          const printTd = document.createElement('td');
-          const printBtn = document.createElement('button');
-          printBtn.className = 'btn btn-outline-dark btn-sm aggregateTab1-btn';
-          printBtn.setAttribute('data-contract', parent.contract_num);
-          printBtn.style.border = '2px solid #2c3e50';
-          printBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-          printBtn.style.transition = 'all 0.3s';
-          printBtn.textContent = 'Print';
-          printTd.appendChild(printBtn);
-          parentRow.appendChild(printTd);
-
-          tbody.appendChild(parentRow);
-
-          const middleRow = document.createElement('tr');
-          const middleTd = document.createElement('td');
-          middleTd.setAttribute('colspan', '7');
-          middleTd.className = 'p-0';
-
-          const middleDiv = document.createElement('div');
-          middleDiv.id = 'middle-' + parentIdx;
-          middleDiv.className = 'collapse';
-
-          const middleTable = document.createElement('table');
-          middleTable.className = 'table mb-0 middle-table';
-          middleTable.id = 'middleTable-' + parentIdx;
-          middleTable.style.border = '2px solid #34495e';
-
-          const thead = document.createElement('thead');
-          thead.style.background = '#3498db';
-          thead.style.color = '#fff';
-          const headerRow = document.createElement('tr');
-          const headers = [
-            { name: '', width: '50px' },
-            { name: 'Common Name', col: 'common_name' },
-            { name: 'Total on Contract', col: 'total_on_contract' }
-          ];
-          headers.forEach(h => {
-            const th = document.createElement('th');
-            if (h.col) th.className = 'sortable';
-            if (h.col) th.setAttribute('data-col-name', h.col);
-            if (h.width) th.style.width = h.width;
-            th.textContent = h.name;
-            headerRow.appendChild(th);
-          });
-          thead.appendChild(headerRow);
-          middleTable.appendChild(thead);
-
-          const middleTbody = document.createElement('tbody');
-          if (data.middle_map[parent.contract_num]) {
-            data.middle_map[parent.contract_num].forEach((middle, middleIndex) => {
-              const middleIdx = parentIdx + '_' + middleIndex;
-              const tr = document.createElement('tr');
-
-              const toggleTdMiddle = document.createElement('td');
-              const toggleSpanMiddle = document.createElement('span');
-              toggleSpanMiddle.className = 'expand-toggle';
-              toggleSpanMiddle.setAttribute('data-bs-toggle', 'collapse');
-              toggleSpanMiddle.setAttribute('data-bs-target', '#child-' + middleIdx);
-              toggleSpanMiddle.textContent = '+';
-              toggleTdMiddle.appendChild(toggleSpanMiddle);
-              tr.appendChild(toggleTdMiddle);
-
-              const nameTd = document.createElement('td');
-              nameTd.textContent = middle.common_name;
-              const totalTd = document.createElement('td');
-              totalTd.textContent = middle.total_on_contract;
-              tr.appendChild(nameTd);
-              tr.appendChild(totalTd);
-              middleTbody.appendChild(tr);
-
-              const childRow = document.createElement('tr');
-              const childTd = document.createElement('td');
-              childTd.setAttribute('colspan', '3');
-              childTd.className = 'p-0';
-
-              const childDiv = document.createElement('div');
-              childDiv.id = 'child-' + middleIdx;
-              childDiv.className = 'collapse';
-
-              const childTable = document.createElement('table');
-              childTable.className = 'table mb-0 child-table';
-              childTable.id = 'childTable-' + middleIdx;
-              childTable.style.border = '2px solid #2c3e50';
-
-              const childThead = document.createElement('thead');
-              childThead.style.background = '#2c3e50';
-              childThead.style.color = '#ecf0f1';
-              const childHeaderRow = document.createElement('tr');
-              const childHeaders = [
-                'tag_id', 'common_name', 'quality', 'bin_location', 'status', 
-                'last_scanned_by', 'date_last_scanned', 'notes'
-              ].map(col => ({ name: col.replace('_', ' ').toUpperCase(), col }));
-              childHeaders.forEach(h => {
-                const th = document.createElement('th');
-                th.className = 'sortable';
-                th.setAttribute('data-col-name', h.col);
-                th.textContent = h.name;
-                childHeaderRow.appendChild(th);
-              });
-              childThead.appendChild(childHeaderRow);
-              childTable.appendChild(childThead);
-
-              const childTbody = document.createElement('tbody');
-              if (data.contract_map[parent.contract_num] && data.contract_map[parent.contract_num][middle.common_name]) {
-                data.contract_map[parent.contract_num][middle.common_name].forEach(item => {
-                  const tr = document.createElement('tr');
-                  tr.className = item.status in ['On Rent', 'Delivered'] ? 'table-warning' : item.status === 'Ready to Rent' ? 'table-success' : '';
-                  childHeaders.forEach(h => {
-                    const td = document.createElement('td');
-                    td.textContent = item[h.col] || '';
-                    tr.appendChild(td);
-                  });
-                  childTbody.appendChild(tr);
-                });
-              }
-              childTable.appendChild(childTbody);
-
-              childDiv.appendChild(childTable);
-              childTd.appendChild(childDiv);
-              childRow.appendChild(childTd);
-              middleTbody.appendChild(childRow);
-
-              if (expandedChild.has('child-' + middleIdx)) {
-                new bootstrap.Collapse(childDiv, { toggle: false }).show();
-              }
-            });
-          }
-          middleTable.appendChild(middleTbody);
-          middleDiv.appendChild(middleTable);
-          middleTd.appendChild(middleDiv);
-          middleRow.appendChild(middleTd);
-          tbody.appendChild(middleRow);
-
-          if (expandedMiddle.has('middle-' + parentIdx)) {
-            new bootstrap.Collapse(middleDiv, { toggle: false }).show();
-          }
-        });
-
-        bindTab1Listeners();
-        filterTable();
+    if (tableEl.id === "parentTable") {
+      let rows = Array.from(tbody.children);
+      let pairs = [];
+      for (let i = 0; i < rows.length; i += 2) {
+        let parentRow = rows[i];
+        let middleRow = rows[i + 1] || null;
+        if (parentRow && parentRow.classList.contains("table-active")) {
+          pairs.push({ parent: parentRow, middle: middleRow });
+        }
       }
-    })
-    .catch(error => console.error('Tab1 Refresh Error:', error));
-}
+      pairs.sort((a, b) => {
+        let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
+        let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
+        let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+        let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return asc ? numA - numB : numB - numA;
+        }
+        return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      });
+      tbody.innerHTML = "";
+      pairs.forEach(pair => {
+        tbody.appendChild(pair.parent);
+        if (pair.middle) tbody.appendChild(pair.middle);
+      });
+    } else if (tableEl.classList.contains("middle-table")) {
+      let rows = Array.from(tbody.children);
+      let pairs = [];
+      for (let i = 0; i < rows.length; i += 2) {
+        let middleRow = rows[i];
+        let childRow = rows[i + 1] || null;
+        if (middleRow) {
+          pairs.push({ middle: middleRow, child: childRow });
+        }
+      }
+      pairs.sort((a, b) => {
+        let cellA = a.middle.cells[colIndex]?.innerText.trim() || "";
+        let cellB = b.middle.cells[colIndex]?.innerText.trim() || "";
+        let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+        let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return asc ? numA - numB : numB - numA;
+        }
+        return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      });
+      tbody.innerHTML = "";
+      pairs.forEach(pair => {
+        tbody.appendChild(pair.middle);
+        if (pair.child) tbody.appendChild(pair.child);
+      });
+    } else {
+      let rows = Array.from(tbody.querySelectorAll("tr"));
+      rows.sort((a, b) => {
+        let cellA = a.cells[colIndex]?.innerText.trim() || "";
+        let cellB = b.cells[colIndex]?.innerText.trim() || "";
+        let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+        let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return asc ? numA - numB : numB - numA;
+        }
+        return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      });
+      tbody.innerHTML = "";
+      rows.forEach(row => tbody.appendChild(row));
+    }
+  }
 
-document.addEventListener("DOMContentLoaded", () => {
-  let parentTable = document.getElementById("parentTable");
-  parentTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
-      sortTable(parentTable, colName);
+  function tab1FilterTable() {
+    let filters = {
+      contract_num: document.querySelector("[data-filter='contract_num']").value.toLowerCase().trim(),
+      common_name: document.querySelector("[data-filter='common_name']").value.toLowerCase().trim()
+    };
+
+    let parentRows = document.querySelectorAll("#parentTable tbody tr.table-active");
+    parentRows.forEach(parentRow => {
+      let middleRow = parentRow.nextElementSibling;
+      let middleTable = middleRow.querySelector(".middle-table tbody");
+      let middleItems = middleTable.querySelectorAll("tr:not(.collapse)");
+      let anyMiddleMatch = false;
+
+      middleItems.forEach(middle => {
+        let childRow = middle.nextElementSibling;
+        let childTable = childRow.querySelector(".child-table tbody");
+        let childItems = childTable.querySelectorAll("tr");
+        let anyChildMatch = false;
+
+        childItems.forEach(item => {
+          let contractNum = parentRow.cells[1].innerText.toLowerCase();
+          let commonName = item.cells[1].innerText.toLowerCase();
+
+          let matches = (!filters.contract_num || contractNum.includes(filters.contract_num)) &&
+                        (!filters.common_name || commonName.includes(filters.common_name));
+
+          item.style.display = matches ? "" : "none";
+          if (matches) anyChildMatch = true;
+        });
+
+        middle.style.display = anyChildMatch ? "" : "none";
+        childRow.style.display = anyChildMatch ? "" : "none";
+        if (anyChildMatch) anyMiddleMatch = true;
+      });
+
+      parentRow.style.display = anyMiddleMatch ? "" : "none";
+      middleRow.style.display = anyMiddleMatch ? "" : "none";
     });
-  });
+  }
 
-  document.querySelectorAll(".middle-table").forEach(middleTbl => {
-    middleTbl.querySelectorAll("th.sortable").forEach(th => {
+  function tab1RefreshTable() {
+    const path = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    const url = path.endsWith('/') ? path : path + '/' + 'refresh_data?' + params.toString();
+
+    fetch(url)
+      .then(response => {
+        console.log('Tab1 Refresh Fetch Status: ' + response.status);
+        if (!response.ok) throw new Error('HTTP error! Status: ' + response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Tab1 Refresh Data:', data);
+        const tbody = document.querySelector('#parentTable tbody');
+        if (tbody) {
+          const expandedMiddle = new Set();
+          const expandedChild = new Set();
+          document.querySelectorAll('.collapse.show').forEach(el => {
+            if (el.id.startsWith('middle-')) expandedMiddle.add(el.id);
+            if (el.id.startsWith('child-')) expandedChild.add(el.id);
+          });
+
+          tbody.innerHTML = '';
+          data.parent_data.forEach((parent, parentIndex) => {
+            const parentIdx = parentIndex + (data.current_page - 1) * 20;
+            const parentRow = document.createElement('tr');
+            parentRow.className = 'table-active';
+            parentRow.style.background = 'linear-gradient(to right, #ecf0f1, #dfe6e9)';
+
+            const toggleTd = document.createElement('td');
+            const toggleSpan = document.createElement('span');
+            toggleSpan.className = 'expand-toggle';
+            toggleSpan.setAttribute('data-bs-toggle', 'collapse');
+            toggleSpan.setAttribute('data-bs-target', '#middle-' + parentIdx);
+            toggleSpan.textContent = '+';
+            toggleTd.appendChild(toggleSpan);
+            parentRow.appendChild(toggleTd);
+
+            const fields = ['contract_num', 'client_name', 'total_items', 'scan_date', 'transaction_notes'];
+            fields.forEach(field => {
+              const td = document.createElement('td');
+              td.textContent = parent[field];
+              parentRow.appendChild(td);
+            });
+
+            const printTd = document.createElement('td');
+            const printBtn = document.createElement('button');
+            printBtn.className = 'btn btn-outline-dark btn-sm tab1PrintBtn';
+            printBtn.setAttribute('data-contract', parent.contract_num);
+            printBtn.style.border = '2px solid #2c3e50';
+            printBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+            printBtn.style.transition = 'all 0.3s';
+            printBtn.textContent = 'Print';
+            printTd.appendChild(printBtn);
+            parentRow.appendChild(printTd);
+
+            tbody.appendChild(parentRow);
+
+            const middleRow = document.createElement('tr');
+            const middleTd = document.createElement('td');
+            middleTd.setAttribute('colspan', '7');
+            middleTd.className = 'p-0';
+
+            const middleDiv = document.createElement('div');
+            middleDiv.id = 'middle-' + parentIdx;
+            middleDiv.className = 'collapse';
+
+            const middleTable = document.createElement('table');
+            middleTable.className = 'table mb-0 middle-table';
+            middleTable.id = 'middleTable-' + parentIdx;
+            middleTable.style.border = '2px solid #34495e';
+
+            const thead = document.createElement('thead');
+            thead.style.background = '#3498db';
+            thead.style.color = '#fff';
+            const headerRow = document.createElement('tr');
+            const headers = [
+              { name: '', width: '50px' },
+              { name: 'Common Name', col: 'common_name' },
+              { name: 'Total on Contract', col: 'total_on_contract' }
+            ];
+            headers.forEach(h => {
+              const th = document.createElement('th');
+              if (h.col) th.className = 'sortable';
+              if (h.col) th.setAttribute('data-col-name', h.col);
+              if (h.width) th.style.width = h.width;
+              th.textContent = h.name;
+              headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            middleTable.appendChild(thead);
+
+            const middleTbody = document.createElement('tbody');
+            if (data.middle_map[parent.contract_num]) {
+              data.middle_map[parent.contract_num].forEach((middle, middleIndex) => {
+                const middleIdx = parentIdx + '_' + middleIndex;
+                const tr = document.createElement('tr');
+
+                const toggleTdMiddle = document.createElement('td');
+                const toggleSpanMiddle = document.createElement('span');
+                toggleSpanMiddle.className = 'expand-toggle';
+                toggleSpanMiddle.setAttribute('data-bs-toggle', 'collapse');
+                toggleSpanMiddle.setAttribute('data-bs-target', '#child-' + middleIdx);
+                toggleSpanMiddle.textContent = '+';
+                toggleTdMiddle.appendChild(toggleSpanMiddle);
+                tr.appendChild(toggleTdMiddle);
+
+                const nameTd = document.createElement('td');
+                nameTd.textContent = middle.common_name;
+                const totalTd = document.createElement('td');
+                totalTd.textContent = middle.total_on_contract;
+                tr.appendChild(nameTd);
+                tr.appendChild(totalTd);
+                middleTbody.appendChild(tr);
+
+                const childRow = document.createElement('tr');
+                const childTd = document.createElement('td');
+                childTd.setAttribute('colspan', '3');
+                childTd.className = 'p-0';
+
+                const childDiv = document.createElement('div');
+                childDiv.id = 'child-' + middleIdx;
+                childDiv.className = 'collapse';
+
+                const childTable = document.createElement('table');
+                childTable.className = 'table mb-0 child-table';
+                childTable.id = 'childTable-' + middleIdx;
+                childTable.style.border = '2px solid #2c3e50';
+
+                const childThead = document.createElement('thead');
+                childThead.style.background = '#2c3e50';
+                childThead.style.color = '#ecf0f1';
+                const childHeaderRow = document.createElement('tr');
+                const childHeaders = [
+                  'tag_id', 'common_name', 'quality', 'bin_location', 'status', 
+                  'last_scanned_by', 'date_last_scanned', 'notes'
+                ].map(col => ({ name: col.replace('_', ' ').toUpperCase(), col }));
+                childHeaders.forEach(h => {
+                  const th = document.createElement('th');
+                  th.className = 'sortable';
+                  th.setAttribute('data-col-name', h.col);
+                  th.textContent = h.name;
+                  childHeaderRow.appendChild(th);
+                });
+                childThead.appendChild(childHeaderRow);
+                childTable.appendChild(childThead);
+
+                const childTbody = document.createElement('tbody');
+                if (data.contract_map[parent.contract_num] && data.contract_map[parent.contract_num][middle.common_name]) {
+                  data.contract_map[parent.contract_num][middle.common_name].forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = item.status in ['On Rent', 'Delivered'] ? 'table-warning' : item.status === 'Ready to Rent' ? 'table-success' : '';
+                    childHeaders.forEach(h => {
+                      const td = document.createElement('td');
+                      td.textContent = item[h.col] || '';
+                      tr.appendChild(td);
+                    });
+                    childTbody.appendChild(tr);
+                  });
+                }
+                childTable.appendChild(childTbody);
+
+                childDiv.appendChild(childTable);
+                childTd.appendChild(childDiv);
+                childRow.appendChild(childTd);
+                middleTbody.appendChild(childRow);
+
+                if (expandedChild.has('child-' + middleIdx)) {
+                  new bootstrap.Collapse(childDiv, { toggle: false }).show();
+                }
+              });
+            }
+            middleTable.appendChild(middleTbody);
+            middleDiv.appendChild(middleTable);
+            middleTd.appendChild(middleDiv);
+            middleRow.appendChild(middleTd);
+            tbody.appendChild(middleRow);
+
+            if (expandedMiddle.has('middle-' + parentIdx)) {
+              new bootstrap.Collapse(middleDiv, { toggle: false }).show();
+            }
+          });
+
+          tab1BindListeners();
+          tab1FilterTable();
+        }
+      })
+      .catch(error => console.error('Tab1 Refresh Error:', error));
+  }
+
+  function tab1BindListeners() {
+    let parentTable = document.getElementById("parentTable");
+    parentTable.querySelectorAll("th.sortable").forEach(th => {
       th.addEventListener("click", () => {
         let colName = th.getAttribute("data-col-name");
-        sortTable(middleTbl, colName);
+        tab1SortTable(parentTable, colName);
       });
     });
-  });
 
-  document.querySelectorAll(".child-table").forEach(childTbl => {
-    childTbl.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(childTbl, colName);
+    document.querySelectorAll(".middle-table").forEach(middleTbl => {
+      middleTbl.querySelectorAll("th.sortable").forEach(th => {
+        th.addEventListener("click", () => {
+          let colName = th.getAttribute("data-col-name");
+          tab1SortTable(middleTbl, colName);
+        });
       });
     });
-  });
 
-  document.querySelectorAll(".table-filter").forEach(input => {
-    input.addEventListener("input", filterTable);
-  });
-
-  document.querySelectorAll(".expand-toggle").forEach(toggle => {
-    let target = document.querySelector(toggle.getAttribute("data-bs-target"));
-    target.addEventListener("show.bs.collapse", () => {
-      toggle.textContent = "-";
+    document.querySelectorAll(".child-table").forEach(childTbl => {
+      childTbl.querySelectorAll("th.sortable").forEach(th => {
+        th.addEventListener("click", () => {
+          let colName = th.getAttribute("data-col-name");
+          tab1SortTable(childTbl, colName);
+        });
+      });
     });
-    target.addEventListener("hide.bs.collapse", () => {
-      toggle.textContent = "+";
+
+    document.querySelectorAll(".table-filter").forEach(input => {
+      input.addEventListener("input", tab1FilterTable);
     });
+
+    document.querySelectorAll(".expand-toggle").forEach(toggle => {
+      let target = document.querySelector(toggle.getAttribute("data-bs-target"));
+      target.addEventListener("show.bs.collapse", () => {
+        toggle.textContent = "-";
+      });
+      target.addEventListener("hide.bs.collapse", () => {
+        toggle.textContent = "+";
+      });
+    });
+
+    // No listeners for .tab1PrintBtn—placeholders only
+
+    document.querySelectorAll(".btn").forEach(btn => {
+      btn.addEventListener("mouseover", () => {
+        btn.style.transform = "translateY(-2px)";
+        btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
+      });
+      btn.addEventListener("mouseout", () => {
+        btn.style.transform = "translateY(0)";
+        btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log('Tab1 DOM Content Loaded');
+    tab1BindListeners();
+    tab1FilterTable();
+    tab1RefreshTable();
+    setInterval(tab1RefreshTable, 60000);
   });
-
-  // No print logic—placeholders only
-
-  document.querySelectorAll(".btn").forEach(btn => {
-    btn.addEventListener("mouseover", () => {
-      btn.style.transform = "translateY(-2px)";
-      btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
-    });
-    btn.addEventListener("mouseout", () => {
-      btn.style.transform = "translateY(0)";
-      btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
-    });
-  });
-
-  filterTable();
-  window.tab1RefreshTableData = tab1RefreshTableData;
-  tab1RefreshTableData();
-  setInterval(tab1RefreshTableData, 60000);
-});
 </script>
 
 <style>
