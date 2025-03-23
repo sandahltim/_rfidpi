@@ -38,7 +38,7 @@
         <td>{{ parent.total_items }}</td>
         <td>{{ parent.scan_date }}</td>
         <td>{{ parent.transaction_notes }}</td>
-        <td><button class="btn btn-outline-dark btn-sm tab1-print-btn" data-contract="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+        <td><button class="btn btn-outline-dark btn-sm aggregateTab1-btn" data-contract="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="7" class="p-0">
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         const printTd = document.createElement('td');
                         const printBtn = document.createElement('button');
-                        printBtn.className = 'btn btn-outline-dark btn-sm tab1-print-btn';
+                        printBtn.className = 'btn btn-outline-dark btn-sm aggregateTab1-btn';
                         printBtn.setAttribute('data-contract', parent.contract_num);
                         printBtn.style.border = '2px solid #2c3e50';
                         printBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
@@ -291,15 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        document.querySelectorAll('.tab1-print-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.preventDefault();
-                e.stopPropagation();
-                const contract = btn.getAttribute('data-contract');
-                console.log('Tab1 Printing contract: ' + contract);
-                printItems(contract, ''); // Use base.html's printItems
-            });
-        });
+        // No listeners for .aggregateTab1-btn yet—placeholders only
     }
 
     bindTab1Listeners();
