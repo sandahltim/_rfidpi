@@ -6,7 +6,16 @@ import sqlite3
 import os
 import logging
 
-logging.basicConfig(level=logging.DEBUG, force=True)
+# Force logging to file
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    handlers=[
+        logging.FileHandler("/var/log/rfid_dash_test.log"),
+        logging.StreamHandler()
+    ],
+    force=True
+)
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
@@ -136,7 +145,8 @@ def show_tab5():
             item_map_json=item_map
         )
     except Exception as e:
-        logging.error(f"Error in show_tab5: {e}")
+        import traceback
+        logging.error(f"Error in show_tab5: {e}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
 
 @tab5_bp.route("/save_hand_counted", methods=["POST"])
@@ -159,7 +169,8 @@ def save_hand_counted():
 
         return redirect(url_for("tab5_bp.show_tab5"))
     except Exception as e:
-        logging.error(f"Error saving hand-counted entry: {e}")
+        import traceback
+        logging.error(f"Error saving hand-counted entry: {e}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
 
 @tab5_bp.route("/update_hand_counted", methods=["POST"])
@@ -214,7 +225,8 @@ def update_hand_counted():
 
         return redirect(url_for("tab5_bp.show_tab5"))
     except Exception as e:
-        logging.error(f"Error updating hand-counted entry: {e}")
+        import traceback
+        logging.error(f"Error updating hand-counted entry: {e}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
 
 @tab5_bp.route("/refresh_data", methods=["GET"])
@@ -299,5 +311,6 @@ def refresh_data():
             "child_map": child_map
         })
     except Exception as e:
-        logging.error(f"Error in tab5 refresh_data: {e}")
+        import traceback
+        logging.error(f"Error in tab5 refresh_data: {e}\n{traceback.format_exc()}")
         return "Internal Server Error", 500

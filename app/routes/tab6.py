@@ -3,7 +3,16 @@ from collections import defaultdict
 from db_connection import DatabaseConnection
 import logging
 
-logging.basicConfig(level=logging.DEBUG, force=True)
+# Force logging to file
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    handlers=[
+        logging.FileHandler("/var/log/rfid_dash_test.log"),
+        logging.StreamHandler()
+    ],
+    force=True
+)
 
 tab6_bp = Blueprint("tab6_bp", __name__, url_prefix="/tab6")
 
@@ -13,6 +22,7 @@ def get_resale_items(conn):
        WHERE LOWER(bin_location) = 'resale'
        ORDER BY last_contract_num, tag_id
     """
+    logging.debug("Executing get_resale_items query")
     return conn.execute(query).fetchall()
 
 def categorize_item(item):
@@ -48,8 +58,10 @@ def show_tab6():
     logging.debug("Loading /tab6/ endpoint")
     try:
         with DatabaseConnection() as conn:
+            logging.debug("Fetching resale items")
             rows = get_resale_items(conn)
         items = [dict(row) for row in rows]
+        logging.debug(f"Fetched {len(items)} items")
 
         filter_common_name = request.args.get("common_name", "").strip()
         filter_tag_id = request.args.get("tag_id", "").strip()
@@ -108,8 +120,10 @@ def show_tab6():
             })
 
         parent_data.sort(key=lambda x: x["category"])
+        logging.debug(f"Prepared parent_data: {parent_data}")
+        logging.debug(f"Prepared middle_map: {middle_map}")
 
-        logging.debug(f"Rendering tab6 with parent_data: {parent_data}")
+        logging.debug("Rendering tab6.html")
         return render_template(
             "tab6.html",
             parent_data=parent_data,
