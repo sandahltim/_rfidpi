@@ -6,36 +6,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-        .nav-tabs {
-            background: #2c3e50; /* Dark slate */
-            border-bottom: 3px solid #e74c3c; /* Red accent */
-        }
-        .nav-link {
-            color: #ecf0f1; /* Light gray */
-            font-weight: bold;
-            padding: 12px 20px;
-            transition: all 0.3s ease;
-        }
-        .nav-link:hover {
-            color: #e74c3c; /* Red hover */
-            background: #34495e; /* Slightly lighter slate */
-        }
-        .nav-link.active {
-            color: #fff;
-            background: #e74c3c; /* Active red */
-            border: none;
-            box-shadow: 0 0 10px rgba(231, 76, 60, 0.7); /* Glow */
-        }
-        body {
-            background: #ecf0f1; /* Light gray bg */
-            font-family: 'Arial', sans-serif;
-        }
-        .container {
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-        }
+        .nav-tabs { background: #2c3e50; border-bottom: 3px solid #e74c3c; }
+        .nav-link { color: #ecf0f1; font-weight: bold; padding: 12px 20px; transition: all 0.3s ease; }
+        .nav-link:hover { color: #e74c3c; background: #34495e; }
+        .nav-link.active { color: #fff; background: #e74c3c; border: none; box-shadow: 0 0 10px rgba(231, 76, 60, 0.7); }
+        body { background: #ecf0f1; font-family: 'Arial', sans-serif; }
+        .container { background: #fff; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); padding: 20px; }
     </style>
 </head>
 <body>
@@ -71,6 +47,175 @@
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Base DOM Content Loaded");
 
+    function printAggregate(category, middleMap) {
+        const items = middleMap[category] || [];
+        const printWin = window.open('', '_blank');
+        printWin.document.write(`
+            <html>
+              <head>
+                <title>Resale Aggregate: ${category}</title>
+                <style>
+                  body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+                  h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+                  table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                  th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
+                  th { background: #3498db; color: #fff; font-weight: bold; }
+                  tr:nth-child(even) { background: #f9f9f9; }
+                  tr:hover { background: #dfe6e9; }
+                </style>
+              </head>
+              <body>
+                <h1>Resale Aggregate: ${category}</h1>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Common Name</th>
+                      <th>Total Items</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+        `);
+        items.forEach(item => {
+            printWin.document.write(`
+              <tr>
+                <td>${item.common_name}</td>
+                <td>${item.total}</td>
+              </tr>
+            `);
+        });
+        printWin.document.write(`
+                  </tbody>
+                </table>
+              </body>
+            </html>
+        `);
+        printWin.document.close();
+        printWin.focus();
+        printWin.print();
+        printWin.close();
+    }
+
+    function printItems(category, commonName) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const params = {
+            category: category,
+            common_name: commonName,
+            common_name_filter: urlParams.get('common_name') || '',
+            tag_id: urlParams.get('tag_id') || '',
+            last_contract_num: urlParams.get('last_contract_num') || '',
+            rental_class_num: urlParams.get('rental_class_num') || ''
+        };
+        const url = `/tab6/subcat_data?${new URLSearchParams(params).toString()}`;
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                const items = data.items;
+                console.log(`Printing items for ${category} - ${commonName}:`, items);
+                const printWin = window.open('', '_blank');
+                printWin.document.write(`
+                    <html>
+                      <head>
+                        <title>Resale Items: ${category} - ${commonName}</title>
+                        <style>
+                          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+                          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+                          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
+                          th { background: #3498db; color: #fff; font-weight: bold; }
+                          tr:nth-child(even) { background: #f9f9f9; }
+                          tr:hover { background: #dfe6e9; }
+                        </style>
+                      </head>
+                      <body>
+                        <h1>Resale Items: ${category} - ${commonName}</h1>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Tag ID</th>
+                              <th>Common Name</th>
+                              <th>Status</th>
+                              <th>Bin Location</th>
+                              <th>Quality</th>
+                              <th>Date Last Scanned</th>
+                              <th>Last Scanned By</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                `);
+                items.forEach(item => {
+                    printWin.document.write(`
+                      <tr>
+                        <td>${item.tag_id || 'N/A'}</td>
+                        <td>${item.common_name}</td>
+                        <td>${item.status || 'Resale'}</td>
+                        <td>${item.bin_location || 'N/A'}</td>
+                        <td>${item.quality || 'N/A'}</td>
+                        <td>${item.date_last_scanned || 'N/A'}</td>
+                        <td>${item.last_scanned_by || 'Unknown'}</td>
+                      </tr>
+                    `);
+                });
+                printWin.document.write(`
+                          </tbody>
+                        </table>
+                      </body>
+                    </html>
+                `);
+                printWin.document.close();
+                printWin.focus();
+                printWin.print();
+                printWin.close();
+            })
+            .catch(error => console.error('Error printing items:', error));
+    }
+
+    function loadSubcatData(category, commonName, middleKey) {
+        console.log(`Loading Subcat - Category: ${category}, Common Name: ${commonName}, MiddleKey: ${middleKey}`);
+        const urlParams = new URLSearchParams(window.location.search);
+        const params = {
+            category: category,
+            common_name: commonName,
+            common_name_filter: urlParams.get('common_name') || '',
+            tag_id: urlParams.get('tag_id') || '',
+            last_contract_num: urlParams.get('last_contract_num') || '',
+            rental_class_num: urlParams.get('rental_class_num') || ''
+        };
+        const url = `/tab6/subcat_data?${new URLSearchParams(params).toString()}`;
+        fetch(url)
+            .then(response => {
+                console.log(`Subcat Fetch Status: ${response.status}`);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                console.log(`Subcat Data for ${middleKey}:`, data);
+                const tbody = document.getElementById(`grandchildTbody-${middleKey}`);
+                if (!tbody) {
+                    console.error(`Tbody not found for MiddleKey: ${middleKey}`);
+                    return;
+                }
+                tbody.innerHTML = '';
+                data.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = "table-success";
+                    tr.innerHTML = `
+                        <td>${item.tag_id || 'N/A'}</td>
+                        <td>${item.common_name}</td>
+                        <td>${item.status || 'Resale'}</td>
+                        <td>${item.bin_location || 'N/A'}</td>
+                        <td>${item.quality || 'N/A'}</td>
+                        <td>${item.date_last_scanned || 'N/A'}</td>
+                        <td>${item.last_scanned_by || 'Unknown'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(error => console.error('Error loading subcat data:', error));
+    }
+
     // AJAX refresh function
     function refreshTableData() {
         const currentPath = window.location.pathname;
@@ -88,6 +233,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Update Parent Table
                 const parentTbody = document.querySelector("#parentTable tbody");
                 if (parentTbody) {
+                    const expandedMiddle = new Set();
+                    document.querySelectorAll(".collapse.show").forEach(el => {
+                        if (el.id.startsWith("middle-")) expandedMiddle.add(el.id);
+                    });
+
                     parentTbody.innerHTML = "";
                     data.parent_data.forEach(parent => {
                         const key = parent.category ? parent.category.toLowerCase().replace(/ /g, '_').replace(/\//g, '_') : 
@@ -107,22 +257,26 @@ document.addEventListener("DOMContentLoaded", () => {
                         `;
                         parentTbody.appendChild(tr);
 
-                        // Middle Table Row
                         const middleTr = document.createElement("tr");
-                        middleTr.innerHTML = `<td colspan="${parent.on_contract !== undefined ? 4 : 5}" class="p-0">
+                        middleTr.innerHTML = `<td colspan="${parent.on_contract !== undefined ? 5 : 5}" class="p-0">
                             <div id="middle-${key}" class="collapse" data-${parent.category ? 'category' : 'contract'}="${parent.category || parent.contract}"></div>
                         </td>`;
                         parentTbody.appendChild(middleTr);
                     });
-                }
 
-                // Update Middle Tables (preserving expanded state)
-                if (data.middle_map || data.child_map) {
+                    // Update Middle Tables
                     const middleMap = data.middle_map || data.child_map;
                     Object.keys(middleMap).forEach(key => {
                         const middleDiv = document.querySelector(`#middle-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')}`);
                         if (middleDiv) {
-                            const isExpanded = middleDiv.classList.contains('show');
+                            const isExpanded = expandedMiddle.has(`middle-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')}`);
+                            const expandedChildren = new Set();
+                            if (isExpanded) {
+                                document.querySelectorAll(`#middle-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')} .collapse.show`).forEach(el => {
+                                    if (el.id.startsWith("child-")) expandedChildren.add(el.id);
+                                });
+                            }
+
                             const middleTable = document.createElement("table");
                             middleTable.className = "table table-striped table-bordered middle-table";
                             middleTable.id = `middleTable-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')}`;
@@ -131,7 +285,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <thead style="background: #3498db; color: #fff;">
                                     <tr>
                                         <th style="width: 50px;"></th>
-                                        <th class="sortable" data-col-name="${data.middle_map ? 'common_name' : 'common_name'}">${data.middle_map ? 'Common Name' : 'Common Name'}</th>
+                                        <th class="sortable" data-col-name="common_name">Common Name</th>
                                         <th class="sortable" data-col-name="total">${data.middle_map ? 'Total' : 'Total Items'}</th>
                                         ${data.middle_map ? '' : '<th class="sortable" data-col-name="available">Available</th><th class="sortable" data-col-name="on_rent">On Rent</th><th class="sortable" data-col-name="service">Service</th>'}
                                         <th style="width: 100px;">Print Items</th>
@@ -184,6 +338,12 @@ document.addEventListener("DOMContentLoaded", () => {
                                     </div>
                                 </td>`;
                                 tbody.appendChild(grandTr);
+
+                                if (expandedChildren.has(`child-${middleKey}`)) {
+                                    loadSubcatData(key, middle.common_name, middleKey);
+                                    const collapse = new bootstrap.Collapse(document.getElementById(`child-${middleKey}`), { toggle: false });
+                                    collapse.show();
+                                }
                             });
                             middleDiv.innerHTML = "";
                             middleDiv.appendChild(middleTable);
@@ -193,15 +353,60 @@ document.addEventListener("DOMContentLoaded", () => {
                             }
                         }
                     });
+
+                    // Rebind event listeners after table update
+                    document.querySelectorAll(".expand-toggle").forEach(toggle => {
+                        toggle.addEventListener("click", () => {
+                            const targetId = toggle.getAttribute("data-bs-target");
+                            const target = document.querySelector(targetId);
+                            if (target) {
+                                if (!target.classList.contains('show')) {
+                                    toggle.textContent = "-";
+                                    if (target.id.startsWith("child-")) {
+                                        const category = target.getAttribute("data-category") || target.getAttribute("data-contract");
+                                        const commonName = target.getAttribute("data-common-name");
+                                        const middleKey = target.id.split("child-")[1];
+                                        loadSubcatData(category, commonName, middleKey);
+                                    }
+                                } else {
+                                    toggle.textContent = "+";
+                                }
+                            }
+                        });
+                    });
+
+                    document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
+                        btn.addEventListener("click", () => {
+                            const category = btn.getAttribute("data-category") || btn.getAttribute("data-contract");
+                            printAggregate(category, data.middle_map || data.child_map);
+                        });
+                    });
+
+                    document.querySelectorAll(".print-items-btn").forEach(btn => {
+                        btn.addEventListener("click", () => {
+                            const category = btn.getAttribute("data-category") || btn.getAttribute("data-contract");
+                            const commonName = btn.getAttribute("data-common-name");
+                            printItems(category, commonName);
+                        });
+                    });
+
+                    document.querySelectorAll(".btn").forEach(btn => {
+                        btn.addEventListener("mouseover", () => {
+                            btn.style.transform = "translateY(-2px)";
+                            btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
+                        });
+                        btn.addEventListener("mouseout", () => {
+                            btn.style.transform = "translateY(0)";
+                            btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
+                        });
+                    });
                 }
             })
             .catch(error => console.error("Refresh Error:", error));
     }
 
-    // Initial load
+    // Initial load and refresh every 30 seconds
     refreshTableData();
-
-    // Refresh every 30 seconds
     setInterval(refreshTableData, 60000);
 });
 </script>
