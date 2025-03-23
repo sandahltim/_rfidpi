@@ -216,10 +216,14 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(error => console.error('Error loading subcat data:', error));
     }
 
+    function sanitizeKey(str) {
+        return str.toLowerCase().replace(/[^a-z0-9_]/g, ''); // Only alphanumeric and underscore
+    }
+
     function refreshTableData() {
         const currentPath = window.location.pathname;
         const urlParams = new URLSearchParams(window.location.search);
-        const refreshUrl = `${currentPath.endsWith('/') ? currentPath : currentPath + '/'}refresh_data?${urlParams.toString()}`; // Fixed URL
+        const refreshUrl = `${currentPath.endsWith('/') ? currentPath : currentPath + '/'}refresh_data?${urlParams.toString()}`;
 
         fetch(refreshUrl)
             .then(response => {
@@ -239,8 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     parentTbody.innerHTML = "";
                     data.parent_data.forEach(parent => {
-                        const key = parent.category ? parent.category.toLowerCase().replace(/ /g, '_').replace(/\//g, '_') : 
-                                    parent.contract ? parent.contract.toLowerCase().replace(/ /g, '_') : 'unknown';
+                        const key = sanitizeKey(parent.category || parent.contract || 'unknown');
                         const tr = document.createElement("tr");
                         tr.className = "table-active";
                         tr.style.background = "linear-gradient(to right, #ecf0f1, #dfe6e9)";
@@ -265,19 +268,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     const middleMap = data.middle_map || data.child_map;
                     Object.keys(middleMap).forEach(key => {
-                        const middleDiv = document.querySelector(`#middle-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')}`);
+                        const sanitizedKey = sanitizeKey(key);
+                        const middleDiv = document.querySelector(`#middle-${sanitizedKey}`);
                         if (middleDiv) {
-                            const isExpanded = expandedMiddle.has(`middle-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')}`);
+                            const isExpanded = expandedMiddle.has(`middle-${sanitizedKey}`);
                             const expandedChildren = new Set();
                             if (isExpanded) {
-                                document.querySelectorAll(`#middle-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')} .collapse.show`).forEach(el => {
+                                document.querySelectorAll(`#middle-${sanitizedKey} .collapse.show`).forEach(el => {
                                     if (el.id.startsWith("child-")) expandedChildren.add(el.id);
                                 });
                             }
 
                             const middleTable = document.createElement("table");
                             middleTable.className = "table table-striped table-bordered middle-table";
-                            middleTable.id = `middleTable-${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')}`;
+                            middleTable.id = `middleTable-${sanitizedKey}`;
                             middleTable.style.border = "2px solid #34495e";
                             middleTable.innerHTML = `
                                 <thead style="background: #3498db; color: #fff;">
@@ -293,7 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             `;
                             const tbody = middleTable.querySelector("tbody");
                             middleMap[key].forEach(middle => {
-                                const middleKey = `${key.toLowerCase().replace(/ /g, '_').replace(/\//g, '_')}_${middle.common_name.toLowerCase().replace(/ /g, '_')}`;
+                                const middleKey = `${sanitizedKey}_${sanitizeKey(middle.common_name)}`;
                                 const tr = document.createElement("tr");
                                 tr.className = `child-row ${middle.service > 0 ? 'table-danger' : middle.on_rent > 0 ? 'table-warning' : 'table-success'}`;
                                 tr.innerHTML = `
@@ -412,7 +416,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initial load and refresh every 30 seconds
     refreshTableData();
-    setInterval(refreshTableData, 60000);
+    setInterval(refreshTableData, 30000);
 });
 </script>
 </body>
