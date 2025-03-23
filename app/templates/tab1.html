@@ -38,7 +38,7 @@
         <td>{{ parent.total_items }}</td>
         <td>{{ parent.scan_date }}</td>
         <td>{{ parent.transaction_notes }}</td>
-        <td><button class="btn btn-outline-dark btn-sm print-btn" data-contract="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+        <td><button class="btn btn-outline-dark btn-sm print-btn" data-contact="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="7" class="p-0">
@@ -160,20 +160,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Handle AJAX refresh updates
-    window.addEventListener('refreshData', (event) => {
+    window.addEventListener("refreshData", (event) => {
         console.log("Tab1 Refresh Event:", event.detail);
         const { parent_data, middle_map } = event.detail;
         const tbody = document.querySelector("#parentTable tbody");
         tbody.innerHTML = "";
         parent_data.forEach(parent => {
-            const contract_key = parent.contract_num.toLowerCase().replace(/\s+/g, '_');
-            const middleRows = middle_map[parent.contract_num]?.map(middle => `
-                <tr>
-                    <td>${middle.common_name}</td>
-                    <td>${middle.total_on_contract}</td>
-                </tr>
-            `).join('') || '';
-            const row = `
+            const contract_key = parent.contract_num.toLowerCase().replace(/\s+/g, "_");
+            const middleRows = middle_map[parent.contract_num]
+                ? middle_map[parent.contract_num].map(middle => `
+                    <tr>
+                        <td>${middle.common_name}</td>
+                        <td>${middle.total_on_contract}</td>
+                    </tr>
+                `).join("")
+                : "";
+            tbody.innerHTML += `
                 <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
                     <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-${contract_key}">+</span></td>
                     <td>${parent.contract_num}</td>
@@ -181,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td>${parent.total_items}</td>
                     <td>${parent.scan_date}</td>
                     <td>${parent.transaction_notes}</td>
-                    <td><button class="btn btn-outline-dark btn-sm print-btn" data-contract="${parent.contract_num}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                    <td><button class="btn btn-outline-dark btn-sm print-btn" data-contact="${parent.contract_num}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                 </tr>
                 <tr>
                     <td colspan="7" class="p-0">
@@ -201,7 +203,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     </td>
                 </tr>
             `;
-            tbody.insertAdjacentHTML('beforeend', row);
         });
         // Rebind sortable headers after refresh
         document.querySelectorAll(".sortable").forEach(th => {
@@ -217,10 +218,19 @@ document.addEventListener("DOMContentLoaded", () => {
     // Custom print logic for Tab1
     document.querySelectorAll(".print-btn").forEach(btn => {
         btn.addEventListener("click", () => {
-            const contract = btn.getAttribute("data-contract");
+            const contract = btn.getAttribute("data-contact");
             console.log(`Printing contract: ${contract}`);
-            const printWindow = window.open('', '_blank');
-            const content = `
+            const printWindow = window.open("", "_blank");
+            const parentRow = Array.from(document.querySelectorAll("#parentTable tr.table-active"))
+                .find(row => row.querySelector("td:nth-child(2)").innerText === contract);
+            const middleTbody = document.querySelector(`#middleTable-${contract.toLowerCase().replace(/\s+/g, "_")} tbody`);
+            const middleRows = middleTbody ? Array.from(middleTbody.querySelectorAll("tr")).map(row => `
+                <tr>
+                    <td>${row.cells[0].innerText}</td>
+                    <td>${row.cells[1].innerText}</td>
+                </tr>
+            `).join("") : "<tr><td colspan='2'>No items</td></tr>";
+            printWindow.document.write(`
                 <html>
                 <head><title>Contract ${contract} - Active Rentals</title></head>
                 <body>
@@ -236,17 +246,13 @@ document.addEventListener("DOMContentLoaded", () => {
                             </tr>
                         </thead>
                         <tbody>
-                            ${Array.from(document.querySelectorAll(`#parentTable tr.table-active`))
-                                .filter(row => row.querySelector("td:nth-child(2)").innerText === contract)
-                                .map(row => `
-                                    <tr>
-                                        <td>${row.cells[1].innerText}</td>
-                                        <td>${row.cells[2].innerText}</td>
-                                        <td>${row.cells[3].innerText}</td>
-                                        <td>${row.cells[4].innerText}</td>
-                                        <td>${row.cells[5].innerText}</td>
-                                    </tr>
-                                `).join('')}
+                            <tr>
+                                <td>${parentRow.cells[1].innerText}</td>
+                                <td>${parentRow.cells[2].innerText}</td>
+                                <td>${parentRow.cells[3].innerText}</td>
+                                <td>${parentRow.cells[4].innerText}</td>
+                                <td>${parentRow.cells[5].innerText}</td>
+                            </tr>
                         </tbody>
                     </table>
                     <h2>Items</h2>
@@ -257,21 +263,12 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <th>Total on Contract</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${Array.from(document.querySelector(`#middleTable-${contract.toLowerCase().replace(/\s+/g, '_')} tbody tr`))
-                                .map(row => `
-                                    <tr>
-                                        <td>${row.cells[0].innerText}</td>
-                                        <td>${row.cells[1].innerText}</td>
-                                    </tr>
-                                `).join('') || '<tr><td colspan="2">No items</td></tr>'}
-                        </tbody>
+                        <tbody>${middleRows}</tbody>
                     </table>
                     <script>window.print(); window.close();</script>
                 </body>
                 </html>
-            `;
-            printWindow.document.write(content);
+            `);
             printWindow.document.close();
         });
     });
