@@ -317,3 +317,55 @@ def refresh_data():
         import traceback
         logging.error(f"Error in tab5 refresh_data: {e}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
+
+@tab5_bp.route("/subcat_data", methods=["GET"])
+def subcat_data():
+    logging.debug("Hit /tab5/subcat_data endpoint")
+    contract = request.args.get('category')  # Using 'category' to match tab6's param
+    common_name = request.args.get('common_name')
+    page = int(request.args.get('page', 1))
+    per_page = 20
+
+    try:
+        with DatabaseConnection() as conn:
+            rfid_items = conn.execute("SELECT * FROM id_item_master WHERE last_contract_num LIKE 'L%'").fetchall()
+        with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
+            conn.row_factory = sqlite3.Row
+            hand_counted_items = conn.execute("SELECT * FROM hand_counted_items WHERE last_contract_num LIKE 'L%'").fetchall()
+
+        rfid_items = [dict(row) for row in rfid_items]
+        hand_counted_items = [dict(row) for row in hand_counted_items]
+        all_items = rfid_items + hand_counted_items
+
+        filtered_items = all_items
+        if contract:
+            filtered_items = [item for item in filtered_items if item.get("last_contract_num") == contract]
+        if common_name:
+            filtered_items = [item for item in filtered_items if item.get("common_name") == common_name]
+
+        total_items = len(filtered_items)
+        total_pages = (total_items + per_page - 1) // per_page
+        page = max(1, min(page, total_pages))
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_items = filtered_items[start:end]
+
+        logging.debug(f"AJAX: Contract: {contract}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
+        return jsonify({
+            "items": [{
+                "tag_id": item.get("tag_id", "N/A"),
+                "common_name": item.get("common_name", "Unknown"),
+                "status": item.get("status", "Hand Counted" if item.get("tag_id") is None else item.get("status")),
+                "bin_location": item.get("bin_location", "N/A"),
+                "quality": item.get("quality", "N/A"),
+                "date_last_scanned": item.get("date_last_scanned", "N/A"),
+                "last_scanned_by": item.get("last_scanned_by", "Unknown")
+            } for item in paginated_items],
+            "total_items": total_items,
+            "total_pages": total_pages,
+            "current_page": page
+        })
+    except Exception as e:
+        import traceback
+        logging.error(f"Error in tab5 subcat_data: {e}\n{traceback.format_exc()}")
+        return "Internal Server Error", 500
