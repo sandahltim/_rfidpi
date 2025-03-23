@@ -268,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <td>${row.cells[0].innerText}</td>
                                     <td>${row.cells[1].innerText}</td>
                                 </tr>
-                            `).join("") : "<tr><td colspan='2'>No items</td></tr>";
+                            `).join("") : "<tr><td colspan=\"2\">No items</td></tr>";
                             const printWin = window.open("", "_blank");
                             printWin.document.write(`
                                 <html>
