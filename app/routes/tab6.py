@@ -2,13 +2,17 @@ from flask import Blueprint, render_template, request, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
 import logging
+import os
 
-# Force logging to file
+# Ensure log directory exists
+LOG_DIR = "/home/tim/test_rfidpi/logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s %(levelname)s: %(message)s',
     handlers=[
-        logging.FileHandler("/var/log/rfid_dash_test.log"),
+        logging.FileHandler(f"{LOG_DIR}/rfid_dash_test.log"),
         logging.StreamHandler()
     ],
     force=True
