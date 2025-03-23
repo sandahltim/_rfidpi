@@ -38,7 +38,7 @@
         <td>{{ parent.total_items }}</td>
         <td>{{ parent.scan_date }}</td>
         <td>{{ parent.transaction_notes }}</td>
-        <td><button class="btn btn-outline-dark btn-sm print-btn" data-contract="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+        <td><button class="btn btn-outline-dark btn-sm tab1-print-btn" data-contract="{{ parent.contract_num }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="7" class="p-0">
@@ -90,9 +90,16 @@
   </nav>
 </div>
 
+<!-- Override base.html scripts -->
 <script>
+// Block base.html's refreshTableData from running initially
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("Tab1 DOM Content Loaded");
+    console.log("Tab1 DOM Content Loaded - Overriding Base");
+
+    // Prevent base.html's refreshTableData from firing
+    window.refreshTableData = function() {
+        console.log("Base refreshTableData blocked for Tab1");
+    };
 
     function sortTable(tableEl, colName) {
         console.log(`Sorting ${tableEl.id} by ${colName}`);
@@ -159,8 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Override base.html's refreshTableData for Tab1
-    function refreshTableData() {
+    function tab1RefreshTableData() {
         const currentPath = window.location.pathname;
         const urlParams = new URLSearchParams(window.location.search);
         const refreshUrl = `${currentPath.endsWith('/') ? currentPath : currentPath + '/'}refresh_data?${urlParams.toString()}`;
@@ -199,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <td>${parent.total_items}</td>
                                 <td>${parent.scan_date}</td>
                                 <td>${parent.transaction_notes}</td>
-                                <td><button class="btn btn-outline-dark btn-sm print-btn" data-contract="${parent.contract_num}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                                <td><button class="btn btn-outline-dark btn-sm tab1-print-btn" data-contract="${parent.contract_num}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                             </tr>
                             <tr>
                                 <td colspan="7" class="p-0">
@@ -248,10 +254,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         });
                     });
 
-                    document.querySelectorAll(".print-btn").forEach(btn => {
-                        btn.addEventListener("click", () => {
+                    document.querySelectorAll(".tab1-print-btn").forEach(btn => {
+                        btn.addEventListener("click", (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             const contract = btn.getAttribute("data-contract");
-                            console.log(`Printing contract: ${contract}`);
+                            console.log(`Tab1 Printing contract: ${contract}`);
                             const parentRow = Array.from(document.querySelectorAll("#parentTable tr.table-active"))
                                 .find(row => row.querySelector("td:nth-child(2)").innerText === contract);
                             const middleTbody = document.querySelector(`#middleTable-${contract.toLowerCase().replace(/\s+/g, "_")} tbody`);
@@ -265,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             printWin.document.write(`
                                 <html>
                                 <head>
-                                    <title>Contract ${contract} - Active Rentals</title>
+                                    <title>Active Rental Contract ${contract}</title>
                                     <style>
                                         body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
                                         h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
@@ -277,7 +285,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     </style>
                                 </head>
                                 <body>
-                                    <h1>Contract ${contract} - Active Rentals</h1>
+                                    <h1>Active Rental Contract ${contract}</h1>
                                     <table>
                                         <thead>
                                             <tr>
@@ -320,9 +328,12 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(error => console.error("Tab1 Refresh Error:", error));
     }
 
-    // Initial load and refresh every 60 seconds (override base.html's 30s)
-    refreshTableData();
-    setInterval(refreshTableData, 60000);
+    // Initial load and refresh every 60 seconds
+    tab1RefreshTableData();
+    setInterval(tab1RefreshTableData, 60000);
+
+    // Stop base.html's interval
+    clearInterval(window.setInterval); // Crude, but stops base.html's 60s refresh
 });
 </script>
 
