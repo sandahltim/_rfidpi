@@ -6,8 +6,8 @@ git stash push -m "Save SCP’d config and refresh_logic" config.py refresh_logi
 
 # Pull latest from dev
 git fetch origin
-git checkout dev
-git pull origin dev
+git checkout dev_rollback
+git pull origin dev_rollback
 
 # Reapply SCP’d files
 git stash pop
