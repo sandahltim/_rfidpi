@@ -55,7 +55,7 @@
                 <tbody>
                   {% for child in child_map[parent.contract] %}
                   {% set middle_key = contract_key ~ '_' ~ child.common_name|lower|replace(' ', '_') %}
-                  <tr class="child-row {{ child.service > 0 ? 'table-danger' : child.on_rent > 0 ? 'table-warning' : 'table-success' }}">
+                  <tr class="child-row {% if child.service > 0 %}table-danger{% elif child.on_rent > 0 %}table-warning{% else %}table-success{% endif %}">
                     <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_key }}">+</span></td>
                     <td>{{ child.common_name }}</td>
                     <td>{{ child.total }}</td>
