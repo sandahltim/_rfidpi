@@ -71,7 +71,7 @@
     <ul class="pagination justify-content-center">
       <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
         <a class="page-link" href="{{ url_for('tab1_bp.show_tab1', page=current_page-1, contract_num=filter_contract_num, client_name=filter_client_name) }}" aria-label="Previous">
-          <span aria-hidden="true">&laquo;</span>
+          <span aria-hidden="true">«</span>
         </a>
       </li>
       {% for page_num in range(1, total_pages + 1) %}
@@ -81,7 +81,7 @@
       {% endfor %}
       <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
         <a class="page-link" href="{{ url_for('tab1_bp.show_tab1', page=current_page+1, contract_num=filter_contract_num, client_name=filter_client_name) }}" aria-label="Next">
-          <span aria-hidden="true">&raquo;</span>
+          <span aria-hidden="true">»</span>
         </a>
       </li>
     </ul>
@@ -93,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("Tab1 DOM Content Loaded");
 
     function sortTable(tableEl, colName) {
+        console.log(`Sorting ${tableEl.id} by ${colName}`);
         let tbody = tableEl.querySelector("tbody");
         if (!tbody) return;
 
@@ -153,6 +154,47 @@ document.addEventListener("DOMContentLoaded", () => {
             const table = th.closest("table");
             const colName = th.getAttribute("data-col-name");
             sortTable(table, colName);
+        });
+    });
+
+    // Handle AJAX refresh updates
+    window.addEventListener('refreshData', (event) => {
+        console.log("Tab1 Refresh Event:", event.detail);
+        const { parent_data } = event.detail;
+        const tbody = document.querySelector("#parentTable tbody");
+        tbody.innerHTML = "";
+        parent_data.forEach(parent => {
+            const contract_key = parent.contract_num.toLowerCase().replace(/\s+/g, '_');
+            const row = `
+                <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
+                    <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-${contract_key}">+</span></td>
+                    <td>${parent.contract_num}</td>
+                    <td>${parent.client_name}</td>
+                    <td>${parent.total_items}</td>
+                    <td>${parent.scan_date}</td>
+                    <td>${parent.transaction_notes}</td>
+                </tr>
+                <tr>
+                    <td colspan="6" class="p-0">
+                        <div id="middle-${contract_key}" class="collapse" data-contract="${parent.contract_num}">
+                            <div class="child-table-container">
+                                <table class="table table-striped table-bordered middle-table" id="middleTable-${contract_key}" style="border: 2px solid #34495e;">
+                                    <thead style="background: #3498db; color: #fff;">
+                                        <tr>
+                                            <th class="sortable" data-col-name="common_name">Common Name</th>
+                                            <th class="sortable" data-col-name="total_on_contract">Total on Contract</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Child data populated separately if needed -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
         });
     });
 });

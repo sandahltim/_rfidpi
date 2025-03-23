@@ -103,6 +103,14 @@ def refresh_data():
         with DatabaseConnection() as conn:
             contracts = get_active_rental_contracts(conn)
             items = get_active_rental_items(conn)
+            trans = conn.execute("""
+                SELECT contract_number, MAX(scan_date) as scan_date, notes
+                FROM id_transactions
+                WHERE contract_number IN (SELECT last_contract_num FROM id_item_master WHERE status IN ('On Rent', 'Delivered'))
+                GROUP BY contract_number, notes
+            """).fetchall()
+
+        trans_map = {row["contract_number"]: {"scan_date": row["scan_date"], "notes": row["notes"]} for row in trans}
 
         contract_map = defaultdict(lambda: defaultdict(list))
         for item in [dict(row) for row in items]:
@@ -113,21 +121,32 @@ def refresh_data():
         for row in contracts:
             contract = row["last_contract_num"]
             total_items = sum(len(items) for items in contract_map[contract].values())
+            trans_info = trans_map.get(contract, {"scan_date": "N/A", "notes": "N/A"})
             parent_data.append({
                 "contract_num": contract,
                 "client_name": row["client_name"] or "UNKNOWN",
                 "total_items": total_items,
-                "scan_date": "N/A",  # Simplified for stub
-                "transaction_notes": "N/A"
+                "scan_date": trans_info["scan_date"],
+                "transaction_notes": trans_info["notes"]
             })
             middle_map[contract] = [
                 {"common_name": name, "total_on_contract": len(items)}
                 for name, items in contract_map[contract].items()
             ]
 
-        logging.debug(f"Tab1 refresh data: parent_data={parent_data}, middle_map={middle_map}")
+        # Apply filters from request (for consistency with show_tab1)
+        filter_contract_num = request.args.get("contract_num", "").lower().strip()
+        filter_client_name = request.args.get("client_name", "").lower().strip()
+
+        filtered_parent_data = parent_data
+        if filter_contract_num:
+            filtered_parent_data = [item for item in filtered_parent_data if filter_contract_num in item["contract_num"].lower()]
+        if filter_client_name:
+            filtered_parent_data = [item for item in filtered_parent_data if filter_client_name in item["client_name"].lower()]
+
+        logging.debug(f"Tab1 refresh data: parent_data={filtered_parent_data}, middle_map={middle_map}")
         return jsonify({
-            "parent_data": parent_data,
+            "parent_data": filtered_parent_data,
             "middle_map": middle_map
         })
     except Exception as e:
