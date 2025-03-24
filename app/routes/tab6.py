@@ -33,7 +33,7 @@ def categorize_item(item):
     elif "6 X 30" in common_name:
         return "6ft Banquet"
     elif "ROUND 60" in common_name:
-        return "60R" Round"
+        return "60\" Round"
     elif "ROUND 48" in common_name:
         return "48\" Round"
     elif "ROUND 30" in common_name or "ROUND 36" in common_name:
