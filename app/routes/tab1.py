@@ -2,69 +2,59 @@ from flask import Blueprint, render_template, request, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
 from data_service import get_active_rental_contracts, get_active_rental_items
-import logging
 
 tab1_bp = Blueprint("tab1_bp", __name__, url_prefix="/tab1")
-logging.basicConfig(level=logging.DEBUG)
 
 def get_tab1_data(page=1, per_page=20):
-    try:
-        with DatabaseConnection() as conn:
-            logging.debug("Fetching contracts for Tab1")
-            contracts = get_active_rental_contracts(conn)
-            logging.debug(f"Contracts fetched: {len(contracts)}")
-            items = get_active_rental_items(conn)
-            logging.debug(f"Items fetched: {len(items)}")
-            trans = conn.execute("""
-                SELECT contract_number, MAX(scan_date) as scan_date, notes
-                FROM id_transactions
-                WHERE contract_number IN (SELECT last_contract_num FROM id_item_master WHERE status IN ('On Rent', 'Delivered'))
-                GROUP BY contract_number, notes
-            """).fetchall()
-            logging.debug(f"Transactions fetched: {len(trans)}")
+    with DatabaseConnection() as conn:
+        contracts = get_active_rental_contracts(conn)
+        items = get_active_rental_items(conn)
+        trans = conn.execute("""
+            SELECT contract_number, MAX(scan_date) as scan_date, notes
+            FROM id_transactions
+            WHERE contract_number IN (SELECT last_contract_num FROM id_item_master WHERE status IN ('On Rent', 'Delivered'))
+            GROUP BY contract_number, notes
+        """).fetchall()
 
-        trans_map = {row["contract_number"]: {"scan_date": row["scan_date"], "notes": row["notes"]} for row in trans}
-        contract_map = defaultdict(lambda: defaultdict(list))
-        for item in [dict(row) for row in items]:
-            contract_map[item["last_contract_num"]][item["common_name"]].append(item)
+    trans_map = {row["contract_number"]: {"scan_date": row["scan_date"], "notes": row["notes"]} for row in trans}
+    contract_map = defaultdict(lambda: defaultdict(list))
+    for item in [dict(row) for row in items]:
+        contract_map[item["last_contract_num"]][item["common_name"]].append(item)
 
-        parent_data = []
-        for row in contracts:
-            contract = row["last_contract_num"]
-            total_items = sum(len(items) for items in contract_map[contract].values())
-            trans_info = trans_map.get(contract, {"scan_date": "N/A", "notes": "N/A"})
-            parent_data.append({
-                "contract_num": contract,
-                "client_name": row["client_name"] or "UNKNOWN",
-                "total_items": total_items,
-                "scan_date": trans_info["scan_date"],
-                "transaction_notes": trans_info["notes"]
-            })
+    parent_data = []
+    for row in contracts:
+        contract = row["last_contract_num"]
+        total_items = sum(len(items) for items in contract_map[contract].values())
+        trans_info = trans_map.get(contract, {"scan_date": "N/A", "notes": "N/A"})
+        parent_data.append({
+            "contract_num": contract,
+            "client_name": row["client_name"] or "UNKNOWN",
+            "total_items": total_items,
+            "scan_date": trans_info["scan_date"],
+            "transaction_notes": trans_info["notes"]
+        })
 
-        middle_data = {}
-        for contract, common_names in contract_map.items():
-            middle_data[contract] = [
-                {"common_name": name, "total_on_contract": len(items)}
-                for name, items in common_names.items()
-            ]
+    middle_data = {}
+    for contract, common_names in contract_map.items():
+        middle_data[contract] = [
+            {"common_name": name, "total_on_contract": len(items)}
+            for name, items in common_names.items()
+        ]
 
-        total_items = len(parent_data)
-        total_pages = (total_items + per_page - 1) // per_page
-        page = max(1, min(page, total_pages))
-        start = (page - 1) * per_page
-        end = start + per_page
-        paginated_data = parent_data[start:end]
+    total_items = len(parent_data)
+    total_pages = (total_items + per_page - 1) // per_page
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_data = parent_data[start:end]
 
-        return {
-            "parent_data": paginated_data,
-            "middle_data": middle_data,
-            "contract_map": contract_map,
-            "current_page": page,
-            "total_pages": total_pages
-        }
-    except Exception as e:
-        logging.error(f"Error in get_tab1_data: {str(e)}", exc_info=True)
-        raise
+    return {
+        "parent_data": paginated_data,
+        "middle_data": middle_data,
+        "contract_map": contract_map,
+        "current_page": page,
+        "total_pages": total_pages
+    }
 
 @tab1_bp.route("/", methods=["GET"])
 def show_tab1():
@@ -81,18 +71,12 @@ def show_tab1():
 
 @tab1_bp.route("/refresh_data", methods=["GET"])
 def refresh_tab1_data():
-    try:
-        logging.debug("Hit /tab1/refresh_data endpoint")
-        page = request.args.get("page", 1, type=int)
-        data = get_tab1_data(page)
-        logging.debug(f"Tab1 refresh data: parent_data={len(data['parent_data'])}, middle_map={len(data['middle_data'])}, contract_map={len(data['contract_map'])}")
-        return jsonify({
-            "parent_data": [dict(row) for row in data["parent_data"]],
-            "middle_map": data["middle_data"],
-            "contract_map": {k: {sk: [dict(row) for row in sv] for sk, sv in v.items()} for k, v in data["contract_map"].items()},
-            "current_page": data["current_page"],
-            "total_pages": data["total_pages"]
-        })
-    except Exception as e:
-        logging.error(f"Error in refresh_tab1_data: {str(e)}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+    page = request.args.get("page", 1, type=int)
+    data = get_tab1_data(page)
+    return jsonify({
+        "parent_data": [dict(row) for row in data["parent_data"]],
+        "middle_map": data["middle_data"],  # Match base.html expectation
+        "contract_map": {k: {sk: [dict(row) for row in sv] for sk, sv in v.items()} for k, v in data["contract_map"].items()},
+        "current_page": data["current_page"],
+        "total_pages": data["total_pages"]
+    })
