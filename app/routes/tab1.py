@@ -1,16 +1,14 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
 from data_service import get_active_rental_contracts, get_active_rental_items
 
-tab1_bp = Blueprint("tab1", __name__, url_prefix="/tab1")
+tab1_bp = Blueprint("tab1_bp", __name__, url_prefix="/tab1")
 
-@tab1_bp.route("/")
-def show_tab1():
+def get_tab1_data(page=1, per_page=20):
     with DatabaseConnection() as conn:
         contracts = get_active_rental_contracts(conn)
         items = get_active_rental_items(conn)
-        # Fetch latest scan_date and notes from id_transactions
         trans = conn.execute("""
             SELECT contract_number, MAX(scan_date) as scan_date, notes
             FROM id_transactions
@@ -18,15 +16,11 @@ def show_tab1():
             GROUP BY contract_number, notes
         """).fetchall()
 
-    # Map transactions to contracts
     trans_map = {row["contract_number"]: {"scan_date": row["scan_date"], "notes": row["notes"]} for row in trans}
-
-    # Group items by contract and common_name
     contract_map = defaultdict(lambda: defaultdict(list))
     for item in [dict(row) for row in items]:
         contract_map[item["last_contract_num"]][item["common_name"]].append(item)
 
-    # Parent data with total_items, scan_date, and transaction_notes
     parent_data = []
     for row in contracts:
         contract = row["last_contract_num"]
@@ -40,7 +34,6 @@ def show_tab1():
             "transaction_notes": trans_info["notes"]
         })
 
-    # Middle child: Aggregate by common_name
     middle_data = {}
     for contract, common_names in contract_map.items():
         middle_data[contract] = [
@@ -48,21 +41,42 @@ def show_tab1():
             for name, items in common_names.items()
         ]
 
-    # Pagination for parent
-    per_page = 20
     total_items = len(parent_data)
     total_pages = (total_items + per_page - 1) // per_page
-    page = request.args.get("page", 1, type=int)
     page = max(1, min(page, total_pages))
     start = (page - 1) * per_page
     end = start + per_page
     paginated_data = parent_data[start:end]
 
+    return {
+        "parent_data": paginated_data,
+        "middle_data": middle_data,
+        "contract_map": contract_map,
+        "current_page": page,
+        "total_pages": total_pages
+    }
+
+@tab1_bp.route("/", methods=["GET"])
+def show_tab1():
+    page = request.args.get("page", 1, type=int)
+    data = get_tab1_data(page)
     return render_template(
         "tab1.html",
-        parent_data=paginated_data,
-        middle_data=middle_data,
-        contract_map=contract_map,
-        current_page=page,
-        total_pages=total_pages
+        parent_data=data["parent_data"],
+        middle_data=data["middle_data"],
+        contract_map=data["contract_map"],
+        current_page=data["current_page"],
+        total_pages=data["total_pages"]
     )
+
+@tab1_bp.route("/refresh_data", methods=["GET"])
+def refresh_tab1_data():
+    page = request.args.get("page", 1, type=int)
+    data = get_tab1_data(page)
+    return jsonify({
+        "parent_data": [dict(row) for row in data["parent_data"]],
+        "middle_map": data["middle_data"],  # Match base.html expectation
+        "contract_map": {k: {sk: [dict(row) for row in sv] for sk, sv in v.items()} for k, v in data["contract_map"].items()},
+        "current_page": data["current_page"],
+        "total_pages": data["total_pages"]
+    })
