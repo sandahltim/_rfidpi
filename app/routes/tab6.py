@@ -14,11 +14,11 @@ def get_resale_items(conn):
 
 def categorize_item(item):
     common_name = item.get("common_name", "").upper()
-    if common_name in ["FOG SOLUTION (GROUND) 1 QUART", "FOG SOLUTION (HAZE) 1 QUART", "BUBBLE JUICE 1 QUART"]:
+    if common_name in ["FOG SOLUTION (GROUND)", "FOG SOLUTION (HAZE)", "BUBBLE JUICE"]:
         return "A/V Sales"
     elif common_name in ["CHOCOLATE BAG 2LB. DARK", "CHOCOLATE BAG 2LB. MILK"]:
         return "Chocolate"
-    elif common_name in ["COTTON CANDY SUGAR PINK VANILLA (52 OZ", "COTTON CANDY SUGAR BLUE RASPBERRY-52oz", "COTTON CANDY SUGAR CHERRY (52 OZ CARTON", "COTTON CANDY SUGAR STRAWBERRY (52 OZ CA", "COTTON CANDY BAGS & TIES 100 PER PKG", "COTTON CANDY CONES 100 PER PKG.", "COTTON CANDY SUGAR BUBBLE GUM (52 OZ CA"]:
+    elif common_name in ["COTTON CANDY", "SUGAR", "52 OZ", "COTTON CANDY SUGAR STRAWBERRY (52 OZ CA", "COTTON CANDY BAGS", "COTTON CANDY"]:
         return "Cotton Candy"
     elif common_name in ["FUEL STERNO 8 OZ -LASTS 2+HRS", "FUEL BUTANE CARTRIDGE 8 OUNCE", "AISLE CLOTH 75 WHITE", "AISLE CLOTH 100 WHITE", "GARBAGE CAN DISPOSABLE 35 GAL W/ LID"]:
         return "Disposable Sales"
