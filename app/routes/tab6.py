@@ -15,29 +15,29 @@ def get_resale_items(conn):
 def categorize_item(item):
     common_name = item.get("common_name", "").upper()
     if "FOG"  in common_name or "JUICE"  in common_name or "BUBBLE" in common_name:
-        return "A/V Sales"
+        return "A/V Resale"
     elif "CHOCOLATE" in common_name:
-        return "Chocolate"
+        return "Chocolate Resale"
     elif "COTTON CANDY"  in common_name or "COTTON CANDY BAGS" in common_name:
-        return "Cotton Candy"
+        return "Cotton Candy Resale"
     elif "FUEL STERNO"  in common_name or "BUTANE CARTRIDGE 8 OUNCE"  in common_name or "AISLE CLOTH"  in common_name or "GARBAGE CAN" in common_name:
-        return "Disposable Sales"
+        return "Disposable Resale"
     elif "POPCORN" in common_name or "NACHO CHEESE" in common_name or "DONUT" in common_name or "MINI DONUT" in common_name:
-        return "Popcorn-Cheese-Donut"
+        return "Popcorn-Cheese-Donut Resale"
     elif "FRUSHEEZE" in common_name:
-        return "Slushie Sales"
+        return "Slushie Resale"
     elif "SNOKONE" in common_name:
-        return "SnoKone"
+        return "SnoKone Resale"
     elif "8 X 30" in common_name:
-        return "8ft Banquet"
+        return "8ft Banq KwikCovers"
     elif "6 X 30" in common_name:
-        return "6ft Banquet"
+        return "6ft Banq KwikCovers"
     elif "ROUND 60" in common_name:
-        return "60\" Round"
+        return "60\" Rd KwikCovers"
     elif "ROUND 48" in common_name:
-        return "48\" Round"
+        return "48\" Rd KwikCovers"
     elif "ROUND 30" in common_name or "ROUND 36" in common_name:
-        return "30\"/36\" Round"
+        return "30\"/36\" Rd KwikCovers"
     return "Other"
 
 @tab6_bp.route("/")
