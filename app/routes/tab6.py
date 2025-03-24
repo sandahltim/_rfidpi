@@ -20,13 +20,13 @@ def categorize_item(item):
         return "Chocolate"
     elif "COTTON CANDY"  in common_name or "COTTON CANDY BAGS" in common_name:
         return "Cotton Candy"
-    elif "FUEL STERNO 8 OZ -LASTS 2+HRS"  in common_name or "FUEL BUTANE CARTRIDGE 8 OUNCE"  in common_name or "AISLE CLOTH 75 WHITE"  in common_name or "AISLE CLOTH 100 WHITE"  in common_name or "GARBAGE CAN DISPOSABLE 35 GAL W/ LID" in common_name:
+    elif "FUEL STERNO"  in common_name or "BUTANE CARTRIDGE 8 OUNCE"  in common_name or "AISLE CLOTH"  in common_name or "GARBAGE CAN" in common_name:
         return "Disposable Sales"
-    elif common_name in ["NACHO CHEESE 140oz BAG", "POPCORN/SALT/OIL PRE-MEASURED KIT", "POPCORN BAGS 50/ PKG", "NACHO CHEESE SAUCE #10 CAN", "DONUT BAGS-MINI 70ct", "DONUT SUGAR 5 LBS & DISPENSER", "MINI DONUT -70 SERVINGS- SUPPLY PACKAGE"]:
+    elif "POPCORN" in common_name or "NACHO CHEESE" in common_name or "DONUT" in common_name or "MINI DONUT" in common_name:
         return "Popcorn-Cheese-Donut"
-    elif common_name in ["FRUSHEEZE STRAWBERRY DAQ 1/2 GALLON", "FRUSHEEZE FRUIT PUNCH 1/2 GALLON", "FRUSHEEZE MARGARITA 1/2 GALLON", "FRUSHEEZE BLUE RASPBERRY 1/2 GALLON", "FRUSHEEZE PINA COLADA 1/2 GALLON", "FRUSHEEZE CHERRY 1/2 GALLON", "FRUSHEEZE LEMONADE GRANITA MIX 1 GAL (5"]:
+    elif "FRUSHEEZE" in common_name:
         return "Slushie Sales"
-    elif common_name in ["SNOKONE SYRUP **LIME** 1 GALLON", "SNOKONE SYRUP **GRAPE** 1 GALLON", "SNOKONE SYRUP **CHERRY** 1 GALLON", "SNOKONE SYRUP **BLUE RASPBERRY 1 GALLON", "SNOKONE KONES 200 COUNT BOX", "SNOKONE SYRUP PUMP (1 GAL)", "SNOKONE SYRUP **PINK LEMONADE** 1 GALLON"]:
+    elif "SNOKONE" in common_name:
         return "SnoKone"
     elif "8 X 30" in common_name:
         return "8' Banquet"
