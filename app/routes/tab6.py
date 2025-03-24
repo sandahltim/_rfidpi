@@ -14,13 +14,13 @@ def get_resale_items(conn):
 
 def categorize_item(item):
     common_name = item.get("common_name", "").upper()
-    if common_name in ["FOG SOLUTION (GROUND)", "FOG SOLUTION (HAZE)", "BUBBLE JUICE"]:
+    if "FOG SOLUTION (GROUND)" or "FOG SOLUTION (HAZE)" or "BUBBLE JUICE"  in common_name:
         return "A/V Sales"
-    elif common_name in ["CHOCOLATE BAG 2LB. DARK", "CHOCOLATE BAG 2LB. MILK"]:
+    elif "CHOCOLATE BAG 2LB. DARK" or "CHOCOLATE BAG 2LB. MILK"  in common_name:
         return "Chocolate"
-    elif common_name in ["COTTON CANDY", "SUGAR", "52 OZ", "COTTON CANDY SUGAR STRAWBERRY (52 OZ CA", "COTTON CANDY BAGS", "COTTON CANDY"]:
+    elif "COTTON CANDY" or "SUGAR" or "52 OZ" or "COTTON CANDY BAGS" or "COTTON CANDY" in common_name:
         return "Cotton Candy"
-    elif common_name in ["FUEL STERNO 8 OZ -LASTS 2+HRS", "FUEL BUTANE CARTRIDGE 8 OUNCE", "AISLE CLOTH 75 WHITE", "AISLE CLOTH 100 WHITE", "GARBAGE CAN DISPOSABLE 35 GAL W/ LID"]:
+    elif "FUEL STERNO 8 OZ -LASTS 2+HRS" or "FUEL BUTANE CARTRIDGE 8 OUNCE" or "AISLE CLOTH 75 WHITE" or "AISLE CLOTH 100 WHITE" or "GARBAGE CAN DISPOSABLE 35 GAL W/ LID" in common_name:
         return "Disposable Sales"
     elif common_name in ["NACHO CHEESE 140oz BAG", "POPCORN/SALT/OIL PRE-MEASURED KIT", "POPCORN BAGS 50/ PKG", "NACHO CHEESE SAUCE #10 CAN", "DONUT BAGS-MINI 70ct", "DONUT SUGAR 5 LBS & DISPENSER", "MINI DONUT -70 SERVINGS- SUPPLY PACKAGE"]:
         return "Popcorn-Cheese-Donut"
