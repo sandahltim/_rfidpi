@@ -8,8 +8,8 @@ TOKEN = None
 TOKEN_EXPIRY = None
 
 # Refresh intervals
-FULL_REFRESH_INTERVAL = 600  # 5 minutes
-FAST_REFRESH_INTERVAL = 60   # 30 seconds
+FULL_REFRESH_INTERVAL = 300  # 5 minutes
+FAST_REFRESH_INTERVAL = 30   # 30 seconds
 
 def get_access_token():
     """Fetch and cache API access token."""
