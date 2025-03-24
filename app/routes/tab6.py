@@ -14,11 +14,11 @@ def get_resale_items(conn):
 
 def categorize_item(item):
     common_name = item.get("common_name", "").upper()
-    if "FOG SOLUTION (GROUND)" or "FOG SOLUTION (HAZE)" or "BUBBLE JUICE"  in common_name:
+    if "FOG" or "JUICE" or "BUBBLE"  in common_name:
         return "A/V Sales"
-    elif "CHOCOLATE BAG 2LB. DARK" or "CHOCOLATE BAG 2LB. MILK"  in common_name:
+    elif "CHOCOLATE" in common_name:
         return "Chocolate"
-    elif "COTTON CANDY" or "SUGAR" or "52 OZ" or "COTTON CANDY BAGS" or "COTTON CANDY" in common_name:
+    elif "COTTON CANDY" or "COTTON CANDY BAGS" in common_name:
         return "Cotton Candy"
     elif "FUEL STERNO 8 OZ -LASTS 2+HRS" or "FUEL BUTANE CARTRIDGE 8 OUNCE" or "AISLE CLOTH 75 WHITE" or "AISLE CLOTH 100 WHITE" or "GARBAGE CAN DISPOSABLE 35 GAL W/ LID" in common_name:
         return "Disposable Sales"
