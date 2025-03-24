@@ -14,13 +14,13 @@ def get_resale_items(conn):
 
 def categorize_item(item):
     common_name = item.get("common_name", "").upper()
-    if "FOG" or "JUICE" or "BUBBLE"  in common_name:
+    if "FOG"  in common_name or "JUICE"  in common_name or "BUBBLE" in common_name:
         return "A/V Sales"
     elif "CHOCOLATE" in common_name:
         return "Chocolate"
-    elif "COTTON CANDY" or "COTTON CANDY BAGS" in common_name:
+    elif "COTTON CANDY"  in common_name or "COTTON CANDY BAGS" in common_name:
         return "Cotton Candy"
-    elif "FUEL STERNO 8 OZ -LASTS 2+HRS" or "FUEL BUTANE CARTRIDGE 8 OUNCE" or "AISLE CLOTH 75 WHITE" or "AISLE CLOTH 100 WHITE" or "GARBAGE CAN DISPOSABLE 35 GAL W/ LID" in common_name:
+    elif "FUEL STERNO 8 OZ -LASTS 2+HRS"  in common_name or "FUEL BUTANE CARTRIDGE 8 OUNCE"  in common_name or "AISLE CLOTH 75 WHITE"  in common_name or "AISLE CLOTH 100 WHITE"  in common_name or "GARBAGE CAN DISPOSABLE 35 GAL W/ LID" in common_name:
         return "Disposable Sales"
     elif common_name in ["NACHO CHEESE 140oz BAG", "POPCORN/SALT/OIL PRE-MEASURED KIT", "POPCORN BAGS 50/ PKG", "NACHO CHEESE SAUCE #10 CAN", "DONUT BAGS-MINI 70ct", "DONUT SUGAR 5 LBS & DISPENSER", "MINI DONUT -70 SERVINGS- SUPPLY PACKAGE"]:
         return "Popcorn-Cheese-Donut"
