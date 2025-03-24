@@ -14,7 +14,7 @@ def get_resale_items(conn):
 
 def categorize_item(item):
     common_name = item.get("common_name", "").upper()
-    if "FOG"  in common_name or "JUICE"  in common_name or "BUBBLE" in common_name:
+    if "FOG"  in common_name or "JUICE"  in common_name:
         return "A/V Resale"
     elif "CHOCOLATE" in common_name:
         return "Chocolate Resale"
