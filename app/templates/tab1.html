@@ -49,7 +49,7 @@
       {% for parent in parent_data %}
       {% set parent_idx = loop.index + (current_page - 1) * 20 %}
       <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
-        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-{{ parent_idx }}">+</span></td>
+        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middleTable-{{ parent_idx }}">+</span></td>
         <td>{{ parent.contract_num }}</td>
         <td>{{ parent.client_name }}</td>
         <td>{{ parent.total_items }}</td>
@@ -59,7 +59,7 @@
       </tr>
       <tr>
         <td colspan="7" class="p-0">
-          <div id="middle-{{ parent_idx }}" class="collapse">
+          <div id="middleTable-{{ parent_idx }}" class="collapse">
             <table class="table mb-0 middle-table" id="middleTable-{{ parent_idx }}" style="border: 2px solid #34495e;">
               <thead style="background: #3498db; color: #fff;">
                 <tr>
@@ -73,14 +73,14 @@
                 {% for middle in middle_data[parent.contract_num] %}
                 {% set middle_idx = parent_idx ~ '_' ~ loop.index %}
                 <tr>
-                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_idx }}">+</span></td>
+                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#childTable-{{ middle_idx }}">+</span></td>
                   <td>{{ middle.common_name }}</td>
                   <td>{{ middle.total_on_contract }}</td>
                   <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-contract="{{ parent.contract_num }}" data-common-name="{{ middle.common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                 </tr>
                 <tr>
                   <td colspan="4" class="p-0">
-                    <div id="child-{{ middle_idx }}" class="collapse">
+                    <div id="childTable-{{ middle_idx }}" class="collapse">
                       <table class="table mb-0 child-table" id="childTable-{{ middle_idx }}" style="border: 2px solid #2c3e50;">
                         <thead style="background: #2c3e50; color: #ecf0f1;">
                           <tr>
@@ -226,23 +226,51 @@ function sortTable(tableEl, colName) {
 
 function filterTable() {
   let parentTable = document.getElementById("parentTable");
-  if (!parentTable) return; // Guard against null
+  if (!parentTable) {
+    console.log("filterTable: #parentTable not found");
+    return;
+  }
+
+  let parentRows = parentTable.querySelectorAll("tbody tr.table-active");
+  if (!parentRows.length) {
+    console.log("filterTable: No parent rows found");
+    return;
+  }
 
   let filters = {
     contract_num: document.querySelector("[data-filter='contract_num']").value.toLowerCase().trim(),
     common_name: document.querySelector("[data-filter='common_name']").value.toLowerCase().trim()
   };
 
-  let parentRows = parentTable.querySelectorAll("tbody tr.table-active");
   parentRows.forEach(parentRow => {
     let middleRow = parentRow.nextElementSibling;
+    if (!middleRow) {
+      console.log("filterTable: No middle row for parent");
+      return;
+    }
+
     let middleTable = middleRow.querySelector(".middle-table tbody");
+    if (!middleTable) {
+      console.log("filterTable: No middle table tbody");
+      return;
+    }
+
     let middleItems = middleTable.querySelectorAll("tr:not(.collapse)");
     let anyMiddleMatch = false;
 
     middleItems.forEach(middle => {
       let childRow = middle.nextElementSibling;
+      if (!childRow) {
+        console.log("filterTable: No child row for middle");
+        return;
+      }
+
       let childTable = childRow.querySelector(".child-table tbody");
+      if (!childTable) {
+        console.log("filterTable: No child table tbody");
+        return;
+      }
+
       let childItems = childTable.querySelectorAll("tr");
       let anyChildMatch = false;
 
@@ -420,12 +448,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
     let target = document.querySelector(toggle.getAttribute("data-bs-target"));
-    target.addEventListener("show.bs.collapse", () => {
-      toggle.textContent = "-";
-    });
-    target.addEventListener("hide.bs.collapse", () => {
-      toggle.textContent = "+";
-    });
+    if (target) {
+      target.addEventListener("show.bs.collapse", () => {
+        toggle.textContent = "-";
+      });
+      target.addEventListener("hide.bs.collapse", () => {
+        toggle.textContent = "+";
+      });
+    }
   });
 
   document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
@@ -454,7 +484,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  filterTable();
+  // Delay filterTable to sync with refreshTableData
+  setTimeout(filterTable, 1000);
 });
 </script>
 

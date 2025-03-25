@@ -86,23 +86,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 console.log("Refresh Data:", data);
                 const parentTbody = document.querySelector("#parentTable tbody");
                 if (parentTbody && data.parent_data) {
-                    // Preserve expanded states
                     const expandedMiddle = new Set();
                     const expandedChild = new Set();
                     document.querySelectorAll(".collapse.show").forEach(el => {
-                        if (el.id.startsWith("middle-")) expandedMiddle.add(el.id);
-                        if (el.id.startsWith("child-")) expandedChild.add(el.id);
+                        if (el.id.startsWith("middleTable-")) expandedMiddle.add(el.id);
+                        if (el.id.startsWith("childTable-")) expandedChild.add(el.id);
                     });
 
                     parentTbody.innerHTML = "";
                     data.parent_data.forEach((parent, parentIndex) => {
                         const parentIdx = parentIndex + (data.current_page ? data.current_page - 1 : 0) * 20;
-                        const key = (parent.contract_num || parent.category || 'unknown').toLowerCase().replace(/[^a-z0-9_]/g, '');
                         const tr = document.createElement("tr");
                         tr.className = "table-active";
                         tr.style.background = "linear-gradient(to right, #ecf0f1, #dfe6e9)";
                         tr.innerHTML = `
-                            <td style="width: 50px;"><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-${key}">+</span></td>
+                            <td style="width: 50px;"><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middleTable-${parentIdx}">+</span></td>
                             <td>${parent.contract_num || parent.category || 'Unknown'}</td>
                             <td>${parent.client_name || parent.total_amount || 'N/A'}</td>
                             <td>${parent.total_items || parent.total || 0}</td>
@@ -117,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         const middleTr = document.createElement("tr");
                         middleTr.innerHTML = `
                             <td colspan="7" class="p-0">
-                                <div id="middle-${key}" class="collapse" 
+                                <div id="middleTable-${parentIdx}" class="collapse" 
                                     data-contract="${parent.contract_num || parent.category || 'unknown'}">
                                     <table class="table table-striped table-bordered middle-table" 
                                         style="border: 2px solid #34495e;">
@@ -135,13 +133,13 @@ document.addEventListener("DOMContentLoaded", function() {
                         `;
                         parentTbody.appendChild(middleTr);
 
-                        const middleTbody = document.querySelector(`#middle-${key} tbody`);
+                        const middleTbody = document.querySelector(`#middleTable-${parentIdx} tbody`);
                         if (middleTbody && data.middle_map && data.middle_map[parent.contract_num || parent.category]) {
                             data.middle_map[parent.contract_num || parent.category].forEach((middle, middleIndex) => {
-                                const middleIdx = `${key}_${middleIndex}`;
+                                const middleIdx = `${parentIdx}_${middleIndex}`;
                                 const middleRow = document.createElement("tr");
                                 middleRow.innerHTML = `
-                                    <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-${middleIdx}">+</span></td>
+                                    <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#childTable-${middleIdx}">+</span></td>
                                     <td>${middle.common_name}</td>
                                     <td>${middle.total_on_contract || middle.total || 0}</td>
                                 `;
@@ -150,7 +148,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 const childTr = document.createElement("tr");
                                 childTr.innerHTML = `
                                     <td colspan="3" class="p-0">
-                                        <div id="child-${middleIdx}" class="collapse">
+                                        <div id="childTable-${middleIdx}" class="collapse">
                                             <table class="table table-striped table-bordered child-table" 
                                                 style="border: 2px solid #2c3e50;">
                                                 <thead style="background: #2c3e50; color: #ecf0f1;">
@@ -172,7 +170,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                 `;
                                 middleTbody.appendChild(childTr);
 
-                                const childTbody = document.querySelector(`#child-${middleIdx} tbody`);
+                                const childTbody = document.querySelector(`#childTable-${middleIdx} tbody`);
                                 if (childTbody && data.contract_map && data.contract_map[parent.contract_num || parent.category] && data.contract_map[parent.contract_num || parent.category][middle.common_name]) {
                                     data.contract_map[parent.contract_num || parent.category][middle.common_name].forEach(item => {
                                         const childRow = document.createElement("tr");
@@ -191,14 +189,14 @@ document.addEventListener("DOMContentLoaded", function() {
                                     });
                                 }
 
-                                if (expandedChild.has(`child-${middleIdx}`)) {
-                                    new bootstrap.Collapse(document.getElementById(`child-${middleIdx}`), { toggle: false }).show();
+                                if (expandedChild.has(`childTable-${middleIdx}`)) {
+                                    new bootstrap.Collapse(document.getElementById(`childTable-${middleIdx}`), { toggle: false }).show();
                                 }
                             });
                         }
 
-                        if (expandedMiddle.has(`middle-${key}`)) {
-                            new bootstrap.Collapse(document.getElementById(`middle-${key}`), { toggle: false }).show();
+                        if (expandedMiddle.has(`middleTable-${parentIdx}`)) {
+                            new bootstrap.Collapse(document.getElementById(`middleTable-${parentIdx}`), { toggle: false }).show();
                         }
                     });
 
