@@ -47,7 +47,7 @@
     </thead>
     <tbody>
       {% for parent in parent_data %}
-      {% set parent_idx = loop.index + (current_page - 1) * 20 %}
+      {% set parent_idx = loop.index0 + (current_page - 1) * 20 %}
       <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middleTable-{{ parent_idx }}">+</span></td>
         <td>{{ parent.contract_num }}</td>
@@ -71,7 +71,7 @@
               </thead>
               <tbody>
                 {% for middle in middle_data[parent.contract_num] %}
-                {% set middle_idx = parent_idx ~ '_' ~ loop.index %}
+                {% set middle_idx = parent_idx ~ '_' ~ loop.index0 %}
                 <tr>
                   <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#childTable-{{ middle_idx }}">+</span></td>
                   <td>{{ middle.common_name }}</td>
@@ -237,13 +237,14 @@ function filterTable() {
     return;
   }
 
+  console.log(`filterTable: Found ${parentRows.length} parent rows`);
   let filters = {
     contract_num: document.querySelector("[data-filter='contract_num']").value.toLowerCase().trim(),
     common_name: document.querySelector("[data-filter='common_name']").value.toLowerCase().trim()
   };
 
   parentRows.forEach((parentRow, index) => {
-    let parentIdx = Math.floor(index / 2); // Integer index for parent rows
+    let parentIdx = index; // Match Flask's loop.index0
     let middleRow = parentRow.nextElementSibling;
     if (!middleRow) {
       console.log(`filterTable: No middle row for parent at index ${parentIdx}`);
@@ -325,7 +326,7 @@ function retryFilterTable(maxRetries = 5, delayMs = 1000) {
       console.log("retryFilterTable: Max retries reached, giving up");
     }
   }
-  return attempt; // Return the function for later invocation
+  return attempt;
 }
 
 function printAggregate(contract) {
@@ -380,7 +381,7 @@ function printAggregate(contract) {
   ].join('\n'));
 
   aggregateWin.document.close();
-  aggregatorWin.focus();
+  aggregateWin.focus();
   aggregateWin.print();
   aggregateWin.close();
 }
@@ -519,7 +520,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Run filterTable after initial refreshTableData completes
   const filterAfterRefresh = retryFilterTable();
   fetch("http://192.168.2.214:8102/tab1/refresh_data")
     .then(response => response.json())
@@ -529,7 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .catch(error => {
       console.error("Initial refresh failed:", error);
-      filterAfterRefresh(); // Try anyway
+      filterAfterRefresh();
     });
 });
 </script>
