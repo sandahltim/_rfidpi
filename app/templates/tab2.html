@@ -47,11 +47,11 @@
         <td>{{ parent.available }}</td>
         <td>{{ parent.on_rent }}</td>
         <td>{{ parent.service }}</td>
-        <td><button class="btn btn-outline-dark btn-sm print-aggregate-btn" data-category="{{ parent.category }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+        <td><button class="btn btn-outline-dark btn-sm print-aggregate-btn" data-contract="{{ parent.category }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="7" class="p-0">
-          <div id="middle-{{ cat_key }}" class="collapse" data-category="{{ parent.category }}" {% if expand_category == parent.category %}data-auto-expand="true"{% endif %}>
+          <div id="middle-{{ cat_key }}" class="collapse" data-contract="{{ parent.category }}" {% if expand_category == parent.category %}data-auto-expand="true"{% endif %}>
             <div class="mb-2 mx-2">
               <select class="form-select subcategory-dropdown" data-category="{{ parent.category }}" style="border: 2px solid #34495e;">
                 {% for subcat in sub_map[parent.category].subcategories %}
@@ -59,7 +59,7 @@
                 {% endfor %}
               </select>
             </div>
-            <table class="table mb-0 middle-table" id="middleTable-{{ cat_key }}" style="border: 2px solid #34495e;">
+            <table class="table mb-0 middle-table" style="border: 2px solid #34495e;">
               <thead style="background: #3498db; color: #fff;">
                 <tr>
                   <th style="width: 50px;"></th>
@@ -76,7 +76,7 @@
                   <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ middle_idx }}">+</span></td>
                   <td>{{ middle.common_name }}</td>
                   <td>{{ middle.total }}</td>
-                  <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-category="{{ parent.category }}" data-common-name="{{ middle.common_name }}" data-subcat="{{ selected_subcat | default(sub_map[parent.category].subcategories[0]) }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                  <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-contract="{{ parent.category }}" data-common-name="{{ middle.common_name }}" data-subcat="{{ selected_subcat | default(sub_map[parent.category].subcategories[0]) }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                 </tr>
                 <tr>
                   <td colspan="4" class="p-0">
@@ -90,7 +90,7 @@
                         <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
                       </nav>
                       <div class="grandchild-table-container">
-                        <table class="table mb-0 grandchild-table" id="grandchildTable-{{ middle_idx }}" style="border: 2px solid #2c3e50;">
+                        <table class="table mb-0 grandchild-table" style="border: 2px solid #2c3e50;">
                           <thead style="background: #2c3e50; color: #ecf0f1;">
                             <tr>
                               <th class="sortable" data-col-name="tag_id">Tag ID</th>
@@ -298,14 +298,14 @@ function updateMiddleData(category, subcat, catKey) {
   const collapseInstance = bootstrap.Collapse.getOrCreateInstance(collapse);
   collapseInstance.show();
 
-  const table = document.getElementById(`middleTable-${catKey}`);
+  const table = collapse.querySelector('.middle-table');
   if (!table) {
     console.error(`Table not found for CatKey: ${catKey}`);
     return;
   }
   const tbody = table.querySelector('tbody');
   if (!tbody) {
-    console.error(`Tbody not found in middleTable-${catKey}`);
+    console.error(`Tbody not found in middle-${catKey}`);
     return;
   }
 
@@ -338,7 +338,7 @@ function updateMiddleData(category, subcat, catKey) {
           <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-${middle_idx}">+</span></td>
           <td>${middle.common_name}</td>
           <td>${middle.total}</td>
-          <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-category="${category}" data-common-name="${middle.common_name}" data-subcat="${subcat}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+          <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-contract="${category}" data-common-name="${middle.common_name}" data-subcat="${subcat}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
         `;
         tbody.appendChild(tr);
 
@@ -355,7 +355,7 @@ function updateMiddleData(category, subcat, catKey) {
                 <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
               </nav>
               <div class="grandchild-table-container">
-                <table class="table mb-0 grandchild-table" id="grandchildTable-${middle_idx}" style="border: 2px solid #2c3e50;">
+                <table class="table mb-0 grandchild-table" style="border: 2px solid #2c3e50;">
                   <thead style="background: #2c3e50; color: #ecf0f1;">
                     <tr>
                       <th class="sortable" data-col-name="tag_id">Tag ID</th>
@@ -380,161 +380,6 @@ function updateMiddleData(category, subcat, catKey) {
     });
 }
 
-function printItems(category, subcat, commonName) {
-  let allItems = [];
-  let page = 1;
-  let totalPages = 1;
-
-  async function fetchAllItems() {
-    while (page <= totalPages) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const params = {
-        category: category,
-        subcat: subcat,
-        common_name: commonName,
-        page: page,
-        common_name_filter: urlParams.get('common_name') || '',
-        tag_id: urlParams.get('tag_id') || '',
-        bin_location: urlParams.get('bin_location') || '',
-        last_contract_num: urlParams.get('last_contract_num') || '',
-        status: urlParams.get('status') || ''
-      };
-      const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
-      console.log(`Fetching Items URL: ${url}`);
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      const data = await response.json();
-      allItems = allItems.concat(data.items);
-      totalPages = data.total_pages;
-      page++;
-    }
-  }
-
-  fetchAllItems().then(() => {
-    const printWin = window.open('', '_blank');
-    printWin.document.write(`
-      <html>
-        <head>
-          <title>Items: ${category} - ${subcat} - ${commonName}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-            h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-            table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-            th { background: #3498db; color: #fff; font-weight: bold; }
-            tr:nth-child(even) { background: #f9f9f9; }
-            tr:hover { background: #dfe6e9; }
-          </style>
-        </head>
-        <body>
-          <h1>Items: ${category} - ${subcat} - ${commonName}</h1>
-          <table>
-            <thead>
-              <tr>
-                <th>Tag ID</th>
-                <th>Common Name</th>
-                <th>Status</th>
-                <th>Bin Location</th>
-                <th>Quality</th>
-              </tr>
-            </thead>
-            <tbody>
-    `);
-
-    allItems.forEach(item => {
-      printWin.document.write(`
-        <tr>
-          <td>${item.tag_id}</td>
-          <td>${item.common_name}</td>
-          <td>${item.status}</td>
-          <td>${item.bin_location}</td>
-          <td>${item.quality}</td>
-        </tr>
-      `);
-    });
-
-    printWin.document.write(`
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `);
-    printWin.document.close();
-    printWin.focus();
-    printWin.print();
-    printWin.close();
-  }).catch(error => {
-    console.error('Error printing items:', error);
-    alert('Failed to print items: ' + error.message);
-  });
-}
-
-function printAggregate(category) {
-  const middleMap = {{ middle_map|tojson }};
-  const parentData = {{ parent_data|tojson }};
-  let items = middleMap[category] || [];
-  const parent = parentData.find(p => p.category === category) || {};
-
-  // Ensure items are sorted alphabetically
-  items = items.sort((a, b) => a.common_name.localeCompare(b.common_name));
-  console.log(`Sorted Items for ${category}:`, items);
-
-  const printWin = window.open('', '_blank');
-  printWin.document.write(`
-    <html>
-      <head>
-        <title>Category Aggregate: ${category}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-          .parent-info { text-align: center; margin-bottom: 20px; }
-          .parent-info span { display: inline-block; margin: 0 15px; font-size: 1em; color: #34495e; }
-          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-          th { background: #3498db; color: #fff; font-weight: bold; }
-          tr:nth-child(even) { background: #f9f9f9; }
-          tr:hover { background: #dfe6e9; }
-        </style>
-      </head>
-      <body>
-        <h1>Category Aggregate: ${category}</h1>
-        <div class="parent-info">
-          <span>Total Items: ${parent.total || 0}</span>
-          <span>Available: ${parent.available || 0}</span>
-          <span>On Rent: ${parent.on_rent || 0}</span>
-          <span>Service: ${parent.service || 0}</span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Common Name</th>
-              <th>Total Items</th>
-            </tr>
-          </thead>
-          <tbody>
-  `);
-
-  items.forEach(item => {
-    printWin.document.write(`
-      <tr>
-        <td>${item.common_name}</td>
-        <td>${item.total}</td>
-      </tr>
-    `);
-  });
-
-  printWin.document.write(`
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `);
-  printWin.document.close();
-  printWin.focus();
-  printWin.print();
-  printWin.close();
-}
-
 document.addEventListener('click', (e) => {
   const th = e.target.closest('th.sortable');
   if (th) {
@@ -554,7 +399,7 @@ document.addEventListener('click', (e) => {
         console.log(`Expanding: ${target.id}`);
         toggle.textContent = "-";
         if (target.id.startsWith("child-")) {
-          const category = target.closest(".collapse[data-category]").getAttribute("data-category");
+          const category = target.closest(".collapse[data-contract]").getAttribute("data-contract");
           const commonName = target.getAttribute("data-common-name");
           const catKey = target.id.split("child-")[1];
           const parentCollapse = target.closest(".collapse[id^='middle-']");
@@ -569,16 +414,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-document.addEventListener('click', (e) => {
-  const printBtn = e.target.closest('.print-items-btn');
-  if (printBtn) {
-    const category = printBtn.getAttribute('data-category');
-    const commonName = printBtn.getAttribute('data-common-name');
-    const subcat = printBtn.getAttribute('data-subcat');
-    printItems(category, subcat, commonName);
-  }
-});
-
 document.addEventListener("change", (e) => {
   if (e.target.classList.contains("subcategory-dropdown")) {
     const select = e.target;
@@ -590,13 +425,6 @@ document.addEventListener("change", (e) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const category = btn.getAttribute("data-category");
-      printAggregate(category);
-    });
-  });
-
   document.querySelectorAll(".btn").forEach(btn => {
     btn.addEventListener("mouseover", () => {
       btn.style.transform = "translateY(-2px)";
@@ -617,7 +445,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
-
 </script>
 
 <style>

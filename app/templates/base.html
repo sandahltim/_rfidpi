@@ -50,7 +50,7 @@ function printAggregate(contract) {
     const middleData = currentTableData.middle_map || {};
     const parentData = currentTableData.parent_data || [];
     const aggregateItems = middleData[contract] || [];
-    const parent = parentData.find(p => p.contract_num === contract) || {};
+    const parent = parentData.find(p => p.contract_num === contract || p.category === contract) || {};
     console.log(`aggregateItems:`, aggregateItems, `parent:`, parent);
 
     const aggregateWin = window.open('', '_blank');
@@ -76,7 +76,7 @@ function printAggregate(contract) {
         '  </head>',
         '  <body>',
         `    <h1>Active Rental Contract: ${contract}</h1>`,
-        `    <p>Last Scan Date: ${parent.scan_date || 'N/A'}</p>`,
+        `    <p>Last Scan Date: ${parent.scan_date || parent.date_last_scanned || 'N/A'}</p>`,
         '    <table>',
         '      <thead>',
         '        <tr>',
@@ -91,7 +91,7 @@ function printAggregate(contract) {
         aggregateWin.document.write([
             '        <tr>',
             `          <td>${item.common_name}</td>`,
-            `          <td>${item.total_on_contract}</td>`,
+            `          <td>${item.total_on_contract || item.total || 0}</td>`,
             '        </tr>'
         ].join('\n'));
     });
@@ -109,22 +109,60 @@ function printAggregate(contract) {
     aggregateWin.close();
 }
 
-function printItems(contract, commonName) {
-    console.log(`printItems called with contract: ${contract}, commonName: ${commonName}`);
+function printItems(contract, commonName, subcat = null) {
+    console.log(`printItems called with contract: ${contract}, commonName: ${commonName}, subcat: ${subcat}`);
     const contractMap = currentTableData.contract_map || {};
-    const itemList = (contractMap[contract] && contractMap[contract][commonName]) || [];
-    console.log(`itemList:`, itemList);
+    let itemList = (contractMap[contract] && contractMap[contract][commonName]) || [];
 
+    if (subcat) {
+        // For tabs with subcategories (e.g., tab2), fetch items dynamically
+        const urlParams = new URLSearchParams(window.location.search);
+        const params = {
+            category: contract,
+            subcat: subcat,
+            common_name: commonName,
+            page: 1,
+            common_name_filter: urlParams.get('common_name') || '',
+            tag_id: urlParams.get('tag_id') || '',
+            bin_location: urlParams.get('bin_location') || '',
+            last_contract_num: urlParams.get('last_contract_num') || '',
+            status: urlParams.get('status') || ''
+        };
+        const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
+        console.log(`Fetching items from: ${url}`);
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                itemList = data.items || [];
+                console.log(`Fetched itemList:`, itemList);
+                renderPrintItems(contract, commonName, itemList, subcat);
+            })
+            .catch(error => {
+                console.error('Error fetching items:', error);
+                alert('Failed to print items: ' + error.message);
+            });
+    } else {
+        // For tabs without subcat (e.g., tab1), use currentTableData directly
+        renderPrintItems(contract, commonName, itemList);
+    }
+}
+
+function renderPrintItems(contract, commonName, itemList, subcat = null) {
     const itemsWin = window.open('', '_blank');
     if (!itemsWin) {
         console.error("printItems: Failed to open window—popup blocker?");
         return;
     }
 
+    const title = subcat ? `Items: ${contract} - ${subcat} - ${commonName}` : `Active Rental Items: ${contract} - ${commonName}`;
     itemsWin.document.write([
         '<html>',
         '  <head>',
-        `    <title>Active Rental Items: ${contract} - ${commonName}</title>`,
+        `    <title>${title}</title>`,
         '    <style>',
         '      body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }',
         '      h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }',
@@ -136,7 +174,7 @@ function printItems(contract, commonName) {
         '    </style>',
         '  </head>',
         '  <body>',
-        `    <h1>Active Rental Items: ${contract} - ${commonName}</h1>`,
+        `    <h1>${title}</h1>`,
         '    <table>',
         '      <thead>',
         '        <tr>',
@@ -155,13 +193,13 @@ function printItems(contract, commonName) {
     itemList.forEach(item => {
         itemsWin.document.write([
             '        <tr>',
-            `          <td>${item.tag_id}</td>`,
-            `          <td>${item.quality}</td>`,
-            `          <td>${item.bin_location}</td>`,
-            `          <td>${item.status}</td>`,
-            `          <td>${item.last_scanned_by}</td>`,
-            `          <td>${item.date_last_scanned}</td>`,
-            `          <td>${item.notes}</td>`,
+            `          <td>${item.tag_id || 'N/A'}</td>`,
+            `          <td>${item.quality || 'N/A'}</td>`,
+            `          <td>${item.bin_location || 'N/A'}</td>`,
+            `          <td>${item.status || 'N/A'}</td>`,
+            `          <td>${item.last_scanned_by || 'Unknown'}</td>`,
+            `          <td>${item.date_last_scanned || 'N/A'}</td>`,
+            `          <td>${item.notes || 'N/A'}</td>`,
             '        </tr>'
         ].join('\n'));
     });
@@ -201,8 +239,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     const expandedMiddle = new Set();
                     const expandedChild = new Set();
                     document.querySelectorAll(".collapse.show").forEach(el => {
-                        if (el.id.startsWith("middleTable-")) expandedMiddle.add(el.id);
-                        if (el.id.startsWith("childTable-")) expandedChild.add(el.id);
+                        if (el.id.startsWith("middleTable-") || el.id.startsWith("middle-")) expandedMiddle.add(el.id);
+                        if (el.id.startsWith("childTable-") || el.id.startsWith("child-")) expandedChild.add(el.id);
                     });
 
                     parentTbody.innerHTML = "";
@@ -343,7 +381,8 @@ document.addEventListener("DOMContentLoaded", function() {
         } else if (target.classList.contains("print-items-btn")) {
             const contract = target.getAttribute("data-contract");
             const commonName = target.getAttribute("data-common-name");
-            printItems(contract, commonName);
+            const subcat = target.getAttribute("data-subcat") || null;
+            printItems(contract, commonName, subcat);
         }
     });
 
