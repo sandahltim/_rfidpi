@@ -175,7 +175,7 @@ function sortTable(tableEl, colName) {
       if (!isNaN(numA) && !isNaN(numB)) {
         return asc ? numA - numB : numB - numA;
       }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellB);
+      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
     });
     tbody.innerHTML = "";
     pairs.forEach(pair => {
@@ -225,12 +225,15 @@ function sortTable(tableEl, colName) {
 }
 
 function filterTable() {
+  let parentTable = document.getElementById("parentTable");
+  if (!parentTable) return; // Guard against null
+
   let filters = {
     contract_num: document.querySelector("[data-filter='contract_num']").value.toLowerCase().trim(),
     common_name: document.querySelector("[data-filter='common_name']").value.toLowerCase().trim()
   };
 
-  let parentRows = document.querySelectorAll("#parentTable tbody tr.table-active");
+  let parentRows = parentTable.querySelectorAll("tbody tr.table-active");
   parentRows.forEach(parentRow => {
     let middleRow = parentRow.nextElementSibling;
     let middleTable = middleRow.querySelector(".middle-table tbody");
@@ -384,12 +387,14 @@ function printItems(contract, commonName) {
 
 document.addEventListener("DOMContentLoaded", () => {
   let parentTable = document.getElementById("parentTable");
-  parentTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
-      sortTable(parentTable, colName);
+  if (parentTable) {
+    parentTable.querySelectorAll("th.sortable").forEach(th => {
+      th.addEventListener("click", () => {
+        let colName = th.getAttribute("data-col-name");
+        sortTable(parentTable, colName);
+      });
     });
-  });
+  }
 
   document.querySelectorAll(".middle-table").forEach(middleTbl => {
     middleTbl.querySelectorAll("th.sortable").forEach(th => {
