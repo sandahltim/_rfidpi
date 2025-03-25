@@ -249,9 +249,15 @@ function filterTable() {
       return;
     }
 
-    let middleTable = middleRow.querySelector(".middle-table tbody");
+    let middleDiv = middleRow.querySelector(`#middleTable-${parentRow.rowIndex / 2}`);
+    if (!middleDiv) {
+      console.log(`filterTable: No middle div #middleTable-${parentRow.rowIndex / 2}`);
+      return;
+    }
+
+    let middleTable = middleDiv.querySelector(".middle-table tbody");
     if (!middleTable) {
-      console.log("filterTable: No middle table tbody");
+      console.log(`filterTable: No middle table tbody in #middleTable-${parentRow.rowIndex / 2}`);
       return;
     }
 
@@ -261,13 +267,19 @@ function filterTable() {
     middleItems.forEach(middle => {
       let childRow = middle.nextElementSibling;
       if (!childRow) {
-        console.log("filterTable: No child row for middle");
+        console.log(`filterTable: No child row for middle in #middleTable-${parentRow.rowIndex / 2}`);
         return;
       }
 
-      let childTable = childRow.querySelector(".child-table tbody");
+      let childDiv = childRow.querySelector(`#childTable-${parentRow.rowIndex / 2}_${middle.rowIndex / 2}`);
+      if (!childDiv) {
+        console.log(`filterTable: No child div #childTable-${parentRow.rowIndex / 2}_${middle.rowIndex / 2}`);
+        return;
+      }
+
+      let childTable = childDiv.querySelector(".child-table tbody");
       if (!childTable) {
-        console.log("filterTable: No child table tbody");
+        console.log(`filterTable: No child table tbody in #childTable-${parentRow.rowIndex / 2}_${middle.rowIndex / 2}`);
         return;
       }
 
@@ -293,6 +305,23 @@ function filterTable() {
     parentRow.style.display = anyMiddleMatch ? "" : "none";
     middleRow.style.display = anyMiddleMatch ? "" : "none";
   });
+}
+
+function retryFilterTable(maxRetries = 5, delayMs = 1000) {
+  let retries = 0;
+  function attempt() {
+    let parentTable = document.getElementById("parentTable");
+    if (parentTable && parentTable.querySelectorAll("tbody tr.table-active").length > 0) {
+      filterTable();
+    } else if (retries < maxRetries) {
+      retries++;
+      console.log(`retryFilterTable: Attempt ${retries}/${maxRetries}, waiting ${delayMs}ms`);
+      setTimeout(attempt, delayMs);
+    } else {
+      console.log("retryFilterTable: Max retries reached, giving up");
+    }
+  }
+  attempt();
 }
 
 function printAggregate(contract) {
@@ -484,8 +513,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Delay filterTable to sync with refreshTableData
-  setTimeout(filterTable, 1000);
+  // Retry filterTable to ensure DOM is ready
+  retryFilterTable();
 });
 </script>
 
