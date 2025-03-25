@@ -242,44 +242,46 @@ function filterTable() {
     common_name: document.querySelector("[data-filter='common_name']").value.toLowerCase().trim()
   };
 
-  parentRows.forEach(parentRow => {
+  parentRows.forEach((parentRow, index) => {
+    let parentIdx = Math.floor(index / 2); // Integer index for parent rows
     let middleRow = parentRow.nextElementSibling;
     if (!middleRow) {
-      console.log("filterTable: No middle row for parent");
+      console.log(`filterTable: No middle row for parent at index ${parentIdx}`);
       return;
     }
 
-    let middleDiv = middleRow.querySelector(`#middleTable-${parentRow.rowIndex / 2}`);
+    let middleDiv = middleRow.querySelector(`#middleTable-${parentIdx}`);
     if (!middleDiv) {
-      console.log(`filterTable: No middle div #middleTable-${parentRow.rowIndex / 2}`);
+      console.log(`filterTable: No middle div #middleTable-${parentIdx}`);
       return;
     }
 
     let middleTable = middleDiv.querySelector(".middle-table tbody");
     if (!middleTable) {
-      console.log(`filterTable: No middle table tbody in #middleTable-${parentRow.rowIndex / 2}`);
+      console.log(`filterTable: No middle table tbody in #middleTable-${parentIdx}`);
       return;
     }
 
     let middleItems = middleTable.querySelectorAll("tr:not(.collapse)");
     let anyMiddleMatch = false;
 
-    middleItems.forEach(middle => {
+    middleItems.forEach((middle, middleIndex) => {
+      let middleIdx = `${parentIdx}_${middleIndex}`;
       let childRow = middle.nextElementSibling;
       if (!childRow) {
-        console.log(`filterTable: No child row for middle in #middleTable-${parentRow.rowIndex / 2}`);
+        console.log(`filterTable: No child row for middle in #middleTable-${parentIdx} at ${middleIdx}`);
         return;
       }
 
-      let childDiv = childRow.querySelector(`#childTable-${parentRow.rowIndex / 2}_${middle.rowIndex / 2}`);
+      let childDiv = childRow.querySelector(`#childTable-${middleIdx}`);
       if (!childDiv) {
-        console.log(`filterTable: No child div #childTable-${parentRow.rowIndex / 2}_${middle.rowIndex / 2}`);
+        console.log(`filterTable: No child div #childTable-${parentIdx}_${middleIndex}`);
         return;
       }
 
       let childTable = childDiv.querySelector(".child-table tbody");
       if (!childTable) {
-        console.log(`filterTable: No child table tbody in #childTable-${parentRow.rowIndex / 2}_${middle.rowIndex / 2}`);
+        console.log(`filterTable: No child table tbody in #childTable-${parentIdx}_${middleIndex}`);
         return;
       }
 
@@ -325,121 +327,123 @@ function retryFilterTable(maxRetries = 5, delayMs = 1000) {
 }
 
 function printAggregate(contract) {
-  const middleData = {{ middle_data|tojson }};
-  const parentData = {{ parent_data|tojson }};
-  const items = middleData[contract] || [];
+  const middleData = {{ middle_data | tojson }};
+  const parentData = {{ parent_data | tojson }};
+  const aggregateItems = middleData[contract] || [];
   const parent = parentData.find(p => p.contract_num === contract) || {};
+  const aggregateWin = window.open('', '_blank');
 
-  const printWin = window.open('', '_blank');
-  printWin.document.write(`
-    <html>
-      <head>
-        <title>Active Rental Aggregate: ${contract}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-          p { font-size: 1em; text-align: center; color: #34495e; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-          th { background: #3498db; color: #fff; font-weight: bold; }
-          tr:nth-child(even) { background: #f9f9f9; }
-          tr:hover { background: #dfe6e9; }
-        </style>
-      </head>
-      <body>
-        <h1>Active Rental Contract: ${contract}</h1>
-        <p>Last Scan Date: ${parent.scan_date || 'N/A'}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Common Name</th>
-              <th>Total on Contract</th>
-            </tr>
-          </thead>
-          <tbody>
-  `);
+  aggregateWin.document.write([
+    '<html>',
+    '  <head>',
+    `    <title>Active Rental Aggregate: ${contract}</title>`,
+    '    <style>',
+    '      body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }',
+    '      h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }',
+    '      p { font-size: 1em; text-align: center; color: #34495e; margin-bottom: 20px; }',
+    '      table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }',
+    '      th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }',
+    '      th { background: #3498db; color: #fff; font-weight: bold; }',
+    '      tr:nth-child(even) { background: #f9f9f9; }',
+    '      tr:hover { background: #dfe6e9; }',
+    '    </style>',
+    '  </head>',
+    '  <body>',
+    `    <h1>Active Rental Contract: ${contract}</h1>`,
+    `    <p>Last Scan Date: ${parent.scan_date || 'N/A'}</p>`,
+    '    <table>',
+    '      <thead>',
+    '        <tr>',
+    '          <th>Common Name</th>',
+    '          <th>Total on Contract</th>',
+    '        </tr>',
+    '      </thead>',
+    '      <tbody>'
+  ].join('\n'));
 
-  items.forEach(item => {
-    printWin.document.write(`
-      <tr>
-        <td>${item.common_name}</td>
-        <td>${item.total_on_contract}</td>
-      </tr>
-    `);
+  aggregateItems.forEach(item => {
+    aggregateWin.document.write([
+      '        <tr>',
+      `          <td>${item.common_name}</td>`,
+      `          <td>${item.total_on_contract}</td>`,
+      '        </tr>'
+    ].join('\n'));
   });
 
-  printWin.document.write(`
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `);
-  printWin.document.close();
-  printWin.focus();
-  printWin.print();
-  printWin.close();
+  aggregateWin.document.write([
+    '      </tbody>',
+    '    </table>',
+    '  </body>',
+    '</html>'
+  ].join('\n'));
+
+  aggregateWin.document.close();
+  aggregateWin.focus();
+  aggregateWin.print();
+  aggregateWin.close();
 }
 
 function printItems(contract, commonName) {
-  const contractMap = {{ contract_map|tojson }};
-  const items = contractMap[contract][commonName] || [];
+  const contractMap = {{ contract_map | tojson }};
+  const itemList = contractMap[contract][commonName] || [];
+  const itemsWin = window.open('', '_blank');
 
-  const printWin = window.open('', '_blank');
-  printWin.document.write(`
-    <html>
-      <head>
-        <title>Active Rental Items: ${contract} - ${commonName}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-          th { background: #3498db; color: #fff; font-weight: bold; }
-          tr:nth-child(even) { background: #f9f9f9; }
-          tr:hover { background: #dfe6e9; }
-        </style>
-      </head>
-      <body>
-        <h1>Active Rental Items: ${contract} - ${commonName}</h1>
-        <table>
-          <thead>
-            <tr>
-              <th>Tag ID</th>
-              <th>Quality</th>
-              <th>Bin Location</th>
-              <th>Status</th>
-              <th>Last Scanned By</th>
-              <th>Date Last Scanned</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-  `);
+  itemsWin.document.write([
+    '<html>',
+    '  <head>',
+    `    <title>Active Rental Items: ${contract} - ${commonName}</title>`,
+    '    <style>',
+    '      body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }',
+    '      h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }',
+    '      table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }',
+    '      th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }',
+    '      th { background: #3498db; color: #fff; font-weight: bold; }',
+    '      tr:nth-child(even) { background: #f9f9f9; }',
+    '      tr:hover { background: #dfe6e9; }',
+    '    </style>',
+    '  </head>',
+    '  <body>',
+    `    <h1>Active Rental Items: ${contract} - ${commonName}</h1>`,
+    '    <table>',
+    '      <thead>',
+    '        <tr>',
+    '          <th>Tag ID</th>',
+    '          <th>Quality</th>',
+    '          <th>Bin Location</th>',
+    '          <th>Status</th>',
+    '          <th>Last Scanned By</th>',
+    '          <th>Date Last Scanned</th>',
+    '          <th>Notes</th>',
+    '        </tr>',
+    '      </thead>',
+    '      <tbody>'
+  ].join('\n'));
 
-  items.forEach(item => {
-    printWin.document.write(`
-      <tr>
-        <td>${item.tag_id}</td>
-        <td>${item.quality}</td>
-        <td>${item.bin_location}</td>
-        <td>${item.status}</td>
-        <td>${item.last_scanned_by}</td>
-        <td>${item.date_last_scanned}</td>
-        <td>${item.notes}</td>
-      </tr>
-    `);
+  itemList.forEach(item => {
+    itemsWin.document.write([
+      '        <tr>',
+      `          <td>${item.tag_id}</td>`,
+      `          <td>${item.quality}</td>`,
+      `          <td>${item.bin_location}</td>`,
+      `          <td>${item.status}</td>`,
+      `          <td>${item.last_scanned_by}</td>`,
+      `          <td>${item.date_last_scanned}</td>`,
+      `          <td>${item.notes}</td>`,
+      '        </tr>'
+    ].join('\n'));
   });
 
-  printWin.document.write(`
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `);
-  printWin.document.close();
-  printWin.focus();
-  printWin.print();
-  printWin.close();
+  itemsWin.document.write([
+    '      </tbody>',
+    '    </table>',
+    '  </body>',
+    '</html>'
+  ].join('\n'));
+
+  itemsWin.document.close();
+  itemsWin.focus();
+  itemsWin.print();
+  itemsWin.close();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -513,7 +517,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Retry filterTable to ensure DOM is ready
   retryFilterTable();
 });
 </script>
