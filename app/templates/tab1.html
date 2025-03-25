@@ -463,15 +463,19 @@ function printItems(contract, commonName) {
   itemsWin.close();
 }
 
-function bindPrintListeners() {
-  document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
+function bindTabListeners() {
+  const aggregateBtns = document.querySelectorAll(".print-aggregate-btn");
+  const itemsBtns = document.querySelectorAll(".print-items-btn");
+  console.log(`Binding listeners: ${aggregateBtns.length} aggregate buttons, ${itemsBtns.length} items buttons`);
+
+  aggregateBtns.forEach(btn => {
     btn.addEventListener("click", () => {
       const contract = btn.getAttribute("data-contract");
       printAggregate(contract);
     });
   });
 
-  document.querySelectorAll(".print-items-btn").forEach(btn => {
+  itemsBtns.forEach(btn => {
     btn.addEventListener("click", () => {
       const contract = btn.getAttribute("data-contract");
       const commonName = btn.getAttribute("data-common-name");
@@ -542,12 +546,12 @@ document.addEventListener("DOMContentLoaded", () => {
     .then(() => {
       console.log("Initial refresh complete, running filterTable and binding print listeners");
       filterAfterRefresh();
-      bindPrintListeners(); // Bind listeners after DOM refresh
+      bindTabListeners();
     })
     .catch(error => {
       console.error("Initial refresh failed:", error);
       filterAfterRefresh();
-      bindPrintListeners(); // Bind anyway
+      bindTabListeners();
     });
 });
 </script>
