@@ -20,7 +20,7 @@ def categorize_item(item):
         return 'Round Linen'
     elif any(word in tokens for word in ['90x90', '90x132', '60x120', '90x156', '54']):
         return 'Rectangle Linen'
-    elif any(word in tokens for word in ['otc', 'machine', 'hotdog', 'nacho']):
+    elif any(word in tokens for word in ['otc', 'machine', 'hotdog', 'dispenser']):
         return 'Concession'
     else:
         return 'Other'
