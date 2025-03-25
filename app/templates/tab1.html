@@ -244,7 +244,7 @@ function filterTable() {
   };
 
   parentRows.forEach((parentRow, index) => {
-    let parentIdx = index; // Match Flask's loop.index0
+    let parentIdx = index;
     let middleRow = parentRow.nextElementSibling;
     if (!middleRow) {
       console.log(`filterTable: No middle row for parent at index ${parentIdx}`);
@@ -264,7 +264,7 @@ function filterTable() {
       return;
     }
 
-    let middleItems = middleTable.querySelectorAll("tr:not(.collapse)");
+    let middleItems = middleTable.querySelectorAll("tr:has(.expand-toggle)");
     let anyMiddleMatch = false;
 
     middleItems.forEach((middle, middleIndex) => {
