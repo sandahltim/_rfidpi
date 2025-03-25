@@ -330,11 +330,18 @@ function retryFilterTable(maxRetries = 5, delayMs = 1000) {
 }
 
 function printAggregate(contract) {
+  console.log(`printAggregate called with contract: ${contract}`);
   const middleData = {{ middle_data | tojson }};
   const parentData = {{ parent_data | tojson }};
   const aggregateItems = middleData[contract] || [];
   const parent = parentData.find(p => p.contract_num === contract) || {};
+  console.log(`aggregateItems:`, aggregateItems, `parent:`, parent);
+
   const aggregateWin = window.open('', '_blank');
+  if (!aggregateWin) {
+    console.error("printAggregate: Failed to open window—popup blocker?");
+    return;
+  }
 
   aggregateWin.document.write([
     '<html>',
@@ -387,9 +394,16 @@ function printAggregate(contract) {
 }
 
 function printItems(contract, commonName) {
+  console.log(`printItems called with contract: ${contract}, commonName: ${commonName}`);
   const contractMap = {{ contract_map | tojson }};
   const itemList = contractMap[contract][commonName] || [];
+  console.log(`itemList:`, itemList);
+
   const itemsWin = window.open('', '_blank');
+  if (!itemsWin) {
+    console.error("printItems: Failed to open window—popup blocker?");
+    return;
+  }
 
   itemsWin.document.write([
     '<html>',
@@ -449,6 +463,23 @@ function printItems(contract, commonName) {
   itemsWin.close();
 }
 
+function bindPrintListeners() {
+  document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const contract = btn.getAttribute("data-contract");
+      printAggregate(contract);
+    });
+  });
+
+  document.querySelectorAll(".print-items-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const contract = btn.getAttribute("data-contract");
+      const commonName = btn.getAttribute("data-common-name");
+      printItems(contract, commonName);
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   let parentTable = document.getElementById("parentTable");
   if (parentTable) {
@@ -494,21 +525,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const contract = btn.getAttribute("data-contract");
-      printAggregate(contract);
-    });
-  });
-
-  document.querySelectorAll(".print-items-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const contract = btn.getAttribute("data-contract");
-      const commonName = btn.getAttribute("data-common-name");
-      printItems(contract, commonName);
-    });
-  });
-
   document.querySelectorAll(".btn").forEach(btn => {
     btn.addEventListener("mouseover", () => {
       btn.style.transform = "translateY(-2px)";
@@ -524,12 +540,14 @@ document.addEventListener("DOMContentLoaded", () => {
   fetch("http://192.168.2.214:8102/tab1/refresh_data")
     .then(response => response.json())
     .then(() => {
-      console.log("Initial refresh complete, running filterTable");
+      console.log("Initial refresh complete, running filterTable and binding print listeners");
       filterAfterRefresh();
+      bindPrintListeners(); // Bind listeners after DOM refresh
     })
     .catch(error => {
       console.error("Initial refresh failed:", error);
       filterAfterRefresh();
+      bindPrintListeners(); // Bind anyway
     });
 });
 </script>
