@@ -45,24 +45,24 @@
 // Global data store
 let currentTableData = {};
 
-function base_printAggregate(identifier) {
-    console.log(`base_printAggregate called with identifier: ${identifier}`);
+function basePrintAggregate(contract) {
+    console.log(`basePrintAggregate called with contract: ${contract}`);
     const middleData = currentTableData.middle_map || {};
     const parentData = currentTableData.parent_data || [];
-    const aggregateItems = middleData[identifier] || [];
-    const parent = parentData.find(p => p.contract_num === identifier || p.category === identifier) || {};
+    const aggregateItems = middleData[contract] || [];
+    const parent = parentData.find(p => p.contract_num === contract || p.category === contract) || {};
     console.log(`aggregateItems:`, aggregateItems, `parent:`, parent);
 
     const aggregateWin = window.open('', '_blank');
     if (!aggregateWin) {
-        console.error("base_printAggregate: Failed to open window—popup blocker?");
+        console.error("basePrintAggregate: Failed to open window—popup blocker?");
         return;
     }
 
     aggregateWin.document.write([
         '<html>',
         '  <head>',
-        `    <title>Aggregate: ${identifier}</title>`,
+        `    <title>Active Aggregate: ${contract}</title>`,
         '    <style>',
         '      body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }',
         '      h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }',
@@ -75,13 +75,13 @@ function base_printAggregate(identifier) {
         '    </style>',
         '  </head>',
         '  <body>',
-        `    <h1>Aggregate: ${identifier}</h1>`,
+        `    <h1>Active Aggregate: ${contract}</h1>`,
         `    <p>Last Scan Date: ${parent.scan_date || parent.date_last_scanned || 'N/A'}</p>`,
         '    <table>',
         '      <thead>',
         '        <tr>',
         '          <th>Common Name</th>',
-        '          <th>Total</th>',
+        '          <th>Total on Contract</th>',
         '        </tr>',
         '      </thead>',
         '      <tbody>'
@@ -109,16 +109,15 @@ function base_printAggregate(identifier) {
     aggregateWin.close();
 }
 
-function base_printItems(identifier, commonName, subcat = null) {
-    console.log(`base_printItems called with identifier: ${identifier}, commonName: ${commonName}, subcat: ${subcat}`);
+function basePrintItems(contract, commonName, subcat = null) {
+    console.log(`basePrintItems called with contract: ${contract}, commonName: ${commonName}, subcat: ${subcat}`);
     const contractMap = currentTableData.contract_map || {};
-    let itemList = (contractMap[identifier] && contractMap[identifier][commonName]) || [];
+    let itemList = (contractMap[contract] && contractMap[contract][commonName]) || [];
 
     if (subcat) {
-        // For tabs with subcategories (e.g., tab2), fetch items dynamically
         const urlParams = new URLSearchParams(window.location.search);
         const params = {
-            category: identifier,
+            category: contract,
             subcat: subcat,
             common_name: commonName,
             page: 1,
@@ -128,7 +127,7 @@ function base_printItems(identifier, commonName, subcat = null) {
             last_contract_num: urlParams.get('last_contract_num') || '',
             status: urlParams.get('status') || ''
         };
-        const url = `/tab${window.location.pathname.split('/')[1].slice(-1)}/subcat_data?${new URLSearchParams(params).toString()}`;
+        const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
         console.log(`Fetching items from: ${url}`);
 
         fetch(url)
@@ -139,26 +138,25 @@ function base_printItems(identifier, commonName, subcat = null) {
             .then(data => {
                 itemList = data.items || [];
                 console.log(`Fetched itemList:`, itemList);
-                renderBasePrintItems(identifier, commonName, itemList, subcat);
+                renderBasePrintItems(contract, commonName, itemList, subcat);
             })
             .catch(error => {
                 console.error('Error fetching items:', error);
                 alert('Failed to print items: ' + error.message);
             });
     } else {
-        // For tabs without subcat (e.g., tab1), use currentTableData directly
-        renderBasePrintItems(identifier, commonName, itemList);
+        renderBasePrintItems(contract, commonName, itemList);
     }
 }
 
-function renderBasePrintItems(identifier, commonName, itemList, subcat = null) {
+function renderBasePrintItems(contract, commonName, itemList, subcat = null) {
     const itemsWin = window.open('', '_blank');
     if (!itemsWin) {
-        console.error("renderBasePrintItems: Failed to open window—popup blocker?");
+        console.error("basePrintItems: Failed to open window—popup blocker?");
         return;
     }
 
-    const title = subcat ? `Items: ${identifier} - ${subcat} - ${commonName}` : `Items: ${identifier} - ${commonName}`;
+    const title = subcat ? `Items: ${contract} - ${subcat} - ${commonName}` : `Active Rental Items: ${contract} - ${commonName}`;
     itemsWin.document.write([
         '<html>',
         '  <head>',
@@ -228,161 +226,33 @@ document.addEventListener("DOMContentLoaded", function() {
         fetch(refreshUrl)
             .then(response => {
                 console.log(`Refresh Fetch Status: ${response.status}`);
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                if (!response.ok) {
+                    console.log(`Refresh endpoint not available for ${currentPath}, skipping...`);
+                    return null; // Silently skip if endpoint doesn't exist
+                }
                 return response.json();
             })
             .then(data => {
-                console.log("Refresh Data:", data);
-                currentTableData = data; // Store refreshed data
-                const parentTbody = document.querySelector("#parentTable tbody");
-                if (parentTbody && data.parent_data) {
-                    const expandedMiddle = new Set();
-                    const expandedChild = new Set();
-                    document.querySelectorAll(".collapse.show").forEach(el => {
-                        if (el.id.startsWith("middleTable-") || el.id.startsWith("middle-")) expandedMiddle.add(el.id);
-                        if (el.id.startsWith("childTable-") || el.id.startsWith("child-")) expandedChild.add(el.id);
-                    });
-
-                    parentTbody.innerHTML = "";
-                    data.parent_data.forEach((parent, parentIndex) => {
-                        const parentIdx = parentIndex + (data.current_page ? data.current_page - 1 : 0) * 20;
-                        const tr = document.createElement("tr");
-                        tr.className = "table-active";
-                        tr.style.background = "linear-gradient(to right, #ecf0f1, #dfe6e9)";
-                        tr.innerHTML = `
-                            <td style="width: 50px;"><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middleTable-${parentIdx}">+</span></td>
-                            <td>${parent.contract_num || parent.category || 'Unknown'}</td>
-                            <td>${parent.client_name || parent.total_amount || 'N/A'}</td>
-                            <td>${parent.total_items || parent.total || 0}</td>
-                            <td>${parent.scan_date || parent.date_last_scanned || 'N/A'}</td>
-                            <td>${parent.transaction_notes || 'N/A'}</td>
-                            <td style="width: 100px;"><button class="btn btn-outline-dark btn-sm print-aggregate-btn" 
-                                data-identifier="${parent.contract_num || parent.category || 'unknown'}" 
-                                style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
-                        `;
-                        parentTbody.appendChild(tr);
-
-                        const middleTr = document.createElement("tr");
-                        middleTr.innerHTML = `
-                            <td colspan="7" class="p-0">
-                                <div id="middleTable-${parentIdx}" class="collapse" 
-                                    data-identifier="${parent.contract_num || parent.category || 'unknown'}">
-                                    <table class="table table-striped table-bordered middle-table" 
-                                        style="border: 2px solid #34495e;">
-                                        <thead style="background: #3498db; color: #fff;">
-                                            <tr>
-                                                <th style="width: 50px;"></th>
-                                                <th>Common Name</th>
-                                                <th>Total on Contract</th>
-                                                <th style="width: 100px;">Print Items</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                </div>
-                            </td>
-                        `;
-                        parentTbody.appendChild(middleTr);
-
-                        const middleTbody = document.querySelector(`#middleTable-${parentIdx} tbody`);
-                        if (middleTbody && data.middle_map && data.middle_map[parent.contract_num || parent.category]) {
-                            data.middle_map[parent.contract_num || parent.category].forEach((middle, middleIndex) => {
-                                const middleIdx = `${parentIdx}_${middleIndex}`;
-                                const middleRow = document.createElement("tr");
-                                middleRow.innerHTML = `
-                                    <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#childTable-${middleIdx}">+</span></td>
-                                    <td>${middle.common_name}</td>
-                                    <td>${middle.total_on_contract || middle.total || 0}</td>
-                                    <td><button class="btn btn-outline-dark btn-sm print-items-btn" 
-                                        data-identifier="${parent.contract_num || parent.category || 'unknown'}" 
-                                        data-common-name="${middle.common_name}" 
-                                        style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
-                                `;
-                                middleTbody.appendChild(middleRow);
-
-                                const childTr = document.createElement("tr");
-                                childTr.innerHTML = `
-                                    <td colspan="4" class="p-0">
-                                        <div id="childTable-${middleIdx}" class="collapse">
-                                            <table class="table table-striped table-bordered child-table" 
-                                                style="border: 2px solid #2c3e50;">
-                                                <thead style="background: #2c3e50; color: #ecf0f1;">
-                                                    <tr>
-                                                        <th>Tag ID</th>
-                                                        <th>Common Name</th>
-                                                        <th>Quality</th>
-                                                        <th>Bin Location</th>
-                                                        <th>Status</th>
-                                                        <th>Last Scanned By</th>
-                                                        <th>Date Last Scanned</th>
-                                                        <th>Notes</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody></tbody>
-                                            </table>
-                                        </div>
-                                    </td>
-                                `;
-                                middleTbody.appendChild(childTr);
-
-                                const childTbody = document.querySelector(`#childTable-${middleIdx} tbody`);
-                                if (childTbody && data.contract_map && data.contract_map[parent.contract_num || parent.category] && data.contract_map[parent.contract_num || parent.category][middle.common_name]) {
-                                    data.contract_map[parent.contract_num || parent.category][middle.common_name].forEach(item => {
-                                        const childRow = document.createElement("tr");
-                                        childRow.className = item.status in ['On Rent', 'Delivered'] ? 'table-warning' : item.status === 'Ready to Rent' ? 'table-success' : '';
-                                        childRow.innerHTML = `
-                                            <td>${item.tag_id || 'N/A'}</td>
-                                            <td>${item.common_name}</td>
-                                            <td>${item.quality || 'N/A'}</td>
-                                            <td>${item.bin_location || 'N/A'}</td>
-                                            <td>${item.status || 'N/A'}</td>
-                                            <td>${item.last_scanned_by || 'Unknown'}</td>
-                                            <td>${item.date_last_scanned || 'N/A'}</td>
-                                            <td>${item.notes || 'N/A'}</td>
-                                        `;
-                                        childTbody.appendChild(childRow);
-                                    });
-                                }
-
-                                if (expandedChild.has(`childTable-${middleIdx}`)) {
-                                    new bootstrap.Collapse(document.getElementById(`childTable-${middleIdx}`), { toggle: false }).show();
-                                }
-                            });
-                        }
-
-                        if (expandedMiddle.has(`middleTable-${parentIdx}`)) {
-                            new bootstrap.Collapse(document.getElementById(`middleTable-${parentIdx}`), { toggle: false }).show();
-                        }
-                    });
-
-                    document.querySelectorAll(".expand-toggle").forEach(toggle => {
-                        toggle.addEventListener("click", () => {
-                            const targetId = toggle.getAttribute("data-bs-target");
-                            const target = document.querySelector(targetId);
-                            if (target && !target.classList.contains("show")) {
-                                toggle.textContent = "-";
-                            } else if (target) {
-                                toggle.textContent = "+";
-                            }
-                        });
-                    });
+                if (data) {
+                    console.log("Refresh Data:", data);
+                    currentTableData = data; // Only update if data is received
                 }
             })
             .catch(error => console.error("Refresh Error:", error));
     }
 
-    // Event delegation for print buttons
-    document.getElementById("parentTable").addEventListener("click", function(event) {
+    // Event delegation for base print buttons
+    document.getElementById("parentTable")?.addEventListener("click", function(event) {
         const target = event.target;
         console.log("Click detected on:", target);
         if (target.classList.contains("print-aggregate-btn")) {
-            const identifier = target.getAttribute("data-identifier");
-            base_printAggregate(identifier);
+            const contract = target.getAttribute("data-contract");
+            basePrintAggregate(contract);
         } else if (target.classList.contains("print-items-btn")) {
-            const identifier = target.getAttribute("data-identifier");
+            const contract = target.getAttribute("data-contract");
             const commonName = target.getAttribute("data-common-name");
             const subcat = target.getAttribute("data-subcat") || null;
-            base_printItems(identifier, commonName, subcat);
+            basePrintItems(contract, commonName, subcat);
         }
     });
 
