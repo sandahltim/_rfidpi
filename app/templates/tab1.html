@@ -250,6 +250,7 @@ function filterTable() {
       return;
     }
 
+    console.log(`filterTable: Checking middleRow for #middleTable-${parentIdx}:`, middleRow.innerHTML);
     let middleDiv = middleRow.querySelector(`#middleTable-${parentIdx}`);
     if (!middleDiv) {
       console.log(`filterTable: No middle div #middleTable-${parentIdx}`);
@@ -273,6 +274,7 @@ function filterTable() {
         return;
       }
 
+      console.log(`filterTable: Checking childRow for #childTable-${middleIdx}:`, childRow.innerHTML);
       let childDiv = childRow.querySelector(`#childTable-${middleIdx}`);
       if (!childDiv) {
         console.log(`filterTable: No child div #childTable-${parentIdx}_${middleIndex}`);
@@ -323,7 +325,7 @@ function retryFilterTable(maxRetries = 5, delayMs = 1000) {
       console.log("retryFilterTable: Max retries reached, giving up");
     }
   }
-  attempt();
+  return attempt; // Return the function for later invocation
 }
 
 function printAggregate(contract) {
@@ -378,7 +380,7 @@ function printAggregate(contract) {
   ].join('\n'));
 
   aggregateWin.document.close();
-  aggregateWin.focus();
+  aggregatorWin.focus();
   aggregateWin.print();
   aggregateWin.close();
 }
@@ -517,7 +519,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  retryFilterTable();
+  // Run filterTable after initial refreshTableData completes
+  const filterAfterRefresh = retryFilterTable();
+  fetch("http://192.168.2.214:8102/tab1/refresh_data")
+    .then(response => response.json())
+    .then(() => {
+      console.log("Initial refresh complete, running filterTable");
+      filterAfterRefresh();
+    })
+    .catch(error => {
+      console.error("Initial refresh failed:", error);
+      filterAfterRefresh(); // Try anyway
+    });
 });
 </script>
 
