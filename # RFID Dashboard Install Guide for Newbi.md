@@ -26,7 +26,7 @@ Yo, newbie! This guide’s gonna get the RFID Dashboard app running on your Rasp
 
 ## Step 2: Get the App Package
 1. **Grab It**:
-   - On the Pi’s terminal, type: `wget https://github.com/sandahltim/-rfidpi/raw/main/rfid_dash.tar.gz`
+   - On the Pi’s terminal, type: `wget https://github.com/sandahltim/_rfidpi/raw/main/rfid_dash.tar.gz`
    - Wait—it’s downloading the package (~50KB).
 2. **Unzip It**:
    - `tar -xzf rfid_dash.tar.gz`
