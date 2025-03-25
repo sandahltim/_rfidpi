@@ -78,7 +78,7 @@ def subcategorize_item(category, item):
             return 'SnoKone Machines'
         elif 'hotdog' in tokens:
             return 'Hotdog Machines'
-        elif 'cheese' in tokens:
+        elif 'warmer' in tokens:
             return 'Warmers'
         elif 'popcorn' in tokens:
             return 'Popcorn Machines'
