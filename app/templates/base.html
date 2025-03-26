@@ -42,383 +42,233 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92489b8c3becadd1',t:'MTc0MjY3NzExMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();
+// Global data store
+let currentTableData = {};
 
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("Base DOM Content Loaded");
+function basePrintAggregate(contract) {
+    const middleData = currentTableData.middle_map || {};
+    const parentData = currentTableData.parent_data || [];
+    const aggregateItems = middleData[contract] || [];
+    const parent = parentData.find(p => p.contract_num === contract || p.category === contract) || {};
 
-    function printAggregate(category, middleMap) {
-        const items = middleMap[category] || [];
-        const printWin = window.open('', '_blank');
-        printWin.document.write(`
-            <html>
-              <head>
-                <title>Resale Aggregate: ${category}</title>
-                <style>
-                  body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-                  h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-                  table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                  th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-                  th { background: #3498db; color: #fff; font-weight: bold; }
-                  tr:nth-child(even) { background: #f9f9f9; }
-                  tr:hover { background: #dfe6e9; }
-                </style>
-              </head>
-              <body>
-                <h1>Resale Aggregate: ${category}</h1>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Common Name</th>
-                      <th>Total Items</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-        `);
-        items.forEach(item => {
-            printWin.document.write(`
-              <tr>
-                <td>${item.common_name}</td>
-                <td>${item.total}</td>
-              </tr>
-            `);
-        });
-        printWin.document.write(`
-                  </tbody>
-                </table>
-              </body>
-            </html>
-        `);
-        printWin.document.close();
-        printWin.focus();
-        printWin.print();
-        printWin.close();
+    const aggregateWin = window.open('', '_blank');
+    if (!aggregateWin) {
+        return;
     }
 
-    function printItems(category, commonName) {
+    aggregateWin.document.write([
+        '<html>',
+        '  <head>',
+        `    <title>Active Aggregate: ${contract}</title>`,
+        '    <style>',
+        '      body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }',
+        '      h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }',
+        '      p { font-size: 1em; text-align: center; color: #34495e; margin-bottom: 20px; }',
+        '      table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }',
+        '      th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }',
+        '      th { background: #3498db; color: #fff; font-weight: bold; }',
+        '      tr:nth-child(even) { background: #f9f9f9; }',
+        '      tr:hover { background: #dfe6e9; }',
+        '    </style>',
+        '  </head>',
+        '  <body>',
+        `    <h1>Active Aggregate: ${contract}</h1>`,
+        `    <p>Last Scan Date: ${parent.scan_date || parent.date_last_scanned || 'N/A'}</p>`,
+        '    <table>',
+        '      <thead>',
+        '        <tr>',
+        '          <th>Common Name</th>',
+        '          <th>Total on Contract</th>',
+        '        </tr>',
+        '      </thead>',
+        '      <tbody>'
+    ].join('\n'));
+
+    aggregateItems.forEach(item => {
+        aggregateWin.document.write([
+            '        <tr>',
+            `          <td>${item.common_name}</td>`,
+            `          <td>${item.total_on_contract || item.total || 0}</td>`,
+            '        </tr>'
+        ].join('\n'));
+    });
+
+    aggregateWin.document.write([
+        '      </tbody>',
+        '    </table>',
+        '  </body>',
+        '</html>'
+    ].join('\n'));
+
+    aggregateWin.document.close();
+    aggregateWin.focus();
+    aggregateWin.print();
+    aggregateWin.close();
+}
+
+function basePrintItems(contract, commonName, subcat = null) {
+    let itemList = (currentTableData.contract_map || {})[contract]?.[commonName] || [];
+
+    if (subcat) {
         const urlParams = new URLSearchParams(window.location.search);
         const params = {
-            category: category,
+            category: contract,
+            subcat: subcat,
             common_name: commonName,
+            page: 1,
             common_name_filter: urlParams.get('common_name') || '',
             tag_id: urlParams.get('tag_id') || '',
+            bin_location: urlParams.get('bin_location') || '',
             last_contract_num: urlParams.get('last_contract_num') || '',
-            rental_class_num: urlParams.get('rental_class_num') || ''
+            status: urlParams.get('status') || ''
         };
-        const url = `/tab6/subcat_data?${new URLSearchParams(params).toString()}`;
+        const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
+
         fetch(url)
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 return response.json();
             })
             .then(data => {
-                const items = data.items;
-                console.log(`Printing items for ${category} - ${commonName}:`, items);
-                const printWin = window.open('', '_blank');
-                printWin.document.write(`
-                    <html>
-                      <head>
-                        <title>Resale Items: ${category} - ${commonName}</title>
-                        <style>
-                          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-                          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-                          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
-                          th { background: #3498db; color: #fff; font-weight: bold; }
-                          tr:nth-child(even) { background: #f9f9f9; }
-                          tr:hover { background: #dfe6e9; }
-                        </style>
-                      </head>
-                      <body>
-                        <h1>Resale Items: ${category} - ${commonName}</h1>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Tag ID</th>
-                              <th>Common Name</th>
-                              <th>Status</th>
-                              <th>Bin Location</th>
-                              <th>Quality</th>
-                              <th>Date Last Scanned</th>
-                              <th>Last Scanned By</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                `);
-                items.forEach(item => {
-                    printWin.document.write(`
-                      <tr>
-                        <td>${item.tag_id || 'N/A'}</td>
-                        <td>${item.common_name}</td>
-                        <td>${item.status || 'Resale'}</td>
-                        <td>${item.bin_location || 'N/A'}</td>
-                        <td>${item.quality || 'N/A'}</td>
-                        <td>${item.date_last_scanned || 'N/A'}</td>
-                        <td>${item.last_scanned_by || 'Unknown'}</td>
-                      </tr>
-                    `);
-                });
-                printWin.document.write(`
-                          </tbody>
-                        </table>
-                      </body>
-                    </html>
-                `);
-                printWin.document.close();
-                printWin.focus();
-                printWin.print();
-                printWin.close();
+                itemList = data.items || [];
+                renderBasePrintItems(contract, commonName, itemList, subcat);
             })
-            .catch(error => console.error('Error printing items:', error));
+            .catch(() => {
+                alert('Failed to print items.');
+            });
+    } else {
+        renderBasePrintItems(contract, commonName, itemList);
+    }
+}
+
+function renderBasePrintItems(contract, commonName, itemList, subcat = null) {
+    const itemsWin = window.open('', '_blank');
+    if (!itemsWin) {
+        return;
     }
 
-    function loadSubcatData(category, commonName, middleKey) {
-        console.log(`Loading Subcat - Category: ${category}, Common Name: ${commonName}, MiddleKey: ${middleKey}`);
-        const urlParams = new URLSearchParams(window.location.search);
-        const params = {
-            category: category,
-            common_name: commonName,
-            common_name_filter: urlParams.get('common_name') || '',
-            tag_id: urlParams.get('tag_id') || '',
-            last_contract_num: urlParams.get('last_contract_num') || '',
-            rental_class_num: urlParams.get('rental_class_num') || ''
-        };
-        const url = `/tab6/subcat_data?${new URLSearchParams(params).toString()}`;
-        fetch(url)
-            .then(response => {
-                console.log(`Subcat Fetch Status: ${response.status}`);
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                return response.json();
-            })
-            .then(data => {
-                console.log(`Subcat Data for ${middleKey}:`, data);
-                const tbody = document.getElementById(`grandchildTbody-${middleKey}`);
-                if (!tbody) {
-                    console.error(`Tbody not found for MiddleKey: ${middleKey}`);
-                    return;
-                }
-                tbody.innerHTML = '';
-                data.items.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.className = "table-success";
-                    tr.innerHTML = `
-                        <td>${item.tag_id || 'N/A'}</td>
-                        <td>${item.common_name}</td>
-                        <td>${item.status || 'Resale'}</td>
-                        <td>${item.bin_location || 'N/A'}</td>
-                        <td>${item.quality || 'N/A'}</td>
-                        <td>${item.date_last_scanned || 'N/A'}</td>
-                        <td>${item.last_scanned_by || 'Unknown'}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            })
-            .catch(error => console.error('Error loading subcat data:', error));
-    }
+    const title = subcat ? `Items: ${contract} - ${subcat} - ${commonName}` : `Active Rental Items: ${contract} - ${commonName}`;
+    itemsWin.document.write([
+        '<html>',
+        '  <head>',
+        `    <title>${title}</title>`,
+        '    <style>',
+        '      body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }',
+        '      h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }',
+        '      table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }',
+        '      th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }',
+        '      th { background: #3498db; color: #fff; font-weight: bold; }',
+        '      tr:nth-child(even) { background: #f9f9f9; }',
+        '      tr:hover { background: #dfe6e9; }',
+        '    </style>',
+        '  </head>',
+        '  <body>',
+        `    <h1>${title}</h1>`,
+        '    <table>',
+        '      <thead>',
+        '        <tr>',
+        '          <th>Tag ID</th>',
+        '          <th>Quality</th>',
+        '          <th>Bin Location</th>',
+        '          <th>Status</th>',
+        '          <th>Last Scanned By</th>',
+        '          <th>Date Last Scanned</th>',
+        '          <th>Notes</th>',
+        '        </tr>',
+        '      </thead>',
+        '      <tbody>'
+    ].join('\n'));
 
-    function sanitizeKey(str) {
-        return str.toLowerCase().replace(/[^a-z0-9_]/g, ''); // Only alphanumeric and underscore
-    }
+    itemList.forEach(item => {
+        itemsWin.document.write([
+            '        <tr>',
+            `          <td>${item.tag_id || 'N/A'}</td>`,
+            `          <td>${item.quality || 'N/A'}</td>`,
+            `          <td>${item.bin_location || 'N/A'}</td>`,
+            `          <td>${item.status || 'N/A'}</td>`,
+            `          <td>${item.last_scanned_by || 'Unknown'}</td>`,
+            `          <td>${item.date_last_scanned || 'N/A'}</td>`,
+            `          <td>${item.notes || 'N/A'}</td>`,
+            '        </tr>'
+        ].join('\n'));
+    });
 
+    itemsWin.document.write([
+        '      </tbody>',
+        '    </table>',
+        '  </body>',
+        '</html>'
+    ].join('\n'));
+
+    itemsWin.document.close();
+    itemsWin.focus();
+    itemsWin.print();
+    itemsWin.close();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
     function refreshTableData() {
         const currentPath = window.location.pathname;
         const urlParams = new URLSearchParams(window.location.search);
         const refreshUrl = `${currentPath.endsWith('/') ? currentPath : currentPath + '/'}refresh_data?${urlParams.toString()}`;
 
-        fetch(refreshUrl)
+        fetch(refreshUrl, { mode: 'cors' })
             .then(response => {
-                console.log(`Refresh Fetch Status: ${response.status}`);
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                if (!response.ok) {
+                    return null;
+                }
                 return response.json();
             })
             .then(data => {
-                console.log("Refresh Data:", data);
-
-                const parentTbody = document.querySelector("#parentTable tbody");
-                if (parentTbody) {
-                    const expandedMiddle = new Set();
-                    document.querySelectorAll(".collapse.show").forEach(el => {
-                        if (el.id.startsWith("middle-")) expandedMiddle.add(el.id);
-                    });
-
-                    parentTbody.innerHTML = "";
-                    data.parent_data.forEach(parent => {
-                        const key = sanitizeKey(parent.category || parent.contract || 'unknown');
-                        const tr = document.createElement("tr");
-                        tr.className = "table-active";
-                        tr.style.background = "linear-gradient(to right, #ecf0f1, #dfe6e9)";
-                        tr.innerHTML = `
-                            <td style="width: 50px;"><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middle-${key}">+</span></td>
-                            <td>${parent.category || parent.contract || 'Unknown'}</td>
-                            <td>${parent.total_amount || parent.total || 0}</td>
-                            ${parent.on_contract !== undefined ? `<td>${parent.on_contract}</td>` : `<td>${parent.date_last_scanned || 'N/A'}</td>`}
-                            <td style="width: 100px;"><button class="btn btn-outline-dark btn-sm print-aggregate-btn" 
-                                data-${parent.category ? 'category' : 'contract'}="${parent.category || parent.contract}" 
-                                ${parent.date_last_scanned ? `data-date="${parent.date_last_scanned}"` : ''} 
-                                style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
-                        `;
-                        parentTbody.appendChild(tr);
-
-                        const middleTr = document.createElement("tr");
-                        middleTr.innerHTML = `<td colspan="${parent.on_contract !== undefined ? 5 : 5}" class="p-0">
-                            <div id="middle-${key}" class="collapse" data-${parent.category ? 'category' : 'contract'}="${parent.category || parent.contract}"></div>
-                        </td>`;
-                        parentTbody.appendChild(middleTr);
-                    });
-
-                    const middleMap = data.middle_map || data.child_map;
-                    Object.keys(middleMap).forEach(key => {
-                        const sanitizedKey = sanitizeKey(key);
-                        const middleDiv = document.querySelector(`#middle-${sanitizedKey}`);
-                        if (middleDiv) {
-                            const isExpanded = expandedMiddle.has(`middle-${sanitizedKey}`);
-                            const expandedChildren = new Set();
-                            if (isExpanded) {
-                                document.querySelectorAll(`#middle-${sanitizedKey} .collapse.show`).forEach(el => {
-                                    if (el.id.startsWith("child-")) expandedChildren.add(el.id);
-                                });
-                            }
-
-                            const middleTable = document.createElement("table");
-                            middleTable.className = "table table-striped table-bordered middle-table";
-                            middleTable.id = `middleTable-${sanitizedKey}`;
-                            middleTable.style.border = "2px solid #34495e";
-                            middleTable.innerHTML = `
-                                <thead style="background: #3498db; color: #fff;">
-                                    <tr>
-                                        <th style="width: 50px;"></th>
-                                        <th class="sortable" data-col-name="common_name">Common Name</th>
-                                        <th class="sortable" data-col-name="total">${data.middle_map ? 'Total' : 'Total Items'}</th>
-                                        ${data.middle_map ? '' : '<th class="sortable" data-col-name="available">Available</th><th class="sortable" data-col-name="on_rent">On Rent</th><th class="sortable" data-col-name="service">Service</th>'}
-                                        <th style="width: 100px;">Print Items</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            `;
-                            const tbody = middleTable.querySelector("tbody");
-                            middleMap[key].forEach(middle => {
-                                const middleKey = `${sanitizedKey}_${sanitizeKey(middle.common_name)}`;
-                                const tr = document.createElement("tr");
-                                tr.className = `child-row ${middle.service > 0 ? 'table-danger' : middle.on_rent > 0 ? 'table-warning' : 'table-success'}`;
-                                tr.innerHTML = `
-                                    <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-${middleKey}">+</span></td>
-                                    <td>${middle.common_name}</td>
-                                    <td>${middle.total}</td>
-                                    ${data.middle_map ? '' : `
-                                        <td>${middle.available || 0}</td>
-                                        <td>${middle.on_rent || 0}</td>
-                                        <td>${middle.service || 0}</td>
-                                    `}
-                                    <td><button class="btn btn-outline-dark btn-sm print-items-btn" 
-                                        data-${data.middle_map ? 'category' : 'contract'}="${key}" 
-                                        data-common-name="${middle.common_name}" 
-                                        style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
-                                `;
-                                tbody.appendChild(tr);
-
-                                const grandTr = document.createElement("tr");
-                                grandTr.innerHTML = `<td colspan="${data.middle_map ? 4 : 7}" class="p-0">
-                                    <div id="child-${middleKey}" class="collapse" 
-                                        data-${data.middle_map ? 'category' : 'contract'}="${key}" 
-                                        data-common-name="${middle.common_name}">
-                                        <div class="grandchild-table-container">
-                                            <table class="table mb-0 grandchild-table" id="grandchildTable-${middleKey}" style="border: 2px solid #2c3e50;">
-                                                <thead style="background: #2c3e50; color: #ecf0f1;">
-                                                    <tr>
-                                                        <th class="sortable" data-col-name="tag_id">Tag ID</th>
-                                                        <th class="sortable" data-col-name="common_name">Common Name</th>
-                                                        <th class="sortable" data-col-name="status">Status</th>
-                                                        <th class="sortable" data-col-name="bin_location">Bin Location</th>
-                                                        <th class="sortable" data-col-name="quality">Quality</th>
-                                                        <th class="sortable" data-col-name="date_last_scanned">Date Last Scanned</th>
-                                                        <th class="sortable" data-col-name="last_scanned_by">Last Scanned By</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="grandchildTbody-${middleKey}"></tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </td>`;
-                                tbody.appendChild(grandTr);
-
-                                if (expandedChildren.has(`child-${middleKey}`)) {
-                                    loadSubcatData(key, middle.common_name, middleKey);
-                                    const collapse = new bootstrap.Collapse(document.getElementById(`child-${middleKey}`), { toggle: false });
-                                    collapse.show();
-                                }
-                            });
-                            middleDiv.innerHTML = "";
-                            middleDiv.appendChild(middleTable);
-                            if (isExpanded) {
-                                const collapse = new bootstrap.Collapse(middleDiv, { toggle: false });
-                                collapse.show();
-                            }
-                        }
-                    });
-
-                    // Rebind all event listeners after table update
-                    document.querySelectorAll(".expand-toggle").forEach(toggle => {
-                        toggle.removeEventListener("click", toggleClickHandler); // Remove old listener
-                        toggle.addEventListener("click", toggleClickHandler);
-                    });
-
-                    function toggleClickHandler() {
-                        const targetId = this.getAttribute("data-bs-target");
-                        const target = document.querySelector(targetId);
-                        if (target) {
-                            console.log(`Toggle clicked: ${targetId}`);
-                            if (!target.classList.contains('show')) {
-                                this.textContent = "-";
-                                if (target.id.startsWith("child-")) {
-                                    const category = target.getAttribute("data-category") || target.getAttribute("data-contract");
-                                    const commonName = target.getAttribute("data-common-name");
-                                    const middleKey = target.id.split("child-")[1];
-                                    console.log(`Calling loadSubcatData for ${middleKey}`);
-                                    loadSubcatData(category, commonName, middleKey);
-                                }
-                            } else {
-                                this.textContent = "+";
-                            }
-                        } else {
-                            console.error(`Target not found: ${targetId}`);
-                        }
-                    }
-
-                    document.querySelectorAll(".print-aggregate-btn").forEach(btn => {
-                        btn.addEventListener("click", () => {
-                            const category = btn.getAttribute("data-category") || btn.getAttribute("data-contract");
-                            printAggregate(category, data.middle_map || data.child_map);
-                        });
-                    });
-
-                    document.querySelectorAll(".print-items-btn").forEach(btn => {
-                        btn.addEventListener("click", () => {
-                            const category = btn.getAttribute("data-category") || btn.getAttribute("data-contract");
-                            const commonName = btn.getAttribute("data-common-name");
-                            printItems(category, commonName);
-                        });
-                    });
-
-                    document.querySelectorAll(".btn").forEach(btn => {
-                        btn.addEventListener("mouseover", () => {
-                            btn.style.transform = "translateY(-2px)";
-                            btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
-                        });
-                        btn.addEventListener("mouseout", () => {
-                            btn.style.transform = "translateY(0)";
-                            btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
-                        });
-                    });
+                if (data) {
+                    currentTableData = data;
                 }
             })
-            .catch(error => console.error("Refresh Error:", error));
+            .catch(() => {
+                fetch(refreshUrl, { mode: 'no-cors' });
+            });
     }
 
-    // Initial load and refresh every 30 seconds
+    document.getElementById("parentTable")?.addEventListener("click", function(event) {
+        const target = event.target;
+        if (
+            target.classList.contains("print-aggregate-btn") || 
+            target.classList.contains("print-items-btn") || 
+            target.classList.contains("tab4-print-items") || 
+            target.classList.contains("tab5-print-aggregate")
+        ) {
+            if (target.classList.contains("print-aggregate-btn")) {
+                const contract = target.getAttribute("data-contract");
+                basePrintAggregate(contract);
+            } else if (target.classList.contains("print-items-btn")) {
+                const contract = target.getAttribute("data-contract");
+                const commonName = target.getAttribute("data-common-name");
+                const subcat = target.getAttribute("data-subcat") || null;
+                basePrintItems(contract, commonName, subcat);
+            } else if (target.classList.contains("tab4-print-items")) {
+                const commonName = target.getAttribute("data-common-name");
+                tab4PrintItems(commonName);
+            } else if (target.classList.contains("tab5-print-aggregate")) {
+                const contract = target.getAttribute("data-contract");
+                tab5PrintAggregate(contract);
+            }
+        }
+    });
+
+    document.getElementById("crewTable")?.addEventListener("click", function(event) {
+        const target = event.target;
+        if (target.classList.contains("tab3-print-items")) {
+            const crew = target.getAttribute("data-crew");
+            const status = target.getAttribute("data-status");
+            const category = target.getAttribute("data-category");
+            const subcategory = target.getAttribute("data-subcategory");
+            tab3PrintItems(crew, status, category, subcategory);
+        }
+    });
+
     refreshTableData();
     setInterval(refreshTableData, 60000);
 });
 </script>
 </body>
 </html>
-
