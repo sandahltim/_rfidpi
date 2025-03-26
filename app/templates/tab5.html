@@ -52,13 +52,13 @@
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ contract_key }}">+</span></td>
         <td>{{ parent.contract }}</td>
         <td>{{ parent.total }}</td>
-        <td><button class="btn btn-outline-dark btn-sm print-btn" data-contract="{{ parent.contract }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+        <td><button class="btn btn-outline-dark btn-sm tab5-print-aggregate" data-contract="{{ parent.contract }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="4" class="p-0">
           <div id="child-{{ contract_key }}" class="collapse" data-contract="{{ parent.contract }}">
             <div class="child-table-container">
-              <table class="table table-striped table-bordered child-table" id="childTable-{{ contract_key }}" style="border: 2px solid #34495e;">
+              <table class="table table-striped table-bordered child-table" style="border: 2px solid #34495e;">
                 <thead style="background: #3498db; color: #fff;">
                   <tr>
                     <th style="width: 50px;"></th>
@@ -92,7 +92,7 @@
                           <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
                         </nav>
                         <div class="grandchild-table-container">
-                          <table class="table mb-0 grandchild-table" id="grandchildTable-{{ child_key }}" style="border: 2px solid #2c3e50;">
+                          <table class="table mb-0 grandchild-table" style="border: 2px solid #2c3e50;">
                             <thead style="background: #2c3e50; color: #ecf0f1;">
                               <tr>
                                 <th class="sortable" data-col-name="tag_id">Tag ID</th>
@@ -296,11 +296,17 @@ function loadSubcatData(contract, common_name, page, childKey) {
     });
 }
 
-function printContract(contract) {
+function tab5PrintAggregate(contract) {
+  console.log(`tab5PrintAggregate called with contract: ${contract}`);
   const childMap = {{ child_map_json|tojson }};
   const items = childMap[contract] || {};
 
   const printWin = window.open('', '_blank');
+  if (!printWin) {
+    console.error("tab5PrintAggregate: Failed to open window—popup blocker?");
+    return;
+  }
+
   printWin.document.write(`
     <html>
       <head>
@@ -406,13 +412,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.querySelectorAll(".print-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const contract = btn.getAttribute("data-contract");
-      printContract(contract);
-    });
-  });
-
   document.querySelectorAll(".btn").forEach(btn => {
     btn.addEventListener("mouseover", () => {
       btn.style.transform = "translateY(-2px)";
@@ -424,6 +423,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+
+function confirmSave() {
+  return confirm("Are you sure you want to save this hand-counted data?");
+}
+
+function confirmUpdate() {
+  return confirm("Are you sure you want to update this hand-counted data?");
+}
 </script>
 
 <style>

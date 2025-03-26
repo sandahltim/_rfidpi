@@ -223,25 +223,30 @@ document.addEventListener("DOMContentLoaded", function() {
         const urlParams = new URLSearchParams(window.location.search);
         const refreshUrl = `${currentPath.endsWith('/') ? currentPath : currentPath + '/'}refresh_data?${urlParams.toString()}`;
 
-        fetch(refreshUrl)
+        fetch(refreshUrl, { mode: 'cors' })
             .then(response => {
                 console.log(`Refresh Fetch Status: ${response.status}`);
                 if (!response.ok) {
                     console.log(`Refresh endpoint not available for ${currentPath}, skipping...`);
-                    return null; // Silently skip if endpoint doesn't exist
+                    return null;
                 }
                 return response.json();
             })
             .then(data => {
                 if (data) {
                     console.log("Refresh Data:", data);
-                    currentTableData = data; // Only update if data is received
+                    currentTableData = data;
                 }
             })
-            .catch(error => console.error("Refresh Error:", error));
+            .catch(error => {
+                console.error("Refresh Error:", error);
+                fetch(refreshUrl, { mode: 'no-cors' })
+                    .then(response => console.log(`No-CORS fallback for ${refreshUrl}`))
+                    .catch(err => console.error("No-CORS fallback failed:", err));
+            });
     }
 
-    // Event delegation for base print buttons on #parentTable
+    // Event delegation for #parentTable
     document.getElementById("parentTable")?.addEventListener("click", function(event) {
         const target = event.target;
         console.log("Click detected on #parentTable:", target);
@@ -253,10 +258,16 @@ document.addEventListener("DOMContentLoaded", function() {
             const commonName = target.getAttribute("data-common-name");
             const subcat = target.getAttribute("data-subcat") || null;
             basePrintItems(contract, commonName, subcat);
+        } else if (target.classList.contains("tab4-print-items")) {
+            const commonName = target.getAttribute("data-common-name");
+            tab4PrintItems(commonName);
+        } else if (target.classList.contains("tab5-print-aggregate")) {
+            const contract = target.getAttribute("data-contract");
+            tab5PrintAggregate(contract);
         }
     });
 
-    // Event delegation for tab3 on #crewTable
+    // Event delegation for #crewTable (tab3)
     document.getElementById("crewTable")?.addEventListener("click", function(event) {
         const target = event.target;
         console.log("Click detected on #crewTable:", target);
