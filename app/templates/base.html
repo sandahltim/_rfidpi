@@ -24,7 +24,7 @@
                 <li class="nav-item"><a class="nav-link" href="/tab2/">Categories</a></li>
                 <li class="nav-item"><a class="nav-link" href="/tab3/">Service Items</a></li>
                 <li class="nav-item"><a class="nav-link" href="/tab4/">Full Inventory</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab5/">Laundry Contracts</a></li>
+                <li class="nav-item"><a class="nav-link" href="/tab5/">Laundry Contracts</a></li> <!-- Fixed to tab5 -->
                 <li class="nav-item"><a class="nav-link" href="/tab6/">Resale Items</a></li>
             </ul>
         </nav>
@@ -246,7 +246,6 @@ document.addEventListener("DOMContentLoaded", function() {
             });
     }
 
-    // Event delegation for #parentTable (print buttons only)
     document.getElementById("parentTable")?.addEventListener("click", function(event) {
         const target = event.target;
         if (target.classList.contains("print-aggregate-btn") || 
@@ -272,7 +271,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // Event delegation for #crewTable (tab3)
     document.getElementById("crewTable")?.addEventListener("click", function(event) {
         const target = event.target;
         if (target.classList.contains("tab3-print-items")) {

@@ -6,8 +6,7 @@ import sqlite3
 import os
 import logging
 
-tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
-
+tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")  # Fixed to tab5_bp
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
 logging.basicConfig(level=logging.DEBUG)
 
@@ -32,7 +31,7 @@ def init_hand_counted_db():
             logging.debug("Initialized tab5_hand_counted.db")
         os.chmod(HAND_COUNTED_DB, 0o666)
     except Exception as e:
-        logging.error(f"Error initializing tab5_hand_counted.db: {e}")
+        logging.error(f"Error initializing tab5_hand_counted.db: {e}", exc_info=True)
 
 @tab5_bp.route("/")
 def show_tab5():
@@ -78,12 +77,23 @@ def show_tab5():
 
         parent_data = []
         child_map = {}
+        grandchild_map = defaultdict(lambda: defaultdict(list))
         for contract, item_list in contract_map.items():
             logging.debug(f"Processing contract: {contract}")
             common_name_map = defaultdict(list)
             for item in item_list:
                 common_name = item.get("common_name", "Unknown")
                 common_name_map[common_name].append(item)
+                grandchild_map[contract][common_name].append({
+                    "tag_id": item.get("tag_id", "N/A"),
+                    "common_name": common_name,
+                    "status": item.get("status", "Hand Counted" if item.get("tag_id") is None else "N/A"),
+                    "bin_location": item.get("bin_location", "N/A"),
+                    "quality": item.get("quality", "N/A"),
+                    "last_contract_num": contract,
+                    "date_last_scanned": item.get("date_last_scanned", "N/A"),
+                    "last_scanned_by": item.get("last_scanned_by", "Unknown")
+                })
 
             child_data = {}
             for common_name, items in common_name_map.items():
@@ -120,12 +130,13 @@ def show_tab5():
             "tab5.html",
             parent_data=parent_data,
             child_map=child_map,
+            grandchild_map=grandchild_map,
+            child_map_json=child_map,
             filter_contract=filter_contract,
-            filter_common_name=filter_common_name,
-            child_map_json=child_map
+            filter_common_name=filter_common_name
         )
     except Exception as e:
-        logging.error(f"Error in show_tab5: {e}")
+        logging.error(f"Error in show_tab5: {e}", exc_info=True)
         return "Internal Server Error", 500
 
 @tab5_bp.route("/save_hand_counted", methods=["POST"])
@@ -148,7 +159,7 @@ def save_hand_counted():
 
         return redirect(url_for("tab5_bp.show_tab5"))
     except Exception as e:
-        logging.error(f"Error saving hand-counted entry: {e}")
+        logging.error(f"Error saving hand-counted entry: {e}", exc_info=True)
         return "Internal Server Error", 500
 
 @tab5_bp.route("/update_hand_counted", methods=["POST"])
@@ -203,7 +214,7 @@ def update_hand_counted():
 
         return redirect(url_for("tab5_bp.show_tab5"))
     except Exception as e:
-        logging.error(f"Error updating hand-counted entry: {e}")
+        logging.error(f"Error updating hand-counted entry: {e}", exc_info=True)
         return "Internal Server Error", 500
 
 @tab5_bp.route("/subcat_data", methods=["GET"])
@@ -221,6 +232,7 @@ def subcat_data():
         logging.debug(f"Fetched {len(items)} active rental items")
 
     with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
+        logging.debug("Fetching hand-counted data for subcat")
         conn.row_factory = sqlite3.Row
         hand_items = conn.execute(
             "SELECT * FROM hand_counted_items WHERE last_contract_num = ? AND common_name = ?", 
