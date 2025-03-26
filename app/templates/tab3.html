@@ -44,7 +44,7 @@
                 {% for status, cat_dict in crew_map[crew_entry.crew].items() %}
                 {% set status_key = status|lower|replace(' ', '_') %}
                 <tr class="table-info">
-                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#category-{{ crew_key }}-{{ status pedalskey }}">+</span></td>
+                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#category-{{ crew_key }}-{{ status_key }}">+</span></td>
                   <td>{{ status }}</td>
                   <td>{{ crew_entry.status_counts[status] }}</td>
                 </tr>
@@ -88,7 +88,16 @@
                                       <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#items-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}">+</span></td>
                                       <td>{{ subcategory }}</td>
                                       <td>{{ items|length }}</td>
-                                      <td><button class="btn btn-outline-dark btn-sm tab3-print-items" data-crew="{{ crew_entry.crew }}" data-status="{{ status }}" data-category="{{ category }}" data-subcategory="{{ subcategory }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                                      <td>
+                                        <button class="btn btn-outline-dark btn-sm tab3-print-items"
+                                                data-crew="{{ crew_entry.crew }}"
+                                                data-status="{{ status }}"
+                                                data-category="{{ category }}"
+                                                data-subcategory="{{ subcategory }}"
+                                                style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">
+                                          Print
+                                        </button>
+                                      </td>
                                     </tr>
                                     <tr>
                                       <td colspan="4" class="p-0">
@@ -188,10 +197,12 @@ function sortTable(tableEl, colName) {
     for (let i = 0; i < rows.length; i += 2) {
       let parentRow = rows[i];
       let childRow = rows[i + 1] || null;
-      if (parentRow && (parentRow.classList.contains("table-active") || 
-                        parentRow.classList.contains("table-info") || 
-                        parentRow.classList.contains("table-success") || 
-                        parentRow.classList.contains("table-warning"))) {
+      if (parentRow && (
+          parentRow.classList.contains("table-active") ||
+          parentRow.classList.contains("table-info") ||
+          parentRow.classList.contains("table-success") ||
+          parentRow.classList.contains("table-warning")
+        )) {
         pairs.push({ parent: parentRow, child: childRow });
       }
     }
