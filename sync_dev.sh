@@ -13,6 +13,6 @@ git pull origin dev
 git stash pop
 
 # Restart service
-sudo systemctl restart rfid_dash_test
+sudo systemctl restart rfid_dash_dev
 
 echo "Sync complete: $(git rev-parse HEAD)"
