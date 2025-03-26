@@ -2,10 +2,8 @@ from flask import Blueprint, render_template, request, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
 import re
-import logging
 
 tab2_bp = Blueprint("tab2_bp", __name__, url_prefix="/tab2")
-logging.basicConfig(level=logging.DEBUG)
 
 def tokenize_name(name):
     return re.split(r'\W+', name.lower())
@@ -20,7 +18,7 @@ def categorize_item(item):
         return 'Round Linen'
     elif any(word in tokens for word in ['90x90', '90x132', '60x120', '90x156', '54']):
         return 'Rectangle Linen'
-    elif any(word in tokens for word in ['otc', 'machine', 'hotdog', 'nacho']):
+    elif any(word in tokens for word in ['otc', 'machine', 'hotdog', 'warmer']):
         return 'Concession'
     else:
         return 'Other'
@@ -78,7 +76,7 @@ def subcategorize_item(category, item):
             return 'SnoKone Machines'
         elif 'hotdog' in tokens:
             return 'Hotdog Machines'
-        elif 'cheese' in tokens:
+        elif 'warmer' in tokens:
             return 'Warmers'
         elif 'popcorn' in tokens:
             return 'Popcorn Machines'
@@ -89,8 +87,6 @@ def subcategorize_item(category, item):
 
 @tab2_bp.route("/")
 def show_tab2():
-    print("Loading /tab2/ endpoint")
-    logging.debug("Starting /tab2/ endpoint")
     with DatabaseConnection() as conn:
         rows = conn.execute("SELECT * FROM id_item_master").fetchall()
     items = [dict(row) for row in rows]
@@ -103,15 +99,30 @@ def show_tab2():
 
     filtered_items = items
     if filter_common_name:
-        filtered_items = [item for item in filtered_items if filter_common_name in (item.get("common_name") or "").lower()]
+        filtered_items = [
+            item for item in filtered_items 
+            if filter_common_name in (item.get("common_name") or "").lower()
+        ]
     if filter_tag_id:
-        filtered_items = [item for item in filtered_items if filter_tag_id in (item.get("tag_id") or "").lower()]
+        filtered_items = [
+            item for item in filtered_items 
+            if filter_tag_id in (item.get("tag_id") or "").lower()
+        ]
     if filter_bin_location:
-        filtered_items = [item for item in filtered_items if filter_bin_location in (item.get("bin_location") or "").lower()]
+        filtered_items = [
+            item for item in filtered_items 
+            if filter_bin_location in (item.get("bin_location") or "").lower()
+        ]
     if filter_last_contract:
-        filtered_items = [item for item in filtered_items if filter_last_contract in (item.get("last_contract_num") or "").lower()]
+        filtered_items = [
+            item for item in filtered_items 
+            if filter_last_contract in (item.get("last_contract_num") or "").lower()
+        ]
     if filter_status:
-        filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
+        filtered_items = [
+            item for item in filtered_items 
+            if filter_status in (item.get("status") or "").lower()
+        ]
 
     category_map = defaultdict(list)
     for item in filtered_items:
@@ -125,40 +136,42 @@ def show_tab2():
     selected_subcat = request.args.get('subcat', None)
 
     for category, item_list in category_map.items():
-        available = sum(1 for item in item_list if item["status"] == "Ready to Rent")
-        on_rent = sum(1 for item in item_list if item["status"] in ["On Rent", "Delivered"])
-        service = sum(1 for item in item_list if item["status"] not in ["Ready to Rent", "On Rent", "Delivered"])
+        available = sum(1 for i in item_list if i["status"] == "Ready to Rent")
+        on_rent = sum(1 for i in item_list if i["status"] in ["On Rent", "Delivered"])
+        service = sum(1 for i in item_list if i["status"] not in ["Ready to Rent", "On Rent", "Delivered"])
         total = len(item_list)
 
         temp_sub_map = defaultdict(list)
-        for item in item_list:
-            subcat = subcategorize_item(category, item)
-            temp_sub_map[subcat].append(item)
+        for itm in item_list:
+            subcat = subcategorize_item(category, itm)
+            temp_sub_map[subcat].append(itm)
         sub_map[category] = {"subcategories": list(temp_sub_map.keys())}
 
         common_name_map = defaultdict(list)
-        for item in item_list:
-            common_name = item.get("common_name", "Unknown")
-            common_name_map[common_name].append(item)
+        for itm in item_list:
+            cname = itm.get("common_name", "Unknown")
+            common_name_map[cname].append(itm)
         middle_map[category] = [
-            {"common_name": name, "total": len(items)}
-            for name, items in sorted(common_name_map.items(), key=lambda x: x[0].lower())
+            {"common_name": n, "total": len(i)}
+            for n, i in sorted(common_name_map.items(), key=lambda x: x[0].lower())
         ]
-        logging.debug(f"Middle Map for {category}: {middle_map[category]}")
 
-        subcat_to_show = selected_subcat if selected_subcat in temp_sub_map else list(temp_sub_map.keys())[0] if temp_sub_map else None
+        subcat_to_show = (
+            selected_subcat 
+            if selected_subcat in temp_sub_map 
+            else (list(temp_sub_map.keys())[0] if temp_sub_map else None)
+        )
         display_middle_map = {}
         if subcat_to_show:
             cat_items = temp_sub_map[subcat_to_show]
             display_common_name_map = defaultdict(list)
-            for item in cat_items:
-                common_name = item.get("common_name", "Unknown")
-                display_common_name_map[common_name].append(item)
+            for itm in cat_items:
+                cname = itm.get("common_name", "Unknown")
+                display_common_name_map[cname].append(itm)
             display_middle_map[category] = [
-                {"common_name": name, "total": len(items)}
-                for name, items in sorted(display_common_name_map.items(), key=lambda x: x[0].lower())
+                {"common_name": n, "total": len(i)}
+                for n, i in sorted(display_common_name_map.items(), key=lambda x: x[0].lower())
             ]
-            logging.debug(f"Display Middle Map for {category}, Subcat {subcat_to_show}: {display_middle_map[category]}")
 
         parent_data.append({
             "category": category,
@@ -187,7 +200,6 @@ def show_tab2():
 
 @tab2_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
-    print("Hit /tab2/subcat_data endpoint")
     category = request.args.get('category')
     subcat = request.args.get('subcat')
     common_name = request.args.get('common_name')
@@ -206,21 +218,35 @@ def subcat_data():
 
     filtered_items = items
     if filter_common_name:
-        filtered_items = [item for item in filtered_items if filter_common_name in (item.get("common_name") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_common_name in (i.get("common_name") or "").lower()
+        ]
     if filter_tag_id:
-        filtered_items = [item for item in filtered_items if filter_tag_id in (item.get("tag_id") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_tag_id in (i.get("tag_id") or "").lower()
+        ]
     if filter_bin_location:
-        filtered_items = [item for item in filtered_items if filter_bin_location in (item.get("bin_location") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_bin_location in (i.get("bin_location") or "").lower()
+        ]
     if filter_last_contract:
-        filtered_items = [item for item in filtered_items if filter_last_contract in (item.get("last_contract_num") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_last_contract in (i.get("last_contract_num") or "").lower()
+        ]
     if filter_status:
-        filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_status in (i.get("status") or "").lower()
+        ]
 
-    category_items = [item for item in filtered_items if categorize_item(item) == category]
-    subcat_items = [item for item in category_items if subcategorize_item(category, item) == subcat]
-    
+    category_items = [i for i in filtered_items if categorize_item(i) == category]
+    subcat_items = [i for i in category_items if subcategorize_item(category, i) == subcat]
     if common_name:
-        subcat_items = [item for item in subcat_items if item.get("common_name", "Unknown") == common_name]
+        subcat_items = [i for i in subcat_items if i.get("common_name", "Unknown") == common_name]
 
     total_items = len(subcat_items)
     total_pages = (total_items + per_page - 1) // per_page
@@ -229,16 +255,14 @@ def subcat_data():
     end = start + per_page
     paginated_items = subcat_items[start:end]
 
-    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
-
     return jsonify({
         "items": [{
-            "tag_id": item["tag_id"],
-            "common_name": item["common_name"],
-            "status": item["status"],
-            "bin_location": item["bin_location"],
-            "quality": item["quality"]
-        } for item in paginated_items],
+            "tag_id": itm["tag_id"],
+            "common_name": itm["common_name"],
+            "status": itm["status"],
+            "bin_location": itm["bin_location"],
+            "quality": itm["quality"]
+        } for itm in paginated_items],
         "total_items": total_items,
         "total_pages": total_pages,
         "current_page": page
@@ -246,7 +270,6 @@ def subcat_data():
 
 @tab2_bp.route("/middle_data", methods=["GET"])
 def middle_data():
-    print("Hit /tab2/middle_data endpoint")
     category = request.args.get('category')
     subcat = request.args.get('subcat')
 
@@ -262,29 +285,42 @@ def middle_data():
 
     filtered_items = items
     if filter_common_name:
-        filtered_items = [item for item in filtered_items if filter_common_name in (item.get("common_name") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_common_name in (i.get("common_name") or "").lower()
+        ]
     if filter_tag_id:
-        filtered_items = [item for item in filtered_items if filter_tag_id in (item.get("tag_id") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_tag_id in (i.get("tag_id") or "").lower()
+        ]
     if filter_bin_location:
-        filtered_items = [item for item in filtered_items if filter_bin_location in (item.get("bin_location") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_bin_location in (i.get("bin_location") or "").lower()
+        ]
     if filter_last_contract:
-        filtered_items = [item for item in filtered_items if filter_last_contract in (item.get("last_contract_num") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_last_contract in (i.get("last_contract_num") or "").lower()
+        ]
     if filter_status:
-        filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
+        filtered_items = [
+            i for i in filtered_items 
+            if filter_status in (i.get("status") or "").lower()
+        ]
 
-    category_items = [item for item in filtered_items if categorize_item(item) == category]
-    subcat_items = [item for item in category_items if subcategorize_item(category, item) == subcat]
+    category_items = [i for i in filtered_items if categorize_item(i) == category]
+    subcat_items = [i for i in category_items if subcategorize_item(category, i) == subcat]
 
     common_name_map = defaultdict(list)
-    for item in subcat_items:
-        common_name = item.get("common_name", "Unknown")
-        common_name_map[common_name].append(item)
-    
+    for itm in subcat_items:
+        cname = itm.get("common_name", "Unknown")
+        common_name_map[cname].append(itm)
+
     middle_data = [
-        {"common_name": name, "total": len(items)}
-        for name, items in sorted(common_name_map.items(), key=lambda x: x[0].lower())
+        {"common_name": n, "total": len(i)}
+        for n, i in sorted(common_name_map.items(), key=lambda x: x[0].lower())
     ]
 
-    print(f"Middle Data: Category: {category}, Subcategory: {subcat}, Items: {len(middle_data)}")
-    logging.debug(f"Middle Data Response: {middle_data}")
     return jsonify({"middle_data": middle_data})
