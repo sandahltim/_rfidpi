@@ -12,9 +12,7 @@ FULL_REFRESH_INTERVAL = 300  # 5 minutes
 FAST_REFRESH_INTERVAL = 30   # 30 seconds
 
 def get_access_token():
-    """
-    Fetch and cache API access token.
-    """
+    """Fetch and cache API access token."""
     global TOKEN, TOKEN_EXPIRY
     now = datetime.utcnow()
 
@@ -27,14 +25,14 @@ def get_access_token():
         response.raise_for_status()
         TOKEN = response.json().get("access_token")
         TOKEN_EXPIRY = now + timedelta(minutes=55)
+        print("Access token refreshed.")
         return TOKEN
-    except requests.RequestException:
+    except requests.RequestException as e:
+        print(f"Error fetching access token: {e}")
         return None
 
 def fetch_paginated_data(url, token, status_filter=None):
-    """
-    Fetch data from API with optional status filter.
-    """
+    """Fetch data from API with optional status filter."""
     headers = {"Authorization": f"Bearer {token}"}
     params = {"limit": 200, "offset": 0}
     if status_filter:
@@ -47,17 +45,18 @@ def fetch_paginated_data(url, token, status_filter=None):
             response.raise_for_status()
             data = response.json().get("data", [])
             if not data:
+                print(f"Finished fetching {len(all_data)} records from {url}{' with filter ' + status_filter if status_filter else ''}")
                 break
             all_data.extend(data)
+            print(f" Fetched {len(data)} more records, total: {len(all_data)}")
             params["offset"] += 200
-        except requests.RequestException:
+        except requests.RequestException as e:
+            print(f"Error fetching data from {url}: {e}")
             return all_data
     return all_data
 
 def update_item_master(data):
-    """
-    Inserts or updates item master data in SQLite.
-    """
+    """Inserts or updates item master data in SQLite."""
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     cursor = conn.cursor()
 
@@ -113,26 +112,26 @@ def update_item_master(data):
                 ),
             )
         conn.commit()
-    except sqlite3.Error:
+        print("Item Master data updated.")
+    except sqlite3.Error as e:
+        print(f"Database error updating item master: {e}")
         conn.rollback()
     finally:
         conn.close()
 
 def clear_transactions(conn):
-    """
-    Clears all rows from id_transactions before a full refresh.
-    """
+    """Clears all rows from id_transactions before a full refresh."""
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM id_transactions")
         conn.commit()
-    except sqlite3.Error:
+        print(" Cleared id_transactions table.")
+    except sqlite3.Error as e:
+        print(f" Error clearing transactions: {e}")
         conn.rollback()
 
 def update_transactions(data):
-    """
-    Inserts or updates transaction data in SQLite after clearing old data.
-    """
+    """Inserts or updates transaction data in SQLite after clearing old data."""
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     cursor = conn.cursor()
 
@@ -218,28 +217,31 @@ def update_transactions(data):
                 ),
             )
         conn.commit()
-    except sqlite3.Error:
+        print("Transaction data updated.")
+    except sqlite3.Error as e:
+        print(f" Database error updating transactions: {e}")
         conn.rollback()
     finally:
         conn.close()
 
 def fast_refresh():
-    """
-    Quick refresh for items not 'Ready to Rent'.
-    """
+    """Quick refresh for items not 'Ready to Rent'."""
     token = get_access_token()
     if not token:
+        print(" No access token. Aborting fast refresh.")
         return
+
     item_master_data = fetch_paginated_data(ITEM_MASTER_URL, token, status_filter="!Ready to Rent")
     update_item_master(item_master_data)
+    print(f"Fast refresh complete. Waiting {FAST_REFRESH_INTERVAL} seconds...")
 
 def full_refresh():
-    """
-    Full refresh of all data.
-    """
+    """Full refresh of all data."""
     token = get_access_token()
     if not token:
+        print(" No access token. Aborting full refresh.")
         return
+
     item_master_data = fetch_paginated_data(ITEM_MASTER_URL, token)
     transactions_data = fetch_paginated_data(TRANSACTION_URL, token)
 
@@ -250,3 +252,5 @@ def full_refresh():
         update_item_master(item_master_data)
     finally:
         conn.close()
+
+    print(f"Full refresh complete. Waiting {FULL_REFRESH_INTERVAL} seconds...")
