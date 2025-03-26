@@ -24,7 +24,7 @@
                 <li class="nav-item"><a class="nav-link" href="/tab2/">Categories</a></li>
                 <li class="nav-item"><a class="nav-link" href="/tab3/">Service Items</a></li>
                 <li class="nav-item"><a class="nav-link" href="/tab4/">Full Inventory</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab5/">Laundry Contracts</a></li>
+                <li class="nav-item"><a class="nav-link" href="/tab5/">Laundry Contracts</a></li> <!-- Fixed to tab5 -->
                 <li class="nav-item"><a class="nav-link" href="/tab6/">Resale Items</a></li>
             </ul>
         </nav>
@@ -46,13 +46,16 @@
 let currentTableData = {};
 
 function basePrintAggregate(contract) {
+    console.log(`basePrintAggregate called with contract: ${contract}`);
     const middleData = currentTableData.middle_map || {};
     const parentData = currentTableData.parent_data || [];
     const aggregateItems = middleData[contract] || [];
     const parent = parentData.find(p => p.contract_num === contract || p.category === contract) || {};
+    console.log(`aggregateItems:`, aggregateItems, `parent:`, parent);
 
     const aggregateWin = window.open('', '_blank');
     if (!aggregateWin) {
+        console.error("basePrintAggregate: Failed to open window—popup blocker?");
         return;
     }
 
@@ -107,7 +110,9 @@ function basePrintAggregate(contract) {
 }
 
 function basePrintItems(contract, commonName, subcat = null) {
-    let itemList = (currentTableData.contract_map || {})[contract]?.[commonName] || [];
+    console.log(`basePrintItems called with contract: ${contract}, commonName: ${commonName}, subcat: ${subcat}`);
+    const contractMap = currentTableData.contract_map || {};
+    let itemList = (contractMap[contract] && contractMap[contract][commonName]) || [];
 
     if (subcat) {
         const urlParams = new URLSearchParams(window.location.search);
@@ -123,6 +128,7 @@ function basePrintItems(contract, commonName, subcat = null) {
             status: urlParams.get('status') || ''
         };
         const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
+        console.log(`Fetching items from: ${url}`);
 
         fetch(url)
             .then(response => {
@@ -131,10 +137,12 @@ function basePrintItems(contract, commonName, subcat = null) {
             })
             .then(data => {
                 itemList = data.items || [];
+                console.log(`Fetched itemList:`, itemList);
                 renderBasePrintItems(contract, commonName, itemList, subcat);
             })
-            .catch(() => {
-                alert('Failed to print items.');
+            .catch(error => {
+                console.error('Error fetching items:', error);
+                alert('Failed to print items: ' + error.message);
             });
     } else {
         renderBasePrintItems(contract, commonName, itemList);
@@ -144,6 +152,7 @@ function basePrintItems(contract, commonName, subcat = null) {
 function renderBasePrintItems(contract, commonName, itemList, subcat = null) {
     const itemsWin = window.open('', '_blank');
     if (!itemsWin) {
+        console.error("basePrintItems: Failed to open window—popup blocker?");
         return;
     }
 
@@ -207,6 +216,8 @@ function renderBasePrintItems(contract, commonName, itemList, subcat = null) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    console.log("Base DOM Content Loaded");
+
     function refreshTableData() {
         const currentPath = window.location.pathname;
         const urlParams = new URLSearchParams(window.location.search);
@@ -214,29 +225,34 @@ document.addEventListener("DOMContentLoaded", function() {
 
         fetch(refreshUrl, { mode: 'cors' })
             .then(response => {
+                console.log(`Refresh Fetch Status: ${response.status}`);
                 if (!response.ok) {
+                    console.log(`Refresh endpoint not available for ${currentPath}, skipping...`);
                     return null;
                 }
                 return response.json();
             })
             .then(data => {
                 if (data) {
+                    console.log("Refresh Data:", data);
                     currentTableData = data;
                 }
             })
-            .catch(() => {
-                fetch(refreshUrl, { mode: 'no-cors' });
+            .catch(error => {
+                console.error("Refresh Error:", error);
+                fetch(refreshUrl, { mode: 'no-cors' })
+                    .then(response => console.log(`No-CORS fallback for ${refreshUrl}`))
+                    .catch(err => console.error("No-CORS fallback failed:", err));
             });
     }
 
     document.getElementById("parentTable")?.addEventListener("click", function(event) {
         const target = event.target;
-        if (
-            target.classList.contains("print-aggregate-btn") || 
+        if (target.classList.contains("print-aggregate-btn") || 
             target.classList.contains("print-items-btn") || 
             target.classList.contains("tab4-print-items") || 
-            target.classList.contains("tab5-print-aggregate")
-        ) {
+            target.classList.contains("tab5-print-aggregate")) {
+            console.log("Click detected on #parentTable (print button):", target);
             if (target.classList.contains("print-aggregate-btn")) {
                 const contract = target.getAttribute("data-contract");
                 basePrintAggregate(contract);
@@ -258,6 +274,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("crewTable")?.addEventListener("click", function(event) {
         const target = event.target;
         if (target.classList.contains("tab3-print-items")) {
+            console.log("Click detected on #crewTable:", target);
             const crew = target.getAttribute("data-crew");
             const status = target.getAttribute("data-status");
             const category = target.getAttribute("data-category");
