@@ -246,32 +246,37 @@ document.addEventListener("DOMContentLoaded", function() {
             });
     }
 
-    // Event delegation for #parentTable
+    // Event delegation for #parentTable (print buttons only)
     document.getElementById("parentTable")?.addEventListener("click", function(event) {
         const target = event.target;
-        console.log("Click detected on #parentTable:", target);
-        if (target.classList.contains("print-aggregate-btn")) {
-            const contract = target.getAttribute("data-contract");
-            basePrintAggregate(contract);
-        } else if (target.classList.contains("print-items-btn")) {
-            const contract = target.getAttribute("data-contract");
-            const commonName = target.getAttribute("data-common-name");
-            const subcat = target.getAttribute("data-subcat") || null;
-            basePrintItems(contract, commonName, subcat);
-        } else if (target.classList.contains("tab4-print-items")) {
-            const commonName = target.getAttribute("data-common-name");
-            tab4PrintItems(commonName);
-        } else if (target.classList.contains("tab5-print-aggregate")) {
-            const contract = target.getAttribute("data-contract");
-            tab5PrintAggregate(contract);
+        if (target.classList.contains("print-aggregate-btn") || 
+            target.classList.contains("print-items-btn") || 
+            target.classList.contains("tab4-print-items") || 
+            target.classList.contains("tab5-print-aggregate")) {
+            console.log("Click detected on #parentTable (print button):", target);
+            if (target.classList.contains("print-aggregate-btn")) {
+                const contract = target.getAttribute("data-contract");
+                basePrintAggregate(contract);
+            } else if (target.classList.contains("print-items-btn")) {
+                const contract = target.getAttribute("data-contract");
+                const commonName = target.getAttribute("data-common-name");
+                const subcat = target.getAttribute("data-subcat") || null;
+                basePrintItems(contract, commonName, subcat);
+            } else if (target.classList.contains("tab4-print-items")) {
+                const commonName = target.getAttribute("data-common-name");
+                tab4PrintItems(commonName);
+            } else if (target.classList.contains("tab5-print-aggregate")) {
+                const contract = target.getAttribute("data-contract");
+                tab5PrintAggregate(contract);
+            }
         }
     });
 
     // Event delegation for #crewTable (tab3)
     document.getElementById("crewTable")?.addEventListener("click", function(event) {
         const target = event.target;
-        console.log("Click detected on #crewTable:", target);
         if (target.classList.contains("tab3-print-items")) {
+            console.log("Click detected on #crewTable:", target);
             const crew = target.getAttribute("data-crew");
             const status = target.getAttribute("data-status");
             const category = target.getAttribute("data-category");

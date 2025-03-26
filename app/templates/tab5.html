@@ -388,11 +388,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  document.querySelectorAll(".expand-toggle").forEach(toggle => {
-    toggle.addEventListener("click", () => {
+  parentTable.addEventListener("click", (event) => {
+    const toggle = event.target.closest(".expand-toggle");
+    if (toggle) {
+      console.log("Expand toggle clicked:", toggle);
       const targetId = toggle.getAttribute("data-bs-target");
       const target = document.querySelector(targetId);
       if (target) {
+        console.log(`Target found: ${targetId}, currently ${target.classList.contains('show') ? 'shown' : 'hidden'}`);
         const isShowing = target.classList.contains('show');
         toggle.textContent = isShowing ? "+" : "-";
         if (!isShowing && target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
@@ -409,10 +412,12 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
               console.error(`Grandchild table not found for ChildKey: ${childKey}`);
             }
-          }, 500); // Increased timeout to ensure DOM is ready
+          }, 500);
         }
+      } else {
+        console.error(`Target not found for ID: ${targetId}`);
       }
-    });
+    }
   });
 
   document.querySelectorAll(".btn").forEach(btn => {
