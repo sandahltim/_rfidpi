@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home/tim/test_rfidpi
+cd /home/tim/dev_rfidpi
 cp config.py config.py.bak
 git pull origin dev
 mv config.py.bak config.py
