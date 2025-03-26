@@ -32,7 +32,7 @@
       <tr>
         <td colspan="7" class="p-0">
           <div id="status-{{ crew_key }}" class="collapse" data-crew="{{ crew_entry.crew }}">
-            <table class="table mb-0 status-table" id="statusTable-{{ crew_key }}" style="border: 2px solid #34495e;">
+            <table class="table mb-0 status-table" style="border: 2px solid #34495e;">
               <thead style="background: #3498db; color: #fff;">
                 <tr>
                   <th style="width: 50px;"></th>
@@ -44,14 +44,14 @@
                 {% for status, cat_dict in crew_map[crew_entry.crew].items() %}
                 {% set status_key = status|lower|replace(' ', '_') %}
                 <tr class="table-info">
-                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#category-{{ crew_key }}-{{ status_key }}">+</span></td>
+                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#category-{{ crew_key }}-{{ status pedalskey }}">+</span></td>
                   <td>{{ status }}</td>
                   <td>{{ crew_entry.status_counts[status] }}</td>
                 </tr>
                 <tr>
                   <td colspan="3" class="p-0">
                     <div id="category-{{ crew_key }}-{{ status_key }}" class="collapse" data-status="{{ status }}">
-                      <table class="table mb-0 category-table" id="categoryTable-{{ crew_key }}-{{ status_key }}" style="border: 2px solid #34495e;">
+                      <table class="table mb-0 category-table" style="border: 2px solid #34495e;">
                         <thead style="background: #3498db; color: #fff;">
                           <tr>
                             <th style="width: 50px;"></th>
@@ -72,7 +72,7 @@
                           <tr>
                             <td colspan="4" class="p-0">
                               <div id="subcategory-{{ crew_key }}-{{ status_key }}-{{ cat_key }}" class="collapse" data-category="{{ category }}">
-                                <table class="table mb-0 subcategory-table" id="subcategoryTable-{{ crew_key }}-{{ status_key }}-{{ cat_key }}" style="border: 2px solid #34495e;">
+                                <table class="table mb-0 subcategory-table" style="border: 2px solid #34495e;">
                                   <thead style="background: #3498db; color: #fff;">
                                     <tr>
                                       <th style="width: 50px;"></th>
@@ -88,12 +88,12 @@
                                       <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#items-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}">+</span></td>
                                       <td>{{ subcategory }}</td>
                                       <td>{{ items|length }}</td>
-                                      <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-crew="{{ crew_entry.crew }}" data-status="{{ status }}" data-category="{{ category }}" data-subcategory="{{ subcategory }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                                      <td><button class="btn btn-outline-dark btn-sm tab3-print-items" data-crew="{{ crew_entry.crew }}" data-status="{{ status }}" data-category="{{ category }}" data-subcategory="{{ subcategory }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
                                     </tr>
                                     <tr>
                                       <td colspan="4" class="p-0">
                                         <div id="items-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}" class="collapse" data-subcategory="{{ subcategory }}">
-                                          <table class="table mb-0 items-table" id="itemsTable-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}" style="border: 2px solid #2c3e50;">
+                                          <table class="table mb-0 items-table" style="border: 2px solid #2c3e50;">
                                             <thead style="background: #2c3e50; color: #ecf0f1;">
                                               <tr>
                                                 <th class="sortable" data-col-name="tag_id">Tag ID</th>
@@ -213,11 +213,15 @@ function sortTable(tableEl, colName) {
   }
 }
 
-function printItems(crew, status, category, subcategory) {
+function tab3PrintItems(crew, status, category, subcategory) {
   const crewMap = {{ crew_map|tojson }};
   const items = crewMap[crew][status][category].subcategories[subcategory] || [];
 
   const printWin = window.open('', '_blank');
+  if (!printWin) {
+    return;
+  }
+
   printWin.document.write(`
     <html>
       <head>
@@ -291,16 +295,6 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         toggle.textContent = "-";
       }
-    });
-  });
-
-  document.querySelectorAll(".print-items-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const crew = btn.getAttribute("data-crew");
-      const status = btn.getAttribute("data-status");
-      const category = btn.getAttribute("data-category");
-      const subcategory = btn.getAttribute("data-subcategory");
-      printItems(crew, status, category, subcategory);
     });
   });
 
