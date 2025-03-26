@@ -45,7 +45,7 @@ if not is_running_from_reloader():
 if __name__ == "__main__":
     try:
         # Removed debug=True to strip out development-mode logging
-        app.run(host="0.0.0.0", port=8102)
+        app.run(host="0.0.0.0", port=8101)
     except Exception:
         # Silently ignore errors to avoid debug/log output
         pass
