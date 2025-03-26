@@ -207,7 +207,7 @@ function sortTable(tableEl, colName) {
 function loadSubcatData(contract, common_name, page, childKey) {
   console.log(`Loading: Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
   const loading = document.getElementById(`loading-${childKey}`);
-  loading.style.display = 'block';
+  if (loading) loading.style.display = 'block';
 
   const urlParams = new URLSearchParams(window.location.search);
   const params = {
@@ -241,14 +241,14 @@ function loadSubcatData(contract, common_name, page, childKey) {
         data.items.forEach(item => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${item.tag_id}</td>
-            <td>${item.common_name}</td>
-            <td>${item.status}</td>
-            <td>${item.bin_location}</td>
-            <td>${item.quality}</td>
-            <td>${item.last_contract_num}</td>
-            <td>${item.date_last_scanned}</td>
-            <td>${item.last_scanned_by}</td>
+            <td>${item.tag_id || 'N/A'}</td>
+            <td>${item.common_name || 'N/A'}</td>
+            <td>${item.status || 'N/A'}</td>
+            <td>${item.bin_location || 'N/A'}</td>
+            <td>${item.quality || 'N/A'}</td>
+            <td>${item.last_contract_num || 'N/A'}</td>
+            <td>${item.date_last_scanned || 'N/A'}</td>
+            <td>${item.last_scanned_by || 'N/A'}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -287,12 +287,12 @@ function loadSubcatData(contract, common_name, page, childKey) {
           });
         });
       }
-      loading.style.display = 'none';
+      if (loading) loading.style.display = 'none';
     })
     .catch(error => {
       console.error('Error loading subcat data:', error);
       alert('Failed to load laundry items: ' + error.message);
-      loading.style.display = 'none';
+      if (loading) loading.style.display = 'none';
     });
 }
 
@@ -393,20 +393,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const targetId = toggle.getAttribute("data-bs-target");
       const target = document.querySelector(targetId);
       if (target) {
-        if (!target.classList.contains('show')) {
-          toggle.textContent = "-";
-          if (target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
-            const contract = target.getAttribute("data-contract");
-            const common_name = target.getAttribute("data-common-name");
-            const childKey = targetId.split("grandchild-")[1];
-            loadSubcatData(contract, common_name, 1, childKey);
-            setTimeout(() => {
-              const grandTable = document.getElementById(`grandchildTable-${childKey}`);
-              if (grandTable) bindGrandchildSort(grandTable);
-            }, 100);
-          }
-        } else {
-          toggle.textContent = "+";
+        const isShowing = target.classList.contains('show');
+        toggle.textContent = isShowing ? "+" : "-";
+        if (!isShowing && target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
+          const contract = target.getAttribute("data-contract");
+          const common_name = target.getAttribute("data-common-name");
+          const childKey = targetId.split("grandchild-")[1];
+          console.log(`Triggering loadSubcatData for ${targetId}`);
+          loadSubcatData(contract, common_name, 1, childKey);
+          setTimeout(() => {
+            const grandTable = document.getElementById(`grandchildTable-${childKey}`);
+            if (grandTable) {
+              console.log(`Binding sort for grandchildTable-${childKey}`);
+              bindGrandchildSort(grandTable);
+            } else {
+              console.error(`Grandchild table not found for ChildKey: ${childKey}`);
+            }
+          }, 500); // Increased timeout to ensure DOM is ready
         }
       }
     });
