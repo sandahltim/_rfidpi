@@ -2,8 +2,10 @@ from flask import Blueprint, render_template
 from collections import defaultdict
 from db_connection import DatabaseConnection
 import re
+import logging
 
 tab3_bp = Blueprint("tab3_bp", __name__, url_prefix="/tab3")
+logging.basicConfig(level=logging.DEBUG)
 
 def tokenize_name(name):
     return re.split(r'\W+', name.lower())
@@ -105,6 +107,8 @@ def show_tab3():
         with DatabaseConnection() as conn:
             rows = conn.execute("SELECT * FROM id_item_master").fetchall()
         items = [dict(row) for row in rows if needs_service(dict(row))]
+        print(f"Service items found: {len(items)}")
+        logging.debug(f"Total service items: {len(items)}")
 
         crew_map = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
         for item in items:
@@ -112,11 +116,10 @@ def show_tab3():
             status = item.get("status", "")
             category = categorize_item(item)
             subcategory = subcategorize_item(category, item)
-
+            
             if 'item_list' not in crew_map[crew][status][category]:
                 crew_map[crew][status][category]['item_list'] = []
                 crew_map[crew][status][category]['subcategories'] = defaultdict(list)
-
             crew_map[crew][status][category]['item_list'].append(item)
             crew_map[crew][status][category]['subcategories'][subcategory].append(item)
 
@@ -124,20 +127,21 @@ def show_tab3():
         for crew, status_dict in crew_map.items():
             crew_total = 0
             status_counts = defaultdict(int)
-            for st, cat_dict in status_dict.items():
+            for status, cat_dict in status_dict.items():
                 status_total = 0
                 for cat, sub_dict in cat_dict.items():
                     item_count = len(sub_dict['item_list'])
                     status_total += item_count
                     sub_dict['total'] = item_count
                     sub_dict['service'] = item_count
-                status_counts[st] = status_total
+                status_counts[status] = status_total
                 crew_total += status_total
             crew_data.append({
                 "crew": crew,
                 "total": crew_total,
                 "status_counts": status_counts
             })
+            logging.debug(f"Crew: {crew}, Total: {crew_total}, Status Counts: {dict(status_counts)}")
 
         crew_data.sort(key=lambda x: x["crew"])
         items_found = len(items) > 0
@@ -149,4 +153,5 @@ def show_tab3():
             items_found=items_found
         )
     except Exception as e:
+        logging.error(f"Error in show_tab3: {str(e)}", exc_info=True)
         raise
