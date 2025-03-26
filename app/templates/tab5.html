@@ -28,7 +28,7 @@
   <div class="col-12 col-md-2">
     <input type="hidden" name="date_last_scanned" id="date_last_scanned">
     <button type="submit" formaction="/tab5/save_hand_counted" class="btn btn-primary" style="background: #3498db; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;" onclick="return confirmSave()">Add New</button>
-    <button type="submit" formaction="/tab5/update_hand_counted" class="btn btn-success" style="background: #2ecc71; labelborder: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;" onclick="return confirmUpdate()">Return</button>
+    <button type="submit" formaction="/tab5/update_hand_counted" class="btn btn-success" style="background: #2ecc71; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;" onclick="return confirmUpdate()">Return</button>
   </div>
 </form>
 
@@ -57,7 +57,7 @@
             <table class="table table-striped table-bordered middle-table" style="border: 2px solid #34495e;">
               <thead style="background: #3498db; color: #fff;">
                 <tr>
-OLON                  <th style="width: 50px;"></th>
+                  <th style="width: 50px;"></th>
                   <th class="sortable" data-col-name="common_name">Common Name</th>
                   <th class="sortable" data-col-name="total">Total Items</th>
                   <th style="width: 100px;">Print Items</th>
@@ -145,7 +145,7 @@ function sortTable(tableEl, colName) {
       let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
       let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
       let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));      
       if (!isNaN(numA) && !isNaN(numB)) {
         return asc ? numA - numB : numB - numA;
       }
@@ -200,10 +200,14 @@ function sortTable(tableEl, colName) {
 
 function filterTable() {
   let parentTable = document.getElementById("parentTable");
-  if (!parentTable) return;
+  if (!parentTable) {
+    return;
+  }
 
   let parentRows = parentTable.querySelectorAll("tbody tr.table-active");
-  if (!parentRows.length) return;
+  if (!parentRows.length) {
+    return;
+  }
 
   let filters = {
     last_contract_num: document.querySelector("[data-filter='last_contract_num']").value.toLowerCase().trim(),
@@ -213,13 +217,19 @@ function filterTable() {
   parentRows.forEach((parentRow, index) => {
     let parentIdx = index;
     let middleRow = parentRow.nextElementSibling;
-    if (!middleRow) return;
+    if (!middleRow) {
+      return;
+    }
 
     let middleDiv = middleRow.querySelector(`#middleTable-${parentIdx}`);
-    if (!middleDiv) return;
+    if (!middleDiv) {
+      return;
+    }
 
     let middleTable = middleDiv.querySelector(".middle-table tbody");
-    if (!middleTable) return;
+    if (!middleTable) {
+      return;
+    }
 
     let middleItems = middleTable.querySelectorAll("tr:has(.expand-toggle)");
     let anyMiddleMatch = false;
@@ -227,13 +237,19 @@ function filterTable() {
     middleItems.forEach((middle, middleIndex) => {
       let middleIdx = `${parentIdx}_${middleIndex}`;
       let childRow = middle.nextElementSibling;
-      if (!childRow) return;
+      if (!childRow) {
+        return;
+      }
 
       let childDiv = childRow.querySelector(`#childTable-${middleIdx}`);
-      if (!childDiv) return;
+      if (!childDiv) {
+        return;
+      }
 
       let childTable = childDiv.querySelector(".child-table tbody");
-      if (!childTable) return;
+      if (!childTable) {
+        return;
+      }
 
       let childItems = childTable.querySelectorAll("tr");
       let anyChildMatch = false;
@@ -278,7 +294,9 @@ function tab5PrintAggregate(contract) {
   const items = childMap[contract] || {};
 
   const printWin = window.open('', '_blank');
-  if (!printWin) return;
+  if (!printWin) {
+    return;
+  }
 
   printWin.document.write(`
     <html>
@@ -389,7 +407,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const filterAfterRefresh = retryFilterTable();
-  filterAfterRefresh();
+  filterAfterRefresh(); // Run immediately since we're static now
 });
 
 function confirmSave() {
