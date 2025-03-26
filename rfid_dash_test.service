@@ -4,12 +4,12 @@ After=network.target
 
 [Service]
 User=tim
-WorkingDirectory=/home/tim/test_rfidpi
-ExecStart=/home/tim/test_rfidpi/start.sh
+WorkingDirectory=/home/tim/dev_rfidpi
+ExecStart=/home/tim/dev_rfidpi/start.sh
 Restart=always
 RestartSec=5
-StandardOutput=append:/var/log/rfid_dash.log
-StandardError=append:/var/log/rfid_dash.log
+StandardOutput=append:/var/log/rfid_dash_dev.log
+StandardError=append:/var/log/rfid_dash_dev.log
 
 [Install]
 WantedBy=multi-user.target
