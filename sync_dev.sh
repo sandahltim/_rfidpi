@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home/tim/test_rfidpi
+cd /home/tim/dev_rfidpi
 
 # Stash SCP’d files
 git stash push -m "Save SCP’d config and refresh_logic" config.py refresh_logic.py
