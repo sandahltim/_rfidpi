@@ -3,17 +3,14 @@
 
 <h1 style="color: #2c3e50; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Laundry Inventory</h1>
 
-<form method="GET" class="mb-3 row g-2">
+<div class="mb-3 row g-2">
   <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="last_contract_num" placeholder="Filter Contract" value="{{ filter_contract }}" />
+    <input type="text" class="table-filter form-control" data-filter="last_contract_num" placeholder="Filter Contract" value="{{ filter_contract }}" />
   </div>
   <div class="col-12 col-md-2">
-    <input type="text" class="form-control" name="common_name" placeholder="Filter Name" value="{{ filter_common_name }}" />
+    <input type="text" class="table-filter form-control" data-filter="common_name" placeholder="Filter Name" value="{{ filter_common_name }}" />
   </div>
-  <div class="col-12 col-md-2">
-    <button type="submit" class="btn btn-primary" style="background: #e74c3c; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Apply Filters</button>
-  </div>
-</form>
+</div>
 
 <form id="hand-counted-form" method="POST" class="mb-3 row g-2">
   <div class="col-12 col-md-2">
@@ -35,86 +32,83 @@
   </div>
 </form>
 
-<div class="table-container">
+<div class="table-responsive">
   <table class="table table-striped table-bordered" id="parentTable" style="border: 3px solid #2c3e50;">
     <thead style="background: #34495e; color: #ecf0f1;">
       <tr>
         <th style="width: 50px;"></th>
         <th class="sortable" data-col-name="contract">Last Contract Num</th>
         <th class="sortable" data-col-name="total">Total Items</th>
-        <th style="width: 100px;">Print</th>
+        <th style="width: 100px;">Print Aggregate</th>
       </tr>
     </thead>
     <tbody>
       {% for parent in parent_data %}
-      {% set contract_key = parent.contract|lower|replace(' ', '_') %}
+      {% set parent_idx = loop.index0 %}
       <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
-        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ contract_key }}">+</span></td>
+        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#middleTable-{{ parent_idx }}">+</span></td>
         <td>{{ parent.contract }}</td>
         <td>{{ parent.total }}</td>
         <td><button class="btn btn-outline-dark btn-sm tab5-print-aggregate" data-contract="{{ parent.contract }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="4" class="p-0">
-          <div id="child-{{ contract_key }}" class="collapse" data-contract="{{ parent.contract }}">
-            <div class="child-table-container">
-              <table class="table table-striped table-bordered child-table" style="border: 2px solid #34495e;">
-                <thead style="background: #3498db; color: #fff;">
-                  <tr>
-                    <th style="width: 50px;"></th>
-                    <th class="sortable" data-col-name="common_name">Common Name</th>
-                    <th class="sortable" data-col-name="total">Total Items</th>
-                    <th class="sortable" data-col-name="available">Available</th>
-                    <th class="sortable" data-col-name="on_rent">On Rent</th>
-                    <th class="sortable" data-col-name="service">Service</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for common_name, totals in child_map[parent.contract].items() %}
-                  {% set child_key = contract_key ~ '_' ~ common_name|lower|replace(' ', '_') %}
-                  <tr class="child-row {% if totals.service > 0 %}table-danger{% elif totals.on_rent > 0 %}table-warning{% else %}table-success{% endif %}">
-                    <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#grandchild-{{ child_key }}">+</span></td>
-                    <td>{{ common_name }}</td>
-                    <td>{{ totals.total }}</td>
-                    <td>{{ totals.available }}</td>
-                    <td>{{ totals.on_rent }}</td>
-                    <td>{{ totals.service }}</td>
-                  </tr>
-                  <tr>
-                    <td colspan="6" class="p-0">
-                      <div id="grandchild-{{ child_key }}" class="collapse" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}">
-                        <div id="loading-{{ child_key }}" class="text-center my-2" style="display: none;">
-                          <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                          </div>
-                        </div>
-                        <nav aria-label="Item navigation" class="mb-2 mx-2" id="pagination-{{ child_key }}">
-                          <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
-                        </nav>
-                        <div class="grandchild-table-container">
-                          <table class="table mb-0 grandchild-table" style="border: 2px solid #2c3e50;">
-                            <thead style="background: #2c3e50; color: #ecf0f1;">
-                              <tr>
-                                <th class="sortable" data-col-name="tag_id">Tag ID</th>
-                                <th class="sortable" data-col-name="common_name">Common Name</th>
-                                <th class="sortable" data-col-name="status">Status</th>
-                                <th class="sortable" data-col-name="bin_location">Bin Location</th>
-                                <th class="sortable" data-col-name="quality">Quality</th>
-                                <th class="sortable" data-col-name="last_contract_num">Last Contract Num</th>
-                                <th class="sortable" data-col-name="date_last_scanned">Date Last Scanned</th>
-                                <th class="sortable" data-col-name="last_scanned_by">Last Scanned By</th>
-                              </tr>
-                            </thead>
-                            <tbody id="grandchildTbody-{{ child_key }}"></tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
+          <div id="middleTable-{{ parent_idx }}" class="collapse">
+            <table class="table table-striped table-bordered middle-table" style="border: 2px solid #34495e;">
+              <thead style="background: #3498db; color: #fff;">
+                <tr>
+                  <th style="width: 50px;"></th>
+                  <th class="sortable" data-col-name="common_name">Common Name</th>
+                  <th class="sortable" data-col-name="total">Total Items</th>
+                  <th style="width: 100px;">Print Items</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for common_name, totals in child_map[parent.contract].items() %}
+                {% set middle_idx = parent_idx ~ '_' ~ loop.index0 %}
+                <tr>
+                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#childTable-{{ middle_idx }}">+</span></td>
+                  <td>{{ common_name }}</td>
+                  <td>{{ totals.total }}</td>
+                  <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+                </tr>
+                <tr>
+                  <td colspan="4" class="p-0">
+                    <div id="childTable-{{ middle_idx }}" class="collapse">
+                      <table class="table table-striped table-bordered child-table" style="border: 2px solid #2c3e50;">
+                        <thead style="background: #2c3e50; color: #ecf0f1;">
+                          <tr>
+                            <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                            <th class="sortable" data-col-name="common_name">Common Name</th>
+                            <th class="sortable" data-col-name="status">Status</th>
+                            <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                            <th class="sortable" data-col-name="quality">Quality</th>
+                            <th class="sortable" data-col-name="last_contract_num">Last Contract Num</th>
+                            <th class="sortable" data-col-name="date_last_scanned">Date Last Scanned</th>
+                            <th class="sortable" data-col-name="last_scanned_by">Last Scanned By</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for item in grandchild_map[parent.contract][common_name] %}
+                          <tr class="{% if item.status in ['On Rent', 'Delivered'] %}table-warning{% elif item.status == 'Ready to Rent' %}table-success{% endif %}">
+                            <td>{{ item.tag_id | default('N/A') }}</td>
+                            <td>{{ item.common_name | default('N/A') }}</td>
+                            <td>{{ item.status | default('N/A') }}</td>
+                            <td>{{ item.bin_location | default('N/A') }}</td>
+                            <td>{{ item.quality | default('N/A') }}</td>
+                            <td>{{ item.last_contract_num | default('N/A') }}</td>
+                            <td>{{ item.date_last_scanned | default('N/A') }}</td>
+                            <td>{{ item.last_scanned_by | default('N/A') }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </td>
       </tr>
@@ -142,9 +136,9 @@ function sortTable(tableEl, colName) {
     let pairs = [];
     for (let i = 0; i < rows.length; i += 2) {
       let parentRow = rows[i];
-      let childRow = rows[i + 1] || null;
+      let middleRow = rows[i + 1] || null;
       if (parentRow && parentRow.classList.contains("table-active")) {
-        pairs.push({ parent: parentRow, child: childRow });
+        pairs.push({ parent: parentRow, middle: middleRow });
       }
     }
     pairs.sort((a, b) => {
@@ -160,21 +154,21 @@ function sortTable(tableEl, colName) {
     tbody.innerHTML = "";
     pairs.forEach(pair => {
       tbody.appendChild(pair.parent);
-      if (pair.child) tbody.appendChild(pair.child);
+      if (pair.middle) tbody.appendChild(pair.middle);
     });
-  } else if (tableEl.classList.contains("child-table")) {
+  } else if (tableEl.classList.contains("middle-table")) {
     let rows = Array.from(tbody.children);
     let pairs = [];
     for (let i = 0; i < rows.length; i += 2) {
-      let childRow = rows[i];
-      let grandRow = rows[i + 1] || null;
-      if (childRow && childRow.classList.contains("child-row")) {
-        pairs.push({ child: childRow, grand: grandRow });
+      let middleRow = rows[i];
+      let childRow = rows[i + 1] || null;
+      if (middleRow) {
+        pairs.push({ middle: middleRow, child: childRow });
       }
     }
     pairs.sort((a, b) => {
-      let cellA = a.child.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.child.cells[colIndex]?.innerText.trim() || "";
+      let cellA = a.middle.cells[colIndex]?.innerText.trim() || "";
+      let cellB = b.middle.cells[colIndex]?.innerText.trim() || "";
       let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
       let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
       if (!isNaN(numA) && !isNaN(numB)) {
@@ -184,8 +178,8 @@ function sortTable(tableEl, colName) {
     });
     tbody.innerHTML = "";
     pairs.forEach(pair => {
-      tbody.appendChild(pair.child);
-      if (pair.grand) tbody.appendChild(pair.grand);
+      tbody.appendChild(pair.middle);
+      if (pair.child) tbody.appendChild(pair.child);
     });
   } else {
     let rows = Array.from(tbody.querySelectorAll("tr"));
@@ -204,96 +198,109 @@ function sortTable(tableEl, colName) {
   }
 }
 
-function loadSubcatData(contract, common_name, page, childKey) {
-  console.log(`Loading: Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
-  const loading = document.getElementById(`loading-${childKey}`);
-  if (loading) loading.style.display = 'block';
+function filterTable() {
+  let parentTable = document.getElementById("parentTable");
+  if (!parentTable) {
+    console.log("filterTable: #parentTable not found");
+    return;
+  }
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const params = {
-    contract: contract,
-    common_name: common_name,
-    page: page,
-    last_contract_num: urlParams.get('last_contract_num') || '',
-    common_name_filter: urlParams.get('common_name') || ''
+  let parentRows = parentTable.querySelectorAll("tbody tr.table-active");
+  if (!parentRows.length) {
+    console.log("filterTable: No parent rows found");
+    return;
+  }
+
+  console.log(`filterTable: Found ${parentRows.length} parent rows`);
+  let filters = {
+    last_contract_num: document.querySelector("[data-filter='last_contract_num']").value.toLowerCase().trim(),
+    common_name: document.querySelector("[data-filter='common_name']").value.toLowerCase().trim()
   };
-  const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
-  console.log(`Fetching URL: ${url}`);
 
-  fetch(url)
-    .then(response => {
-      console.log(`Response Status: ${response.status}`);
-      if (!response.ok) {
-        return response.text().then(text => { throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`); });
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('AJAX Response:', data);
-      const tbody = document.getElementById(`grandchildTbody-${childKey}`);
-      if (!tbody) {
-        console.error(`Tbody not found for ChildKey: ${childKey}`);
-        alert("Error: Table body not found!");
+  parentRows.forEach((parentRow, index) => {
+    let parentIdx = index;
+    let middleRow = parentRow.nextElementSibling;
+    if (!middleRow) {
+      console.log(`filterTable: No middle row for parent at index ${parentIdx}`);
+      return;
+    }
+
+    console.log(`filterTable: Checking middleRow for #middleTable-${parentIdx}:`, middleRow.innerHTML);
+    let middleDiv = middleRow.querySelector(`#middleTable-${parentIdx}`);
+    if (!middleDiv) {
+      console.log(`filterTable: No middle div #middleTable-${parentIdx}`);
+      return;
+    }
+
+    let middleTable = middleDiv.querySelector(".middle-table tbody");
+    if (!middleTable) {
+      console.log(`filterTable: No middle table tbody in #middleTable-${parentIdx}`);
+      return;
+    }
+
+    let middleItems = middleTable.querySelectorAll("tr:has(.expand-toggle)");
+    let anyMiddleMatch = false;
+
+    middleItems.forEach((middle, middleIndex) => {
+      let middleIdx = `${parentIdx}_${middleIndex}`;
+      let childRow = middle.nextElementSibling;
+      if (!childRow) {
+        console.log(`filterTable: No child row for middle in #middleTable-${parentIdx} at ${middleIdx}`);
         return;
       }
-      tbody.innerHTML = '';
-      if (data.items && data.items.length > 0) {
-        data.items.forEach(item => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${item.tag_id || 'N/A'}</td>
-            <td>${item.common_name || 'N/A'}</td>
-            <td>${item.status || 'N/A'}</td>
-            <td>${item.bin_location || 'N/A'}</td>
-            <td>${item.quality || 'N/A'}</td>
-            <td>${item.last_contract_num || 'N/A'}</td>
-            <td>${item.date_last_scanned || 'N/A'}</td>
-            <td>${item.last_scanned_by || 'N/A'}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } else {
-        console.warn(`No items returned for Contract: ${contract}, Common Name: ${common_name}`);
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items found.</td></tr>';
+
+      console.log(`filterTable: Checking childRow for #childTable-${middleIdx}:`, childRow.innerHTML);
+      let childDiv = childRow.querySelector(`#childTable-${middleIdx}`);
+      if (!childDiv) {
+        console.log(`filterTable: No child div #childTable-${parentIdx}_${middleIndex}`);
+        return;
       }
 
-      const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
-      pagination.innerHTML = '';
-      if (data.total_pages > 1) {
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
-        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
-        pagination.appendChild(prevLi);
-
-        for (let p = 1; p <= data.total_pages; p++) {
-          const li = document.createElement('li');
-          li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
-          li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
-          pagination.appendChild(li);
-        }
-
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
-        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
-        pagination.appendChild(nextLi);
-
-        pagination.querySelectorAll('.page-link').forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const newPage = parseInt(link.getAttribute('data-page'));
-            if (!isNaN(newPage)) {
-              loadSubcatData(contract, common_name, newPage, childKey);
-            }
-          });
-        });
+      let childTable = childDiv.querySelector(".child-table tbody");
+      if (!childTable) {
+        console.log(`filterTable: No child table tbody in #childTable-${parentIdx}_${middleIndex}`);
+        return;
       }
-      if (loading) loading.style.display = 'none';
-    })
-    .catch(error => {
-      console.error('Error loading subcat data:', error);
-      alert('Failed to load laundry items: ' + error.message);
-      if (loading) loading.style.display = 'none';
+
+      let childItems = childTable.querySelectorAll("tr");
+      let anyChildMatch = false;
+
+      childItems.forEach(item => {
+        let contractNum = parentRow.cells[1].innerText.toLowerCase();
+        let commonName = item.cells[1].innerText.toLowerCase();
+
+        let matches = (!filters.last_contract_num || contractNum.includes(filters.last_contract_num)) &&
+                      (!filters.common_name || commonName.includes(filters.common_name));
+
+        item.style.display = matches ? "" : "none";
+        if (matches) anyChildMatch = true;
+      });
+
+      middle.style.display = anyChildMatch ? "" : "none";
+      childRow.style.display = anyChildMatch ? "" : "none";
+      if (anyChildMatch) anyMiddleMatch = true;
     });
+
+    parentRow.style.display = anyMiddleMatch ? "" : "none";
+    middleRow.style.display = anyMiddleMatch ? "" : "none";
+  });
+}
+
+function retryFilterTable(maxRetries = 5, delayMs = 1000) {
+  let retries = 0;
+  function attempt() {
+    let parentTable = document.getElementById("parentTable");
+    if (parentTable && parentTable.querySelectorAll("tbody tr.table-active").length > 0) {
+      filterTable();
+    } else if (retries < maxRetries) {
+      retries++;
+      console.log(`retryFilterTable: Attempt ${retries}/${maxRetries}, waiting ${delayMs}ms`);
+      setTimeout(attempt, delayMs);
+    } else {
+      console.log("retryFilterTable: Max retries reached, giving up");
+    }
+  }
+  return attempt;
 }
 
 function tab5PrintAggregate(contract) {
@@ -363,60 +370,46 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("date_last_scanned").value = new Date().toISOString().replace("T", " ").slice(0, 19);
 
   let parentTable = document.getElementById("parentTable");
-  parentTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
-      sortTable(parentTable, colName);
-    });
-  });
-
-  document.querySelectorAll(".child-table").forEach(childTable => {
-    childTable.querySelectorAll("th.sortable").forEach(th => {
+  if (parentTable) {
+    parentTable.querySelectorAll("th.sortable").forEach(th => {
       th.addEventListener("click", () => {
         let colName = th.getAttribute("data-col-name");
-        sortTable(childTable, colName);
-      });
-    });
-  });
-
-  function bindGrandchildSort(table) {
-    table.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(table, colName);
+        sortTable(parentTable, colName);
       });
     });
   }
 
-  parentTable.addEventListener("click", (event) => {
-    const toggle = event.target.closest(".expand-toggle");
-    if (toggle) {
-      console.log("Expand toggle clicked:", toggle);
-      const targetId = toggle.getAttribute("data-bs-target");
-      const target = document.querySelector(targetId);
-      if (target) {
-        console.log(`Target found: ${targetId}, currently ${target.classList.contains('show') ? 'shown' : 'hidden'}`);
-        const isShowing = target.classList.contains('show');
-        toggle.textContent = isShowing ? "+" : "-";
-        if (!isShowing && target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
-          const contract = target.getAttribute("data-contract");
-          const common_name = target.getAttribute("data-common-name");
-          const childKey = targetId.split("grandchild-")[1];
-          console.log(`Triggering loadSubcatData for ${targetId}`);
-          loadSubcatData(contract, common_name, 1, childKey);
-          setTimeout(() => {
-            const grandTable = document.getElementById(`grandchildTable-${childKey}`);
-            if (grandTable) {
-              console.log(`Binding sort for grandchildTable-${childKey}`);
-              bindGrandchildSort(grandTable);
-            } else {
-              console.error(`Grandchild table not found for ChildKey: ${childKey}`);
-            }
-          }, 500);
-        }
-      } else {
-        console.error(`Target not found for ID: ${targetId}`);
-      }
+  document.querySelectorAll(".middle-table").forEach(middleTbl => {
+    middleTbl.querySelectorAll("th.sortable").forEach(th => {
+      th.addEventListener("click", () => {
+        let colName = th.getAttribute("data-col-name");
+        sortTable(middleTbl, colName);
+      });
+    });
+  });
+
+  document.querySelectorAll(".child-table").forEach(childTbl => {
+    childTbl.querySelectorAll("th.sortable").forEach(th => {
+      th.addEventListener("click", () => {
+        let colName = th.getAttribute("data-col-name");
+        sortTable(childTbl, colName);
+      });
+    });
+  });
+
+  document.querySelectorAll(".table-filter").forEach(input => {
+    input.addEventListener("input", filterTable);
+  });
+
+  document.querySelectorAll(".expand-toggle").forEach(toggle => {
+    let target = document.querySelector(toggle.getAttribute("data-bs-target"));
+    if (target) {
+      target.addEventListener("show.bs.collapse", () => {
+        toggle.textContent = "-";
+      });
+      target.addEventListener("hide.bs.collapse", () => {
+        toggle.textContent = "+";
+      });
     }
   });
 
@@ -430,6 +423,9 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
     });
   });
+
+  const filterAfterRefresh = retryFilterTable();
+  filterAfterRefresh(); // Run immediately since we're static now
 });
 
 function confirmSave() {
@@ -442,44 +438,10 @@ function confirmUpdate() {
 </script>
 
 <style>
-  .table-danger { background: #ffcccc; }
   .table-warning { background: #ffff99; }
   .table-success { background: #ccffcc; }
-  body, html {
-    height: 100%;
-    overflow-y: auto;
-    margin: 0;
-    padding: 0;
-  }
-  .table-container {
-    width: 100%;
-    overflow-y: visible;
-    padding-bottom: 100px;
-  }
-  .table-container table {
-    width: 100%;
-    table-layout: auto;
-  }
-  .child-table-container {
-    width: 100%;
-    overflow-y: visible;
-  }
-  .child-table-container table {
-    width: 100%;
-    table-layout: auto;
-  }
-  .grandchild-table-container {
-    width: 100%;
-    overflow-y: visible;
-  }
-  .grandchild-table-container table {
-    width: 100%;
-    table-layout: auto;
-  }
-  .collapse {
-    width: 100%;
-  }
   @media (max-width: 768px) {
+    .table-filter { font-size: 0.9rem; }
     .pagination .page-link { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
   }
 </style>
