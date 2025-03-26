@@ -61,12 +61,12 @@
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ parent_idx }}">+</span></td>
         <td>{{ parent.common_name }}</td>
         <td>{{ parent.total }}</td>
-        <td><button class="btn btn-outline-dark btn-sm print-items-btn" data-common-name="{{ parent.common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
+        <td><button class="btn btn-outline-dark btn-sm tab4-print-items" data-common-name="{{ parent.common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
       <tr>
         <td colspan="4" class="p-0">
           <div id="child-{{ parent_idx }}" class="collapse">
-            <table class="table mb-0 child-table" id="childTable-{{ parent_idx }}" style="border: 2px solid #34495e;">
+            <table class="table mb-0 child-table" style="border: 2px solid #34495e;">
               <thead style="background: #3498db; color: #fff;">
                 <tr>
                   <th class="sortable" data-col-name="tag_id">Tag ID</th>
@@ -192,7 +192,7 @@ function sortTable(tableEl, colName) {
       if (!isNaN(numA) && !isNaN(numB)) {
         return asc ? numA - numB : numB - numA;
       }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellB);
     });
     tbody.innerHTML = "";
     pairs.forEach(pair => {
@@ -202,11 +202,15 @@ function sortTable(tableEl, colName) {
   }
 }
 
-function printItems(commonName) {
+function tab4PrintItems(commonName) {
   const itemMap = {{ item_map|tojson }};
   const items = itemMap[commonName] || [];
 
   const printWin = window.open('', '_blank');
+  if (!printWin) {
+    return;
+  }
+
   printWin.document.write(`
     <html>
       <head>
@@ -305,13 +309,6 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         toggle.textContent = "-";
       }
-    });
-  });
-
-  document.querySelectorAll(".print-items-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const commonName = btn.getAttribute("data-common-name");
-      printItems(commonName);
     });
   });
 
