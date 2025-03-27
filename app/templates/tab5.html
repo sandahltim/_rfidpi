@@ -145,7 +145,7 @@ function sortTable(tableEl, colName) {
       let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
       let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
       let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));      
+      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
       if (!isNaN(numA) && !isNaN(numB)) {
         return asc ? numA - numB : numB - numA;
       }
@@ -201,14 +201,17 @@ function sortTable(tableEl, colName) {
 function filterTable() {
   let parentTable = document.getElementById("parentTable");
   if (!parentTable) {
+    console.log("filterTable: #parentTable not found");
     return;
   }
 
   let parentRows = parentTable.querySelectorAll("tbody tr.table-active");
   if (!parentRows.length) {
+    console.log("filterTable: No parent rows found");
     return;
   }
 
+  console.log(`filterTable: Found ${parentRows.length} parent rows`);
   let filters = {
     last_contract_num: document.querySelector("[data-filter='last_contract_num']").value.toLowerCase().trim(),
     common_name: document.querySelector("[data-filter='common_name']").value.toLowerCase().trim()
@@ -218,16 +221,20 @@ function filterTable() {
     let parentIdx = index;
     let middleRow = parentRow.nextElementSibling;
     if (!middleRow) {
+      console.log(`filterTable: No middle row for parent at index ${parentIdx}`);
       return;
     }
 
+    console.log(`filterTable: Checking middleRow for #middleTable-${parentIdx}:`, middleRow.innerHTML);
     let middleDiv = middleRow.querySelector(`#middleTable-${parentIdx}`);
     if (!middleDiv) {
+      console.log(`filterTable: No middle div #middleTable-${parentIdx}`);
       return;
     }
 
     let middleTable = middleDiv.querySelector(".middle-table tbody");
     if (!middleTable) {
+      console.log(`filterTable: No middle table tbody in #middleTable-${parentIdx}`);
       return;
     }
 
@@ -238,16 +245,20 @@ function filterTable() {
       let middleIdx = `${parentIdx}_${middleIndex}`;
       let childRow = middle.nextElementSibling;
       if (!childRow) {
+        console.log(`filterTable: No child row for middle in #middleTable-${parentIdx} at ${middleIdx}`);
         return;
       }
 
+      console.log(`filterTable: Checking childRow for #childTable-${middleIdx}:`, childRow.innerHTML);
       let childDiv = childRow.querySelector(`#childTable-${middleIdx}`);
       if (!childDiv) {
+        console.log(`filterTable: No child div #childTable-${parentIdx}_${middleIndex}`);
         return;
       }
 
       let childTable = childDiv.querySelector(".child-table tbody");
       if (!childTable) {
+        console.log(`filterTable: No child table tbody in #childTable-${parentIdx}_${middleIndex}`);
         return;
       }
 
@@ -283,18 +294,23 @@ function retryFilterTable(maxRetries = 5, delayMs = 1000) {
       filterTable();
     } else if (retries < maxRetries) {
       retries++;
+      console.log(`retryFilterTable: Attempt ${retries}/${maxRetries}, waiting ${delayMs}ms`);
       setTimeout(attempt, delayMs);
+    } else {
+      console.log("retryFilterTable: Max retries reached, giving up");
     }
   }
   return attempt;
 }
 
 function tab5PrintAggregate(contract) {
+  console.log(`tab5PrintAggregate called with contract: ${contract}`);
   const childMap = {{ child_map_json|tojson }};
   const items = childMap[contract] || {};
 
   const printWin = window.open('', '_blank');
   if (!printWin) {
+    console.error("tab5PrintAggregate: Failed to open window—popup blocker?");
     return;
   }
 
@@ -349,6 +365,8 @@ function tab5PrintAggregate(contract) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM Content Loaded");
+
   document.getElementById("date_last_scanned").value = new Date().toISOString().replace("T", " ").slice(0, 19);
 
   let parentTable = document.getElementById("parentTable");
