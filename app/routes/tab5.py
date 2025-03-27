@@ -6,7 +6,7 @@ import sqlite3
 import os
 import logging
 
-tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")  # Fixed to tab5_bp
+tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
 logging.basicConfig(level=logging.DEBUG)
 
@@ -33,7 +33,7 @@ def init_hand_counted_db():
     except Exception as e:
         logging.error(f"Error initializing tab5_hand_counted.db: {e}", exc_info=True)
 
-@tab5_bp.route("/")
+@tab5_bp.route("/", strict_slashes=False)  # Fix redirect loop
 def show_tab5():
     logging.debug("Loading /tab5/ endpoint")
     init_hand_counted_db()
@@ -106,7 +106,7 @@ def show_tab5():
                 on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
                               item["status"] in ["On Rent", "Delivered"] and 
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
-                service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
+                service = total_rfid - sum(1 for item in rfid_items if item["status"] == "Ready to Rent") - sum(1 for item in rfid_items if item["status"] in ["On Rent", "Delivered"]) if rfid_items else 0
                 child_data[common_name] = {
                     "total": total_items,
                     "available": total_available,
