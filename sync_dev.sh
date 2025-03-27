@@ -2,7 +2,7 @@
 cd /home/tim/dev_rfidpi
 
 # Stash SCP’d files
-git stash push -m "Save SCP’d config and refresh_logic" config.py refresh_logic.py
+git stash push -m "Save SCP’d config and refresh_logic" config.py 
 
 # Pull latest from dev
 git fetch origin
