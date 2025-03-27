@@ -14,7 +14,7 @@ def manual_refresh():
 
 @root_bp.route("/manual_refresh_dev", methods=["POST"])
 def manual_refresh_dev():
-    subprocess.run(["/home/tim/test_rfidpi/update_dev.sh"])
+    subprocess.run(["/home/tim/dev_rfidpi/update_dev.sh"])
     return redirect(url_for("root.home"))
 
 
