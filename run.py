@@ -34,6 +34,7 @@ def background_full_refresh():
             time.sleep(FULL_REFRESH_INTERVAL)
 
 app = create_app()
+
 @app.route("/refresh_data", methods=["GET"])
 def refresh_data():
     return jsonify({"status": "ok", "message": "Root refresh not implemented"})
@@ -50,9 +51,4 @@ if not is_running_from_reloader():
     fast_thread.start()
     full_thread.start()
 
-if __name__ == "__main__":
-    logging.info("Starting Flask application...")
-    try:
-        app.run(host="0.0.0.0", port=8102, debug=True)
-    except Exception as e:
-        logging.error(f"Flask failed to start: {e}")
+# No app.run() - Gunicorn handles this
