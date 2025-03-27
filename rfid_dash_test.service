@@ -8,8 +8,10 @@ WorkingDirectory=/home/tim/test_rfidpi
 ExecStart=/home/tim/test_rfidpi/start.sh
 Restart=always
 RestartSec=5
-StandardOutput=append:/var/log/rfid_dash_test.log
-StandardError=append:/var/log/rfid_dash_test.log
+# Let Gunicorn handle logging, no systemd redirect
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=rfid_dash_test
 
 [Install]
 WantedBy=multi-user.target
