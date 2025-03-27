@@ -10,7 +10,7 @@ from werkzeug.serving import is_running_from_reloader
 
 # Setup logging to file
 logging.basicConfig(
-    filename='logs/rfid_dash_test.log',
+    filename='logs/rfid_dash_dev.log',
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -53,6 +53,6 @@ if not is_running_from_reloader():
 if __name__ == "__main__":
     logging.info("Starting Flask application...")
     try:
-        app.run(host="0.0.0.0", port=8102, debug=True)
+        app.run(host="0.0.0.0", port=8101, debug=True)
     except Exception as e:
         logging.error(f"Flask failed to start: {e}")
