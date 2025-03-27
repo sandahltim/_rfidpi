@@ -36,6 +36,7 @@ except Exception as e:
     sys.exit(1)
 
 def background_fast_refresh():
+    logger.debug("Starting fast refresh thread")
     while True:
         try:
             fast_refresh()
@@ -45,6 +46,7 @@ def background_fast_refresh():
             time.sleep(FAST_REFRESH_INTERVAL)
 
 def background_full_refresh():
+    logger.debug("Starting full refresh thread")
     while True:
         try:
             full_refresh()
@@ -55,6 +57,7 @@ def background_full_refresh():
 
 try:
     app = create_app()
+    logger.debug("Flask app created")
 except Exception as e:
     print(f"App creation failed: {e}")
     sys.exit(1)
@@ -63,7 +66,6 @@ except Exception as e:
 def refresh_data():
     return jsonify({"status": "ok", "message": "Root refresh not implemented"})
 
-# Log all unhandled exceptions
 @app.errorhandler(Exception)
 def handle_exception(e):
     logger.error(f"Unhandled exception: {e}", exc_info=True)
@@ -79,15 +81,17 @@ except Exception as e:
     print(f"Database init failed: {e}")
     sys.exit(1)
 
-if not is_running_from_reloader():
-    try:
-        fast_thread = threading.Thread(target=background_fast_refresh, daemon=True)
-        full_thread = threading.Thread(target=background_full_refresh, daemon=True)
-        fast_thread.start()
-        full_thread.start()
-    except Exception as e:
-        print(f"Thread start failed: {e}")
-        sys.exit(1)
+def start_background_threads():
+    if not is_running_from_reloader():
+        try:
+            fast_thread = threading.Thread(target=background_fast_refresh, daemon=True)
+            full_thread = threading.Thread(target=background_full_refresh, daemon=True)
+            fast_thread.start()
+            full_thread.start()
+            logger.debug("Background threads started")
+        except Exception as e:
+            logger.error(f"Thread start failed: {e}", exc_info=True)
+            sys.exit(1)
 
 if __name__ == "__main__":
     import argparse
@@ -98,6 +102,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     try:
         logger.info(f"Starting Flask on {args.host}:{args.port}, debug={args.debug}")
+        start_background_threads()  # Start threads after Flask setup
         app.run(host=args.host, port=args.port, debug=args.debug)
     except Exception as e:
         logger.error(f"Flask failed to start: {e}", exc_info=True)
