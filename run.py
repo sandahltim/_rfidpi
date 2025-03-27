@@ -9,10 +9,10 @@ from app import create_app
 from flask import jsonify
 from werkzeug.serving import is_running_from_reloader
 
-# Setup logging to file
+# Setup logging to /tmp
 try:
     logging.basicConfig(
-        filename='logs/rfid_dash_test.log',
+        filename='/tmp/rfid_dash_test.log',  # Move to /tmp
         level=logging.DEBUG,
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
@@ -26,7 +26,7 @@ except Exception as e:
 try:
     flask_logger = logging.getLogger('werkzeug')
     flask_logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler('logs/rfid_dash_test.log')
+    handler = logging.FileHandler('/tmp/rfid_dash_test.log')  # Move to /tmp
     handler.setLevel(logging.DEBUG)
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     handler.setFormatter(formatter)
