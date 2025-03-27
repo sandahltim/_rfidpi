@@ -1,4 +1,5 @@
 import os
+import logging
 import time
 import threading
 from db_utils import initialize_db
@@ -7,13 +8,20 @@ from app import create_app
 from flask import jsonify
 from werkzeug.serving import is_running_from_reloader
 
+# Setup logging to file
+logging.basicConfig(
+    filename='logs/rfid_dash_test.log',
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 def background_fast_refresh():
     while True:
         try:
             fast_refresh()
             time.sleep(FAST_REFRESH_INTERVAL)
-        except Exception:
-            # Silently ignore errors to avoid debug/log output
+        except Exception as e:
+            logging.error(f"Fast refresh thread crashed: {e}")
             time.sleep(FAST_REFRESH_INTERVAL)
 
 def background_full_refresh():
@@ -21,18 +29,18 @@ def background_full_refresh():
         try:
             full_refresh()
             time.sleep(FULL_REFRESH_INTERVAL)
-        except Exception:
-            # Silently ignore errors to avoid debug/log output
+        except Exception as e:
+            logging.error(f"Full refresh thread crashed: {e}")
             time.sleep(FULL_REFRESH_INTERVAL)
 
 app = create_app()
-
 @app.route("/refresh_data", methods=["GET"])
 def refresh_data():
     return jsonify({"status": "ok", "message": "Root refresh not implemented"})
 
 db_path = os.path.join(os.path.dirname(__file__), "inventory.db")
 if not os.path.exists(db_path) or os.path.getsize(db_path) == 0:
+    logging.info("Initializing and populating database...")
     initialize_db()
     full_refresh()
 
@@ -43,9 +51,8 @@ if not is_running_from_reloader():
     full_thread.start()
 
 if __name__ == "__main__":
+    logging.info("Starting Flask application...")
     try:
-        # Removed debug=True to strip out development-mode logging
-        app.run(host="0.0.0.0", port=8101)
-    except Exception:
-        # Silently ignore errors to avoid debug/log output
-        pass
+        app.run(host="0.0.0.0", port=8102, debug=True)
+    except Exception as e:
+        logging.error(f"Flask failed to start: {e}")
