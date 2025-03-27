@@ -5,7 +5,7 @@ import re
 import logging
 
 tab3_bp = Blueprint("tab3_bp", __name__, url_prefix="/tab3")
-logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)  # Use existing logger from run.py
 
 def tokenize_name(name):
     return re.split(r'\W+', name.lower())
@@ -108,7 +108,7 @@ def show_tab3():
             rows = conn.execute("SELECT * FROM id_item_master").fetchall()
         items = [dict(row) for row in rows if needs_service(dict(row))]
         print(f"Service items found: {len(items)}")
-        logging.debug(f"Total service items: {len(items)}")
+        logger.debug(f"Total service items: {len(items)}")
 
         crew_map = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
         for item in items:
@@ -141,7 +141,7 @@ def show_tab3():
                 "total": crew_total,
                 "status_counts": status_counts
             })
-            logging.debug(f"Crew: {crew}, Total: {crew_total}, Status Counts: {dict(status_counts)}")
+            logger.debug(f"Crew: {crew}, Total: {crew_total}, Status Counts: {dict(status_counts)}")
 
         crew_data.sort(key=lambda x: x["crew"])
         items_found = len(items) > 0
@@ -153,5 +153,5 @@ def show_tab3():
             items_found=items_found
         )
     except Exception as e:
-        logging.error(f"Error in show_tab3: {str(e)}", exc_info=True)
+        logger.error(f"Error in show_tab3: {str(e)}", exc_info=True)
         raise

@@ -6,11 +6,9 @@ import sqlite3
 import os
 import logging
 
-# Use run.py's logger
-logger = logging.getLogger(__name__)
-
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
+logger = logging.getLogger(__name__)  # Use existing logger from run.py
 
 def init_hand_counted_db():
     try:

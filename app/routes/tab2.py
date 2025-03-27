@@ -1,11 +1,12 @@
-from flask import Blueprint, render_template, request, jsonify
-from collections import defaultdict
-from db_connection import DatabaseConnection
+from flask import Blueprint, render_template, redirect, url_for, request, jsonify
+import subprocess
 import re
 import logging
+from collections import defaultdict
+from db_connection import DatabaseConnection
 
 tab2_bp = Blueprint("tab2_bp", __name__, url_prefix="/tab2")
-logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)  # Use existing logger from run.py
 
 def tokenize_name(name):
     return re.split(r'\W+', name.lower())
@@ -90,7 +91,7 @@ def subcategorize_item(category, item):
 @tab2_bp.route("/")
 def show_tab2():
     print("Loading /tab2/ endpoint")
-    logging.debug("Starting /tab2/ endpoint")
+    logger.debug("Starting /tab2/ endpoint")
     with DatabaseConnection() as conn:
         rows = conn.execute("SELECT * FROM id_item_master").fetchall()
     items = [dict(row) for row in rows]
@@ -144,7 +145,7 @@ def show_tab2():
             {"common_name": name, "total": len(items)}
             for name, items in sorted(common_name_map.items(), key=lambda x: x[0].lower())
         ]
-        logging.debug(f"Middle Map for {category}: {middle_map[category]}")
+        logger.debug(f"Middle Map for {category}: {middle_map[category]}")
 
         subcat_to_show = selected_subcat if selected_subcat in temp_sub_map else list(temp_sub_map.keys())[0] if temp_sub_map else None
         display_middle_map = {}
@@ -158,7 +159,7 @@ def show_tab2():
                 {"common_name": name, "total": len(items)}
                 for name, items in sorted(display_common_name_map.items(), key=lambda x: x[0].lower())
             ]
-            logging.debug(f"Display Middle Map for {category}, Subcat {subcat_to_show}: {display_middle_map[category]}")
+            logger.debug(f"Display Middle Map for {category}, Subcat {subcat_to_show}: {display_middle_map[category]}")
 
         parent_data.append({
             "category": category,
@@ -188,6 +189,7 @@ def show_tab2():
 @tab2_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
     print("Hit /tab2/subcat_data endpoint")
+    logger.debug("Hit /tab2/subcat_data endpoint")
     category = request.args.get('category')
     subcat = request.args.get('subcat')
     common_name = request.args.get('common_name')
@@ -229,7 +231,7 @@ def subcat_data():
     end = start + per_page
     paginated_items = subcat_items[start:end]
 
-    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
+    logger.debug(f"AJAX: Category: {category}, Subcategory: {subcat}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
 
     return jsonify({
         "items": [{
@@ -247,6 +249,7 @@ def subcat_data():
 @tab2_bp.route("/middle_data", methods=["GET"])
 def middle_data():
     print("Hit /tab2/middle_data endpoint")
+    logger.debug("Hit /tab2/middle_data endpoint")
     category = request.args.get('category')
     subcat = request.args.get('subcat')
 
@@ -285,6 +288,5 @@ def middle_data():
         for name, items in sorted(common_name_map.items(), key=lambda x: x[0].lower())
     ]
 
-    print(f"Middle Data: Category: {category}, Subcategory: {subcat}, Items: {len(middle_data)}")
-    logging.debug(f"Middle Data Response: {middle_data}")
+    logger.debug(f"Middle Data: Category: {category}, Subcategory: {subcat}, Items: {len(middle_data)}")
     return jsonify({"middle_data": middle_data})
