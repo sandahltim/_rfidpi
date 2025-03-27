@@ -15,13 +15,22 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# Get Flask's logger
+flask_logger = logging.getLogger('werkzeug')
+flask_logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler('logs/rfid_dash_test.log')
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+flask_logger.addHandler(handler)
+
 def background_fast_refresh():
     while True:
         try:
             fast_refresh()
             time.sleep(FAST_REFRESH_INTERVAL)
         except Exception as e:
-            logging.error(f"Fast refresh thread crashed: {e}")
+            logging.error(f"Fast refresh thread crashed: {e}", exc_info=True)
             time.sleep(FAST_REFRESH_INTERVAL)
 
 def background_full_refresh():
@@ -30,7 +39,7 @@ def background_full_refresh():
             full_refresh()
             time.sleep(FULL_REFRESH_INTERVAL)
         except Exception as e:
-            logging.error(f"Full refresh thread crashed: {e}")
+            logging.error(f"Full refresh thread crashed: {e}", exc_info=True)
             time.sleep(FULL_REFRESH_INTERVAL)
 
 app = create_app()
@@ -38,6 +47,12 @@ app = create_app()
 @app.route("/refresh_data", methods=["GET"])
 def refresh_data():
     return jsonify({"status": "ok", "message": "Root refresh not implemented"})
+
+# Log all unhandled exceptions
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logging.error(f"Unhandled exception: {e}", exc_info=True)
+    return "Internal Server Error", 500
 
 db_path = os.path.join(os.path.dirname(__file__), "inventory.db")
 if not os.path.exists(db_path) or os.path.getsize(db_path) == 0:
