@@ -5,6 +5,12 @@ import time
 from datetime import datetime, timedelta
 from config import DB_FILE, ITEM_MASTER_URL, TRANSACTION_URL, API_USERNAME, API_PASSWORD, LOGIN_URL
 
+API_USERNAME = os.environ.get("API_USERNAME", "api")
+API_PASSWORD = os.environ.get("API_PASSWORD", "Broadway8101")
+LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"
+ITEM_MASTER_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169344381"
+TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
+
 TOKEN = None
 TOKEN_EXPIRY = None
 
