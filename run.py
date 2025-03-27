@@ -2,6 +2,7 @@ import os
 import logging
 import time
 import threading
+import sys
 from db_utils import initialize_db
 from refresh_logic import fast_refresh, full_refresh, FAST_REFRESH_INTERVAL, FULL_REFRESH_INTERVAL
 from app import create_app
@@ -9,20 +10,30 @@ from flask import jsonify
 from werkzeug.serving import is_running_from_reloader
 
 # Setup logging to file
-logging.basicConfig(
-    filename='logs/rfid_dash_test.log',
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+try:
+    logging.basicConfig(
+        filename='logs/rfid_dash_test.log',
+        level=logging.DEBUG,
+        format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+    logger = logging.getLogger(__name__)
+    logger.debug("Logging initialized")
+except Exception as e:
+    print(f"Logging setup failed: {e}")
+    sys.exit(1)
 
 # Get Flask's logger
-flask_logger = logging.getLogger('werkzeug')
-flask_logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler('logs/rfid_dash_test.log')
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-flask_logger.addHandler(handler)
+try:
+    flask_logger = logging.getLogger('werkzeug')
+    flask_logger.setLevel(logging.DEBUG)
+    handler = logging.FileHandler('logs/rfid_dash_test.log')
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    handler.setFormatter(formatter)
+    flask_logger.addHandler(handler)
+except Exception as e:
+    print(f"Flask logger setup failed: {e}")
+    sys.exit(1)
 
 def background_fast_refresh():
     while True:
@@ -30,7 +41,7 @@ def background_fast_refresh():
             fast_refresh()
             time.sleep(FAST_REFRESH_INTERVAL)
         except Exception as e:
-            logging.error(f"Fast refresh thread crashed: {e}", exc_info=True)
+            logger.error(f"Fast refresh thread crashed: {e}", exc_info=True)
             time.sleep(FAST_REFRESH_INTERVAL)
 
 def background_full_refresh():
@@ -39,10 +50,14 @@ def background_full_refresh():
             full_refresh()
             time.sleep(FULL_REFRESH_INTERVAL)
         except Exception as e:
-            logging.error(f"Full refresh thread crashed: {e}", exc_info=True)
+            logger.error(f"Full refresh thread crashed: {e}", exc_info=True)
             time.sleep(FULL_REFRESH_INTERVAL)
 
-app = create_app()
+try:
+    app = create_app()
+except Exception as e:
+    print(f"App creation failed: {e}")
+    sys.exit(1)
 
 @app.route("/refresh_data", methods=["GET"])
 def refresh_data():
@@ -51,19 +66,39 @@ def refresh_data():
 # Log all unhandled exceptions
 @app.errorhandler(Exception)
 def handle_exception(e):
-    logging.error(f"Unhandled exception: {e}", exc_info=True)
+    logger.error(f"Unhandled exception: {e}", exc_info=True)
     return "Internal Server Error", 500
 
 db_path = os.path.join(os.path.dirname(__file__), "inventory.db")
-if not os.path.exists(db_path) or os.path.getsize(db_path) == 0:
-    logging.info("Initializing and populating database...")
-    initialize_db()
-    full_refresh()
+try:
+    if not os.path.exists(db_path) or os.path.getsize(db_path) == 0:
+        logger.info("Initializing and populating database...")
+        initialize_db()
+        full_refresh()
+except Exception as e:
+    print(f"Database init failed: {e}")
+    sys.exit(1)
 
 if not is_running_from_reloader():
-    fast_thread = threading.Thread(target=background_fast_refresh, daemon=True)
-    full_thread = threading.Thread(target=background_full_refresh, daemon=True)
-    fast_thread.start()
-    full_thread.start()
+    try:
+        fast_thread = threading.Thread(target=background_fast_refresh, daemon=True)
+        full_thread = threading.Thread(target=background_full_refresh, daemon=True)
+        fast_thread.start()
+        full_thread.start()
+    except Exception as e:
+        print(f"Thread start failed: {e}")
+        sys.exit(1)
 
-# No app.run() - Gunicorn handles this
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=8102)
+    parser.add_argument("--debug", action="store_true")
+    args = parser.parse_args()
+    try:
+        logger.info(f"Starting Flask on {args.host}:{args.port}, debug={args.debug}")
+        app.run(host=args.host, port=args.port, debug=args.debug)
+    except Exception as e:
+        logger.error(f"Flask failed to start: {e}", exc_info=True)
+        sys.exit(1)
