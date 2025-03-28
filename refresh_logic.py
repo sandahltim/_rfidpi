@@ -12,7 +12,7 @@ ITEM_MASTER_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169344381"
 TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
 
 TOKEN = None
-TOKEN_EXPIRY = None
+TOKEN_EXPIRY = 3000
 
 # Refresh intervals
 FULL_REFRESH_INTERVAL = 300  # 5 minutes
