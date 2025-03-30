@@ -81,7 +81,16 @@ def initialize_db():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_client_date ON id_transactions (client_name, scan_date)")
 
+    # New seed_rental_classes table for SEED data
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS seed_rental_classes (
+            rental_class_id TEXT PRIMARY KEY,
+            common_name TEXT,
+            bin_location TEXT
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_common_name ON seed_rental_classes (common_name)")
+
     conn.commit()
     conn.close()
     print("Database initialized at", DB_FILE)
-

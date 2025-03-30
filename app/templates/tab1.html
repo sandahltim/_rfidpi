@@ -77,21 +77,20 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for common_name, totals in child_map[parent.contract].items() %}
-                  {% set sanitized_common_name = common_name|lower|replace('[^a-z0-9]', '_') %}
-                  {% set child_key = contract_key ~ '_' ~ sanitized_common_name %}
+                  {% for rental_class_id, totals in child_map[parent.contract].items() %}
+                  {% set child_key = contract_key ~ '_' ~ rental_class_id %}
                   <tr class="child-row">
                     <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#grandchild-{{ child_key }}">+</span></td>
-                    <td>{{ common_name }}</td>
+                    <td>{{ totals.common_name }}</td>
                     <td>{{ totals.total }}</td>
                     <td>{{ totals.available }}</td>
                     <td>{{ totals.on_rent }}</td>
                     <td>{{ totals.service }}</td>
-                    <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}">Print</button></td>
+                    <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-contract="{{ parent.contract }}" data-common-name="{{ totals.common_name }}">Print</button></td>
                   </tr>
                   <tr>
                     <td colspan="7" class="p-0">
-                      <div id="grandchild-{{ child_key }}" class="collapse" data-contract="{{ parent.contract }}" data-common-name="{{ common_name }}">
+                      <div id="grandchild-{{ child_key }}" class="collapse" data-contract="{{ parent.contract }}" data-common-name="{{ totals.common_name }}">
                         <div id="loading-{{ child_key }}" class="text-center my-2" style="display: none;">
                           <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
@@ -231,7 +230,7 @@ function sortTable(tableEl, colName) {
 function loadSubcatData(contract, common_name, page, childKey) {
   console.log(`Loading: Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
   const loading = document.getElementById(`loading-${childKey}`);
-  loading.style.display = 'block';
+  if (loading) loading.style.display = 'block';
 
   const urlParams = new URLSearchParams(window.location.search);
   const params = {
@@ -275,31 +274,33 @@ function loadSubcatData(contract, common_name, page, childKey) {
         tbody.appendChild(tr);
       });
 
-      const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
-      pagination.innerHTML = '';
-      if (data.total_pages > 1) {
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
-        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
-        pagination.appendChild(prevLi);
+      const pagination = document.getElementById(`pagination-${childKey}`)?.querySelector('.pagination');
+      if (pagination) {
+        pagination.innerHTML = '';
+        if (data.total_pages > 1) {
+          const prevLi = document.createElement('li');
+          prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
+          prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
+          pagination.appendChild(prevLi);
 
-        for (let p = 1; p <= data.total_pages; p++) {
-          const li = document.createElement('li');
-          li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
-          li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
-          pagination.appendChild(li);
+          for (let p = 1; p <= data.total_pages; p++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
+            pagination.appendChild(li);
+          }
+
+          const nextLi = document.createElement('li');
+          nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
+          nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
+          pagination.appendChild(nextLi);
         }
-
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
-        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
-        pagination.appendChild(nextLi);
       }
-      loading.style.display = 'none';
+      if (loading) loading.style.display = 'none';
     })
     .catch(error => {
       console.error('Error loading subcat data:', error);
-      loading.style.display = 'none';
+      if (loading) loading.style.display = 'none';
     });
 }
 
@@ -345,10 +346,10 @@ function printTable(level, contract, common_name) {
           </thead>
           <tbody>
     `;
-    Object.entries(childMap[contract]).forEach(([common_name, totals]) => {
+    Object.entries(childMap[contract]).forEach(([_, totals]) => {
       html += `
         <tr>
-          <td>${common_name}</td>
+          <td>${totals.common_name}</td>
           <td>${totals.total}</td>
         </tr>
       `;
@@ -384,12 +385,12 @@ function printTable(level, contract, common_name) {
       return;
     }
     const childRow = Array.from(childTable.querySelectorAll('.child-row'))
-      .find(row => row.cells[1].innerText === common_name);
+      .find(row => row.cells[1].innerText.trim() === common_name.trim());
     if (!childRow) {
       console.error(`Child row not found for contract: ${contract}, common_name: ${common_name}`);
       return;
     }
-    const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${common_name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Object.keys(childMap[contract]).find(id => childMap[contract][id].common_name === common_name)}`;
     const tbodyId = `grandchildTbody-${childKey}`;
     const tbody = document.getElementById(tbodyId);
     let items = [];
@@ -593,8 +594,9 @@ document.addEventListener("DOMContentLoaded", () => {
           target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
         const contract = target.getAttribute("data-contract");
         const common_name = target.getAttribute("data-common-name");
-        const childKey = targetId.split("grandchild-")[1];
-        if (childKey) loadSubcatData(contract, common_name, 1, childKey);
+        const rental_class_id = Object.keys(childMap[contract]).find(id => childMap[contract][id].common_name === common_name);
+        const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
+        loadSubcatData(contract, common_name, 1, childKey);
       }
     }
   });

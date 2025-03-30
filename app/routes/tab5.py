@@ -7,7 +7,6 @@ import os
 import logging
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
-
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
 logging.basicConfig(level=logging.DEBUG)
 
@@ -80,13 +79,14 @@ def show_tab5():
         child_map = {}
         for contract, item_list in contract_map.items():
             logging.debug(f"Processing contract: {contract}")
-            common_name_map = defaultdict(list)
+            rental_class_map = defaultdict(list)
             for item in item_list:
-                common_name = item.get("common_name", "Unknown")
-                common_name_map[common_name].append(item)
+                rental_class_id = item.get("rental_class_id", "unknown")
+                rental_class_map[rental_class_id].append(item)
 
             child_data = {}
-            for common_name, items in common_name_map.items():
+            for rental_class_id, items in rental_class_map.items():
+                common_name = items[0]["common_name"]  # Assume consistent common_name per rental_class_id
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
                 total_rfid = len(rfid_items)
@@ -98,12 +98,13 @@ def show_tab5():
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
                 service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - \
                           sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
-                child_data[common_name] = {
+                child_data[rental_class_id] = {
+                    "common_name": common_name,
                     "total": total_items,
                     "available": total_available,
                     "on_rent": on_rent,
                     "service": service,
-                    "items": rfid_items + hand_items  # Include items for scan date
+                    "items": rfid_items + hand_items
                 }
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])

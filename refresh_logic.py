@@ -3,13 +3,11 @@ import requests
 import sqlite3
 import time
 from datetime import datetime, timedelta
-from config import DB_FILE
+from config import DB_FILE, SEED_URL, ITEM_MASTER_URL, TRANSACTION_URL
 
 API_USERNAME = os.environ.get("API_USERNAME", "api")
 API_PASSWORD = os.environ.get("API_PASSWORD", "Broadway8101")
 LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"
-ITEM_MASTER_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169344381"
-TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
 
 TOKEN = None
 TOKEN_EXPIRY = None
@@ -225,8 +223,39 @@ def update_transactions(data):
     finally:
         conn.close()
 
+def update_seed_data(data):
+    """Inserts or updates SEED data in SQLite."""
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+    cursor = conn.cursor()
+
+    try:
+        for item in data:
+            cursor.execute(
+                """
+                INSERT INTO seed_rental_classes (
+                    rental_class_id, common_name, bin_location
+                )
+                VALUES (?, ?, ?)
+                ON CONFLICT(rental_class_id) DO UPDATE SET
+                    common_name = excluded.common_name,
+                    bin_location = excluded.bin_location
+                """,
+                (
+                    item.get("rental_class_id"),
+                    item.get("common_name"),
+                    item.get("bin_location"),
+                ),
+            )
+        conn.commit()
+        print("SEED data updated.")
+    except sqlite3.Error as e:
+        print(f"Database error updating SEED data: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
 def refresh_data():
-    """Main function to refresh item master and transaction data from the API."""
+    """Main function to refresh item master, transaction, and SEED data from the API."""
     token = get_access_token()
     if not token:
         print(" No access token. Aborting refresh.")
@@ -234,12 +263,14 @@ def refresh_data():
 
     item_master_data = fetch_paginated_data(ITEM_MASTER_URL, token)
     transactions_data = fetch_paginated_data(TRANSACTION_URL, token)
+    seed_data = fetch_paginated_data(SEED_URL, token)
 
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     try:
         clear_transactions(conn)
         update_transactions(transactions_data)
         update_item_master(item_master_data)
+        update_seed_data(seed_data)
     finally:
         conn.close()
 
