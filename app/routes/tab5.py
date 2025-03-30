@@ -8,7 +8,7 @@ import logging
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 
-HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"  # Fixed path
+HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
 logging.basicConfig(level=logging.DEBUG)
 
 def init_hand_counted_db():
@@ -208,10 +208,14 @@ def update_hand_counted():
 @tab5_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
     logging.debug("Hit /tab5/subcat_data endpoint")
-    contract = request.args.get('contract')
-    common_name = request.args.get('common_name')
-    page = int(request.args.get('page', 1))
-    per_page = 20
+    try:
+        contract = request.args.get('contract')
+        common_name = request.args.get('common_name')
+        page = int(request.args.get('page', 1))  # Default to 1 if not an integer
+        per_page = 20
+    except ValueError:
+        page = 1  # Fallback to page 1 on invalid input
+        per_page = 20
 
     with DatabaseConnection() as conn:
         items = get_active_rental_items(conn)

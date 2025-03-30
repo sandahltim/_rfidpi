@@ -53,7 +53,7 @@
     </thead>
     <tbody id="parentTableBody">
       {% for parent in parent_data %}
-      {% set contract_key = parent.contract|lower|replace('[^a-z0-9]', '_', 'g') %}
+      {% set contract_key = parent.contract|lower|replace('[^a-z0-9]', '_') %}
       <tr class="table-active">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ contract_key }}">+</span></td>
         <td>{{ parent.contract }}</td>
@@ -81,7 +81,7 @@
                 </thead>
                 <tbody>
                   {% for common_name, totals in child_map[parent.contract].items() %}
-                  {% set child_key = contract_key ~ '_' ~ common_name|lower|replace('[^a-z0-9]', '_', 'g') %}
+                  {% set child_key = contract_key ~ '_' ~ common_name|lower|replace('[^a-z0-9]', '_') %}
                   <tr class="child-row">
                     <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#grandchild-{{ child_key }}">+</span></td>
                     <td>{{ common_name }}</td>
@@ -398,7 +398,6 @@ function printTable(level, contract, common_name) {
 }
 
 function refreshTable() {
-  // Save expanded state
   const expandedIds = Array.from(document.querySelectorAll('.collapse.show')).map(el => el.id);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -416,7 +415,6 @@ function refreshTable() {
       document.getElementById('top-pagination').innerHTML = newTopPagination.innerHTML;
       document.getElementById('bottom-pagination').innerHTML = newBottomPagination.innerHTML;
 
-      // Restore expanded state
       expandedIds.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
@@ -444,16 +442,13 @@ function debounce(func, wait) {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded");
 
-  // Event delegation for table interactions
   document.getElementById("table-container").addEventListener("click", function(event) {
-    // Sorting
     if (event.target.classList.contains("sortable")) {
       const table = event.target.closest("table");
       const colName = event.target.getAttribute("data-col-name");
       sortTable(table, colName);
     }
 
-    // Print buttons
     if (event.target.classList.contains("print-btn")) {
       console.log("Direct print-btn click detected");
       const level = event.target.getAttribute("data-level");
@@ -468,7 +463,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Expand/collapse
     if (event.target.classList.contains("expand-toggle")) {
       const targetId = event.target.getAttribute("data-bs-target").substring(1);
       const target = document.getElementById(targetId);
@@ -482,14 +476,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Debounced filter submission
   const filterForm = document.getElementById("filter-form");
   const debouncedSubmit = debounce(() => filterForm.submit(), 500);
   filterForm.querySelectorAll("input").forEach(input => {
     input.addEventListener("input", debouncedSubmit);
   });
 
-  // Auto-refresh every 60s
   setInterval(refreshTable, 60000);
 });
 

@@ -5,7 +5,8 @@
 # Project Files: https://github.com/sandahltim/_rfidpi (refresh_print branch)
 
 ## Project Overview
-- Mission: Enhance the RFID inventory dashboard—track rental gear and laundry stock with AJAX, auto-refresh, and local printing, scale to Pi integration.
+- ## Project Overview
+- Mission: Enhance the RFID inventory dashboard—track rental gear and laundry stock with AJAX, auto-refresh, and local printing, scale to Pi integration, add SEED dataset to give only possible common_name strings which correspond to a number field named renta_class_id. This value corresponds with a numerical value column in id_item_master named rental_class_num.
 - Stack:
   - Backend: Python 3.11, Flask 2.3.2—lightweight, no bloat.
   - DB: SQLite—inventory.db (items, transactions, seed_data).
