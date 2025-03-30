@@ -11,7 +11,7 @@ def get_active_rental_contracts(conn, filter_contract="", filter_common="", sort
             ORDER BY it2.scan_date DESC 
             LIMIT 1) AS client_name,
            MAX(im.date_last_scanned) AS scan_date,
-           MAX(it.transaction_notes) AS transaction_notes
+           MAX(it.notes) AS transaction_notes
        FROM id_item_master im
        LEFT JOIN id_transactions it ON im.last_contract_num = it.contract_number
        WHERE im.status IN ('On Rent', 'Delivered')

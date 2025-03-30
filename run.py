@@ -2,10 +2,21 @@ import os
 import logging
 import time
 import threading
+import sqlite3
 from db_utils import initialize_db
 from refresh_logic import refresh_data
 from app import create_app
 from werkzeug.serving import is_running_from_reloader
+from config import DB_FILE
+
+def check_schema():
+    """Check if all required tables exist in inventory.db."""
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    required_tables = {'id_item_master', 'id_transactions', 'seed_rental_classes'}
+    existing_tables = set(row[0] for row in cursor.execute("SELECT name FROM sqlite_master WHERE type='table'"))
+    conn.close()
+    return required_tables.issubset(existing_tables)
 
 def background_refresh():
     """Continuously refresh data every 10 minutes."""
@@ -19,8 +30,10 @@ app = create_app()
 
 # Check and initialize DB if needed
 db_path = os.path.join(os.path.dirname(__file__), "inventory.db")
-if not os.path.exists(db_path) or os.path.getsize(db_path) == 0:
-    print("Initializing and populating database...")
+if not os.path.exists(db_path) or os.path.getsize(db_path) == 0 or not check_schema():
+    print("Initializing or updating database schema...")
+    if os.path.exists(db_path):
+        os.rename(db_path, db_path + '.bak')  # Backup old DB
     initialize_db()
     refresh_data()
 
