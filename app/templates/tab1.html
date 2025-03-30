@@ -166,350 +166,355 @@
 
 <!-- Inline JS for sorting, AJAX, auto-refresh, and printing -->
 <script>
-function sortTable(tableEl, colName) {
-  let tbody = tableEl.querySelector("tbody");
-  if (!tbody) return;
-
-  let asc = tableEl.getAttribute("data-sort-col") === colName 
-            ? tableEl.getAttribute("data-sort-dir") !== "asc" 
-            : true;
-  tableEl.setAttribute("data-sort-col", colName);
-  tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
-
-  let headers = Array.from(tableEl.querySelectorAll("th"));
-  let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
-
-  if (tableEl.id === "parentTable") {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let parentRow = rows[i];
-      let childRow = rows[i + 1] || null;
-      if (parentRow && parentRow.classList.contains("table-active")) {
-        pairs.push({ parent: parentRow, child: childRow });
-      }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellB);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.parent);
-      if (pair.child) tbody.appendChild(pair.child);
-    });
-  } else if (tableEl.classList.contains("child-table")) {
-    let rows = Array.from(tbody.children);
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let childRow = rows[i];
-      let grandRow = rows[i + 1] || null;
-      if (childRow && childRow.classList.contains("child-row")) {
-        pairs.push({ child: childRow, grand: grandRow });
-      }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.child.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.child.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellB);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.child);
-      if (pair.grand) tbody.appendChild(pair.grand);
-    });
-  } else {
-    let rows = Array.from(tbody.querySelectorAll("tr"));
-    rows.sort((a, b) => {
-      let cellA = a.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellB);
-    });
-    tbody.innerHTML = "";
-    rows.forEach(row => tbody.appendChild(row));
-  }
-}
-
-function loadSubcatData(contract, common_name, page, childKey) {
-  console.log(`Loading: Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
-  const loading = document.getElementById(`loading-${childKey}`);
-  loading.style.display = 'block';
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const params = {
-    contract: contract,
-    common_name: common_name,
-    page: page,
-    last_contract_num: urlParams.get('last_contract_num') || '',
-    common_name_filter: urlParams.get('common_name') || '',
-    sort: urlParams.get('sort') || 'im.last_contract_num:asc'
-  };
-  const url = `/tab1/data?${new URLSearchParams(params).toString()}`;
-  console.log(`Fetching URL: ${url}`);
-
-  fetch(url)
-    .then(response => {
-      console.log(`Response Status: ${response.status}`);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      return response.json();
-    })
-    .then(data => {
-      console.log('AJAX Response:', data);
-      const tbody = document.getElementById(`grandchildTbody-${childKey}`);
-      if (!tbody) {
-        console.error(`Tbody not found for ChildKey: ${childKey}`);
-        alert("Error: Table body not found!");
-        return;
-      }
-      tbody.innerHTML = '';
-      data.items.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.tag_id}</td>
-          <td>${item.common_name}</td>
-          <td>${item.status}</td>
-          <td>${item.bin_location}</td>
-          <td>${item.quality}</td>
-          <td>${item.last_contract_num}</td>
-          <td>${item.date_last_scanned}</td>
-          <td>${item.last_scanned_by}</td>
-          <td>${item.notes}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
-      pagination.innerHTML = '';
-      if (data.total_pages > 1) {
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
-        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
-        pagination.appendChild(prevLi);
-
-        for (let p = 1; p <= data.total_pages; p++) {
-          const li = document.createElement('li');
-          li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
-          li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
-          pagination.appendChild(li);
+  function sortTable(tableEl, colName) {
+    let tbody = tableEl.querySelector("tbody");
+    if (!tbody) return;
+  
+    let asc = tableEl.getAttribute("data-sort-col") === colName 
+              ? tableEl.getAttribute("data-sort-dir") !== "asc" 
+              : true;
+    tableEl.setAttribute("data-sort-col", colName);
+    tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+  
+    let headers = Array.from(tableEl.querySelectorAll("th"));
+    let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
+  
+    if (tableEl.id === "parentTable") {
+      let rows = Array.from(tbody.children);
+      let pairs = [];
+      for (let i = 0; i < rows.length; i += 2) {
+        let parentRow = rows[i];
+        let childRow = rows[i + 1] || null;
+        if (parentRow && parentRow.classList.contains("table-active")) {
+          pairs.push({ parent: parentRow, child: childRow });
         }
-
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
-        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
-        pagination.appendChild(nextLi);
-
-        pagination.querySelectorAll('.page-link').forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const newPage = parseInt(link.getAttribute('data-page'));
-            if (!isNaN(newPage)) {
-              loadSubcatData(contract, common_name, newPage, childKey);
-            }
-          });
-        });
       }
-      loading.style.display = 'none';
-    })
-    .catch(error => {
-      console.error('Error loading subcat data:', error);
-      alert('Failed to load items: ' + error.message);
-      loading.style.display = 'none';
-    });
-}
-
-function printTable(level, contract, common_name) {
-  let content = '';
-  if (level === 'parent') {
-    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active')).find(row => row.cells[1].innerText === contract);
-    if (!parentRow) return;
-    content = `
-      <h2>Contract: ${contract}</h2>
-      <table border="1">
-        <thead>
-          <tr>
-            <th>Contract #</th>
-            <th>Client Name</th>
-            <th>Total Items</th>
-            <th>Last Scan Date</th>
-            <th>Transaction Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>${parentRow.cells[1].innerText}</td>
-            <td>${parentRow.cells[2].innerText}</td>
-            <td>${parentRow.cells[3].innerText}</td>
-            <td>${parentRow.cells[4].innerText}</td>
-            <td>${parentRow.cells[5].innerText}</td>
-          </tr>
-        </tbody>
-      </table>
-    `;
-  } else if (level === 'child') {
-    const childTable = document.getElementById(`childTable-${contract.toLowerCase().replace(' ', '_')}`);
-    const childRow = Array.from(childTable.querySelectorAll('.child-row')).find(row => row.cells[1].innerText === common_name);
-    if (!childRow) return;
-    content = `
-      <h2>Contract: ${contract} - ${common_name}</h2>
-      <table border="1">
-        <thead>
-          <tr>
-            <th>Common Name</th>
-            <th>Total Items</th>
-            <th>Available</th>
-            <th>On Rent</th>
-            <th>Service</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>${childRow.cells[1].innerText}</td>
-            <td>${childRow.cells[2].innerText}</td>
-            <td>${childRow.cells[3].innerText}</td>
-            <td>${childRow.cells[4].innerText}</td>
-            <td>${childRow.cells[5].innerText}</td>
-          </tr>
-        </tbody>
-      </table>
-    `;
-    const tbody = document.getElementById(`grandchildTbody-${contract.toLowerCase().replace(' ', '_')}_${common_name.toLowerCase().replace(' ', '_')}`);
-    if (tbody && tbody.children.length > 0) {
-      content += `
-        <h3>Items</h3>
+      pairs.sort((a, b) => {
+        let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
+        let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
+        let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+        let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return asc ? numA - numB : numB - numA;
+        }
+        return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      });
+      tbody.innerHTML = "";
+      pairs.forEach(pair => {
+        tbody.appendChild(pair.parent);
+        if (pair.child) tbody.appendChild(pair.child);
+      });
+    } else if (tableEl.classList.contains("child-table")) {
+      let rows = Array.from(tbody.children);
+      let pairs = [];
+      for (let i = 0; i < rows.length; i += 2) {
+        let childRow = rows[i];
+        let grandRow = rows[i + 1] || null;
+        if (childRow && childRow.classList.contains("child-row")) {
+          pairs.push({ child: childRow, grand: grandRow });
+        }
+      }
+      pairs.sort((a, b) => {
+        let cellA = a.child.cells[colIndex]?.innerText.trim() || "";
+        let cellB = b.child.cells[colIndex]?.innerText.trim() || "";
+        let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+        let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return asc ? numA - numB : numB - numA;
+        }
+        return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      });
+      tbody.innerHTML = "";
+      pairs.forEach(pair => {
+        tbody.appendChild(pair.child);
+        if (pair.grand) tbody.appendChild(pair.grand);
+      });
+    } else {
+      let rows = Array.from(tbody.querySelectorAll("tr"));
+      rows.sort((a, b) => {
+        let cellA = a.cells[colIndex]?.innerText.trim() || "";
+        let cellB = b.cells[colIndex]?.innerText.trim() || "";
+        let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+        let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return asc ? numA - numB : numB - numA;
+        }
+        return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      });
+      tbody.innerHTML = "";
+      rows.forEach(row => tbody.appendChild(row));
+    }
+  }
+  
+  function loadSubcatData(contract, common_name, page, childKey) {
+    console.log(`Loading: Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
+    const loading = document.getElementById(`loading-${childKey}`);
+    loading.style.display = 'block';
+  
+    const urlParams = new URLSearchParams(window.location.search);
+    const params = {
+      contract: contract,
+      common_name: common_name,
+      page: page,
+      last_contract_num: urlParams.get('last_contract_num') || '',
+      common_name_filter: urlParams.get('common_name') || '',
+      sort: urlParams.get('sort') || 'last_contract_num:asc'  // Fixed sort param
+    };
+    const url = `/tab1/data?${new URLSearchParams(params).toString()}`;
+    console.log(`Fetching URL: ${url}`);
+  
+    fetch(url)
+      .then(response => {
+        console.log(`Response Status: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        console.log('AJAX Response:', data);
+        const tbody = document.getElementById(`grandchildTbody-${childKey}`);
+        if (!tbody) {
+          console.error(`Tbody not found for ChildKey: ${childKey}`);
+          alert("Error: Table body not found!");
+          return;
+        }
+        tbody.innerHTML = '';
+        data.items.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.tag_id}</td>
+            <td>${item.common_name}</td>
+            <td>${item.status}</td>
+            <td>${item.bin_location}</td>
+            <td>${item.quality}</td>
+            <td>${item.last_contract_num}</td>
+            <td>${item.date_last_scanned}</td>
+            <td>${item.last_scanned_by}</td>
+            <td>${item.notes}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+  
+        const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
+        pagination.innerHTML = '';
+        if (data.total_pages > 1) {
+          const prevLi = document.createElement('li');
+          prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
+          prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
+          pagination.appendChild(prevLi);
+  
+          for (let p = 1; p <= data.total_pages; p++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
+            pagination.appendChild(li);
+          }
+  
+          const nextLi = document.createElement('li');
+          nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
+          nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
+          pagination.appendChild(nextLi);
+  
+          pagination.querySelectorAll('.page-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+              e.preventDefault();
+              const newPage = parseInt(link.getAttribute('data-page'));
+              if (!isNaN(newPage)) {
+                loadSubcatData(contract, common_name, newPage, childKey);
+              }
+            });
+          });
+        }
+        loading.style.display = 'none';
+      })
+      .catch(error => {
+        console.error('Error loading subcat data:', error);
+        alert('Failed to load items: ' + error.message);
+        loading.style.display = 'none';
+      });
+  }
+  
+  function printTable(level, contract, common_name) {
+    let content = '';
+    if (level === 'parent') {
+      const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
+        .find(row => row.cells[1].innerText === contract);
+      if (!parentRow) return;
+      content = `
+        <h2>Contract: ${contract}</h2>
         <table border="1">
           <thead>
             <tr>
-              <th>Tag ID</th>
-              <th>Common Name</th>
-              <th>Status</th>
-              <th>Bin Location</th>
-              <th>Quality</th>
-              <th>Last Contract Num</th>
-              <th>Date Last Scanned</th>
-              <th>Last Scanned By</th>
-              <th>Notes</th>
+              <th>Contract #</th>
+              <th>Client Name</th>
+              <th>Total Items</th>
+              <th>Last Scan Date</th>
+              <th>Transaction Notes</th>
             </tr>
           </thead>
           <tbody>
-            ${Array.from(tbody.children).map(row => `<tr>${row.innerHTML}</tr>`).join('')}
+            <tr>
+              <td>${parentRow.cells[1].innerText}</td>
+              <td>${parentRow.cells[2].innerText}</td>
+              <td>${parentRow.cells[3].innerText}</td>
+              <td>${parentRow.cells[4].innerText}</td>
+              <td>${parentRow.cells[5].innerText}</td>
+            </tr>
           </tbody>
         </table>
       `;
+    } else if (level === 'child') {
+      const childTable = document.getElementById(`childTable-${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}`);
+      const childRow = Array.from(childTable.querySelectorAll('.child-row'))
+        .find(row => row.cells[1].innerText === common_name);
+      if (!childRow) return;
+      content = `
+        <h2>Contract: ${contract} - ${common_name}</h2>
+        <table border="1">
+          <thead>
+            <tr>
+              <th>Common Name</th>
+              <th>Total Items</th>
+              <th>Available</th>
+              <th>On Rent</th>
+              <th>Service</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${childRow.cells[1].innerText}</td>
+              <td>${childRow.cells[2].innerText}</td>
+              <td>${childRow.cells[3].innerText}</td>
+              <td>${childRow.cells[4].innerText}</td>
+              <td>${childRow.cells[5].innerText}</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+      const tbody = document.getElementById(`grandchildTbody-${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${common_name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`);
+      if (tbody && tbody.children.length > 0) {
+        content += `
+          <h3>Items</h3>
+          <table border="1">
+            <thead>
+              <tr>
+                <th>Tag ID</th>
+                <th>Common Name</th>
+                <th>Status</th>
+                <th>Bin Location</th>
+                <th>Quality</th>
+                <th>Last Contract Num</th>
+                <th>Date Last Scanned</th>
+                <th>Last Scanned By</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Array.from(tbody.children).map(row => `<tr>${row.innerHTML}</tr>`).join('')}
+            </tbody>
+          </table>
+        `;
+      }
     }
+  
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head><title>Print</title></head>
+        <body onload="window.print(); window.close();">${content}</body>
+      </html>
+    `);
+    printWindow.document.close();
   }
-
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(`
-    <html>
-      <head><title>Print</title></head>
-      <body onload="window.print(); window.close();">${content}</body>
-    </html>
-  `);
-  printWindow.document.close();
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM Content Loaded");
-
-  // Parent table sorting
-  let parentTable = document.getElementById("parentTable");
-  parentTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
-      sortTable(parentTable, colName);
-    });
-  });
-
-  // Child table sorting
-  document.querySelectorAll(".child-table").forEach(childTable => {
-    childTable.querySelectorAll("th.sortable").forEach(th => {
+  
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM Content Loaded");
+  
+    // Parent table sorting
+    const parentTable = document.getElementById("parentTable");
+    parentTable.querySelectorAll("th.sortable").forEach(th => {
       th.addEventListener("click", () => {
         let colName = th.getAttribute("data-col-name");
-        sortTable(childTable, colName);
+        sortTable(parentTable, colName);
       });
     });
-  });
-
-  // Grandchild table sorting (binds dynamically after load)
-  function bindGrandchildSort(table) {
-    table.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(table, colName);
+  
+    // Child table sorting
+    document.querySelectorAll(".child-table").forEach(childTable => {
+      childTable.querySelectorAll("th.sortable").forEach(th => {
+        th.addEventListener("click", () => {
+          let colName = th.getAttribute("data-col-name");
+          sortTable(childTable, colName);
+        });
       });
     });
-  }
-
-  // Expand/collapse toggles
-  document.querySelectorAll(".expand-toggle").forEach(toggle => {
-    let target = document.querySelector(toggle.getAttribute("data-bs-target"));
-    target.addEventListener("show.bs.collapse", () => {
-      toggle.textContent = "-";
-      if (target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
-        const contract = target.getAttribute("data-contract");
-        const common_name = target.getAttribute("data-common-name");
-        const childKey = target.id.split("grandchild-")[1];
-        loadSubcatData(contract, common_name, 1, childKey);
-        setTimeout(() => {
-          const grandTable = document.getElementById(`grandchildTable-${childKey}`);
-          if (grandTable) bindGrandchildSort(grandTable);
-        }, 100);
-      }
+  
+    // Grandchild table sorting (binds dynamically after load)
+    function bindGrandchildSort(table) {
+      table.querySelectorAll("th.sortable").forEach(th => {
+        th.addEventListener("click", () => {
+          let colName = th.getAttribute("data-col-name");
+          sortTable(table, colName);
+        });
+      });
+    }
+  
+    // Expand/collapse toggles
+    document.querySelectorAll(".expand-toggle").forEach(toggle => {
+      const target = document.querySelector(toggle.getAttribute("data-bs-target"));
+      target.addEventListener("show.bs.collapse", () => {
+        toggle.textContent = "-";
+        if (target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
+          const contract = target.getAttribute("data-contract");
+          const common_name = target.getAttribute("data-common-name");
+          const childKey = target.id.split("grandchild-")[1];
+          loadSubcatData(contract, common_name, 1, childKey);
+          setTimeout(() => {
+            const grandTable = document.getElementById(`grandchildTable-${childKey}`);
+            if (grandTable) bindGrandchildSort(grandTable);
+          }, 100);
+        }
+      });
+      target.addEventListener("hide.bs.collapse", () => {
+        toggle.textContent = "+";
+      });
     });
-    target.addEventListener("hide.bs.collapse", () => {
-      toggle.textContent = "+";
-    });
+  
+    // Printing (rebind on DOM load and after AJAX)
+    function bindPrintButtons() {
+      document.querySelectorAll(".print-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          console.log("Direct print-btn click detected");
+          const level = btn.getAttribute("data-level");
+          const contract = btn.getAttribute("data-contract");
+          const common_name = btn.getAttribute("data-common-name");
+          if (level === "parent") {
+            console.log(`Parent print button clicked for contract: ${contract}`);
+            printTable("parent", contract);
+          } else if (level === "child") {
+            console.log(`Child print button clicked for contract: ${contract}, common_name: ${common_name}`);
+            printTable("child", contract, common_name);
+          }
+        });
+      });
+    }
+    bindPrintButtons();
+  
+    // Auto-refresh every 60s
+    setInterval(() => {
+      document.querySelectorAll(".collapse.show").forEach(collapse => {
+        const contract = collapse.getAttribute("data-contract");
+        const common_name = collapse.getAttribute("data-common-name");
+        if (contract && common_name) {
+          const childKey = collapse.id.split("grandchild-")[1];
+          const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
+          const currentPage = parseInt(pagination.querySelector('.page-item.active .page-link')?.innerText || 1);
+          loadSubcatData(contract, common_name, currentPage, childKey);
+          setTimeout(bindPrintButtons, 100); // Rebind after AJAX
+        }
+      });
+    }, 60000);
   });
-
-  // Printing
-  document.querySelectorAll(".print-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      console.log("Direct print-btn click detected");
-      const level = btn.getAttribute("data-level");
-      const contract = btn.getAttribute("data-contract");
-      const common_name = btn.getAttribute("data-common-name");
-      if (level === "parent") {
-        console.log(`Parent print button clicked for contract: ${contract}`);
-        printTable("parent", contract);
-      } else if (level === "child") {
-        console.log(`Child print button clicked for contract: ${contract}, common_name: ${common_name}`);
-        printTable("child", contract, common_name);
-      }
-    });
-  });
-
-  // Auto-refresh every 60s
-  setInterval(() => {
-    document.querySelectorAll(".collapse.show").forEach(collapse => {
-      const contract = collapse.getAttribute("data-contract");
-      const common_name = collapse.getAttribute("data-common-name");
-      if (contract && common_name) {
-        const childKey = collapse.id.split("grandchild-")[1];
-        const pagination = document.getElementById(`pagination-${childKey}`).querySelector('.pagination');
-        const currentPage = parseInt(pagination.querySelector('.page-item.active .page-link')?.innerText || 1);
-        loadSubcatData(contract, common_name, currentPage, childKey);
-      }
-    });
-  }, 60000);
-});
-
-</script>
+  </script>
 
 <style>
   body, html {
