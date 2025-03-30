@@ -12,6 +12,7 @@ API_PASSWORD = os.environ.get("API_PASSWORD", "Broadway8101")
 LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"
 ITEM_MASTER_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169344381"
 TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
+SEED_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169215907"
 
 # Refresh configuration: data is refreshed every 10 minutes (600 seconds)
 REFRESH_INTERVAL = 600
