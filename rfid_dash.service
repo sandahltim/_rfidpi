@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 User=tim
-WorkingDirectory=/home/tim/_rfidpi
+WorkingDirectory=/home/tim/test_rfidpi
 ExecStart=/home/tim/_rfidpi/start.sh
 Restart=always
 RestartSec=5
