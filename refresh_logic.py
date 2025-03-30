@@ -3,11 +3,8 @@ import requests
 import sqlite3
 import time
 from datetime import datetime, timedelta
-from config import DB_FILE, SEED_URL, ITEM_MASTER_URL, TRANSACTION_URL
+from config import LOGIN_URL, DB_FILE, SEED_URL, ITEM_MASTER_URL, TRANSACTION_URL, API_PASSWORD, API_USERNAME
 
-API_USERNAME = os.environ.get("API_USERNAME", "api")
-API_PASSWORD = os.environ.get("API_PASSWORD", "Broadway8101")
-LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"
 
 TOKEN = None
 TOKEN_EXPIRY = None
