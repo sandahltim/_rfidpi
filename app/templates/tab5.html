@@ -49,7 +49,7 @@
     </thead>
     <tbody>
       {% for parent in parent_data %}
-      {% set contract_key = parent.contract|lower|replace(' ', '_') %}
+      {% set contract_key = parent.contract|lower|replace('[^a-z0-9]', '_', 'g') %}
       <!-- Parent Row -->
       <tr class="table-active">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ contract_key }}">+</span></td>
@@ -75,7 +75,7 @@
                 </thead>
                 <tbody>
                   {% for common_name, totals in child_map[parent.contract].items() %}
-                  {% set child_key = contract_key ~ '_' ~ common_name|lower|replace(' ', '_') %}
+                  {% set child_key = contract_key ~ '_' ~ common_name|lower|replace('[^a-z0-9]', '_', 'g') %}
                   <tr class="child-row">
                     <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#grandchild-{{ child_key }}">+</span></td>
                     <td>{{ common_name }}</td>
@@ -337,22 +337,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // Expand/collapse toggles for parent (contract)
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
     let target = document.querySelector(toggle.getAttribute("data-bs-target"));
-    target.addEventListener("show.bs.collapse", () => {
-      toggle.textContent = "-";
-      if (target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
-        const contract = target.getAttribute("data-contract");
-        const common_name = target.getAttribute("data-common-name");
-        const childKey = target.id.split("grandchild-")[1];
-        loadSubcatData(contract, common_name, 1, childKey);
-        setTimeout(() => {
-          const grandTable = document.getElementById(`grandchildTable-${childKey}`);
-          if (grandTable) bindGrandchildSort(grandTable);
-        }, 100);
-      }
-    });
-    target.addEventListener("hide.bs.collapse", () => {
-      toggle.textContent = "+";
-    });
+    if (target) {
+      target.addEventListener("show.bs.collapse", () => {
+        toggle.textContent = "-";
+        if (target.classList.contains("collapse") && target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
+          const contract = target.getAttribute("data-contract");
+          const common_name = target.getAttribute("data-common-name");
+          const childKey = target.id.split("grandchild-")[1];
+          loadSubcatData(contract, common_name, 1, childKey);
+          setTimeout(() => {
+            const grandTable = document.getElementById(`grandchildTable-${childKey}`);
+            if (grandTable) bindGrandchildSort(grandTable);
+          }, 100);
+        }
+      });
+      target.addEventListener("hide.bs.collapse", () => {
+        toggle.textContent = "+";
+      });
+    }
   });
 });
 
@@ -377,25 +379,13 @@ function confirmUpdate() {
     overflow-y: visible;
     padding-bottom: 100px;
   }
-  .table-container table {
-    width: 100%;
-    table-layout: auto;
-  }
   .child-table-container {
     width: 100%;
     overflow-y: visible;
   }
-  .child-table-container table {
-    width: 100%;
-    table-layout: auto;
-  }
   .grandchild-table-container {
     width: 100%;
     overflow-y: visible;
-  }
-  .grandchild-table-container table {
-    width: 100%;
-    table-layout: auto;
   }
   .collapse {
     width: 100%;
