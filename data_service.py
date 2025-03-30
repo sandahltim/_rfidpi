@@ -1,6 +1,6 @@
 def get_active_rental_contracts(conn, filter_contract="", filter_common="", sort="last_contract_num:asc", since_date=None):
     """
-    Returns a list of active rental contracts with latest client_name.
+    Returns a list of active rental contracts with latest client_name and transaction notes.
     """
     sort_field, sort_order = sort.split(":") if ":" in sort else ("last_contract_num", "asc")
     query = """
@@ -11,9 +11,12 @@ def get_active_rental_contracts(conn, filter_contract="", filter_common="", sort
             ORDER BY it2.scan_date DESC 
             LIMIT 1) AS client_name,
            MAX(im.date_last_scanned) AS scan_date,
-           MAX(it.notes) AS transaction_notes
+           (SELECT it3.notes 
+            FROM id_transactions it3 
+            WHERE it3.contract_number = im.last_contract_num 
+            ORDER BY it3.scan_date DESC 
+            LIMIT 1) AS transaction_notes
        FROM id_item_master im
-       LEFT JOIN id_transactions it ON im.last_contract_num = it.contract_number
        WHERE im.status IN ('On Rent', 'Delivered')
     """
     params = []
@@ -53,3 +56,4 @@ def get_active_rental_items(conn, filter_contract="", filter_common="", sort="la
         params.append(since_date)
     query_items += f" ORDER BY {sort_field} {sort_order.upper()}"
     return conn.execute(query_items, params).fetchall()
+#
