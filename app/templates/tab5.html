@@ -356,13 +356,16 @@ function printTable(level, contract, common_name) {
       console.error(`Child table not found: ${childTableId}`);
       return;
     }
+    const normalizedCommonName = common_name.toLowerCase().replace(/\s+/g, ' ').trim();
     const childRow = Array.from(childTable.querySelectorAll('.child-row'))
-      .find(row => row.cells[1].innerText.trim() === common_name.trim());
+      .find(row => row.cells[1].innerText.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
     if (!childRow) {
-      console.error(`Child row not found for contract: ${contract}, common_name: ${common_name}`);
+      console.error(`Child row not found for contract: ${contract}, common_name: ${common_name} (normalized: ${normalizedCommonName})`);
       return;
     }
-    const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Object.keys(childMap[contract]).find(id => childMap[contract][id].common_name === common_name)}`;
+    const rental_class_id = Object.keys(childMap[contract]).find(id => 
+      childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
+    const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
     const tbodyId = `grandchildTbody-${childKey}`;
     const tbody = document.getElementById(tbodyId);
     let items = [];
@@ -513,14 +516,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (event.target.classList.contains("expand-toggle")) {
       const targetId = event.target.getAttribute("data-bs-target").substring(1);
-      const target = document.getElementById(targetId);
-      if (target && target.classList.contains("collapse") && !target.classList.contains("show") && 
-          target.getAttribute("data-contract") && target.getAttribute("data-common-name")) {
-        const contract = target.getAttribute("data-contract");
-        const common_name = target.getAttribute("data-common-name");
-        const rental_class_id = Object.keys(childMap[contract]).find(id => childMap[contract][id].common_name === common_name);
-        const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
-        loadSubcatData(contract, common_name, 1, childKey);
+      const collapseEl = document.getElementById(targetId);
+      if (collapseEl && collapseEl.classList.contains("collapse") && !collapseEl.classList.contains("show")) {
+        const contract = collapseEl.getAttribute("data-contract");
+        const common_name = collapseEl.getAttribute("data-common-name");
+        if (contract && common_name) {
+          const normalizedCommonName = common_name.toLowerCase().replace(/\s+/g, ' ').trim();
+          const rental_class_id = Object.keys(childMap[contract]).find(id => 
+            childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
+          if (rental_class_id) {
+            const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
+            console.log(`Expanding grandchild for contract: ${contract}, common_name: ${common_name}, childKey: ${childKey}`);
+            loadSubcatData(contract, common_name, 1, childKey);
+          } else {
+            console.error(`No rental_class_id found for contract: ${contract}, common_name: ${common_name}`);
+          }
+        }
       }
     }
   });
