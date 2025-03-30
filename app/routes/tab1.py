@@ -9,7 +9,7 @@ tab1_bp = Blueprint("tab1", __name__, url_prefix="/tab1")
 def show_tab1():
     filter_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_common = request.args.get("common_name", "").lower().strip()
-    sort = request.args.get("sort", "im.last_contract_num:asc")
+    sort = request.args.get("sort", "last_contract_num:asc")  # Fixed sort param
 
     with DatabaseConnection() as conn:
         contracts = get_active_rental_contracts(conn, filter_contract, filter_common, sort)
@@ -83,7 +83,7 @@ def tab1_data():
     per_page = 20
     filter_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_common = request.args.get("common_name_filter", "").lower().strip()
-    sort = request.args.get("sort", "im.last_contract_num:asc")
+    sort = request.args.get("sort", "last_contract_num:asc")  # Fixed sort param
 
     with DatabaseConnection() as conn:
         items = get_active_rental_items(conn, filter_contract, filter_common, sort)

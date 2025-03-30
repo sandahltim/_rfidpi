@@ -167,7 +167,6 @@ def update_hand_counted():
         with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            # Find matching open L contract
             cursor.execute("""
                 SELECT id, total_items FROM hand_counted_items 
                 WHERE last_contract_num = ? AND common_name = ?
@@ -185,7 +184,6 @@ def update_hand_counted():
                 logging.error(f"Returned quantity {returned_qty} exceeds original {orig_total}")
                 return "Returned quantity exceeds original total", 400
 
-            # Update original L contract
             if new_total == 0:
                 cursor.execute("DELETE FROM hand_counted_items WHERE id = ?", (orig_id,))
             else:
@@ -194,7 +192,6 @@ def update_hand_counted():
                     WHERE id = ?
                 """, (new_total, orig_id))
 
-            # Add new C contract entry
             closed_contract = "C" + last_contract_num[1:]
             cursor.execute("""
                 INSERT INTO hand_counted_items (last_contract_num, common_name, total_items, tag_id, date_last_scanned, last_scanned_by)
