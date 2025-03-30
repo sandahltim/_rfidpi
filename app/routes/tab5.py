@@ -90,7 +90,7 @@ def show_tab5():
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
                 total_rfid = len(rfid_items)
-                total_hand = sum(int(i.get("total_items", 0)) for i in hand_items)  # Ensure int
+                total_hand = sum(int(i.get("total_items", 0)) for i in hand_items)
                 total_items = total_rfid + total_hand
                 total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
                 on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
@@ -102,11 +102,12 @@ def show_tab5():
                     "total": total_items,
                     "available": total_available,
                     "on_rent": on_rent,
-                    "service": service
+                    "service": service,
+                    "items": rfid_items + hand_items  # Include items for scan date
                 }
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
-            hand_total = sum(int(i.get("total_items", 0)) for i in item_list if i.get("tag_id") is None)  # Ensure int
+            hand_total = sum(int(i.get("total_items", 0)) for i in item_list if i.get("tag_id") is None)
             parent_data.append({
                 "contract": contract,
                 "total": rfid_total + hand_total
@@ -146,7 +147,7 @@ def save_hand_counted():
             """, (last_contract_num, common_name, total_items, date_last_scanned, last_scanned_by))
             conn.commit()
 
-        return redirect(url_for("tab5_bp.show_tab5"))
+        return redirect(url_for("tab5_bp.show_tab5", last_contract_num=request.args.get("last_contract_num", ""), common_name=request.args.get("common_name", "")))
     except Exception as e:
         logging.error(f"Error saving hand-counted entry: {e}")
         return "Internal Server Error", 500
@@ -178,7 +179,7 @@ def update_hand_counted():
                 logging.error(f"No matching L contract found: {last_contract_num}, {common_name}")
                 return "No matching L contract found", 404
 
-            orig_id, orig_total = row["id"], int(row["total_items"])  # Ensure int
+            orig_id, orig_total = row["id"], int(row["total_items"])
             new_total = orig_total - returned_qty
 
             if new_total < 0:
@@ -201,7 +202,7 @@ def update_hand_counted():
 
             conn.commit()
 
-        return redirect(url_for("tab5_bp.show_tab5"))
+        return redirect(url_for("tab5_bp.show_tab5", last_contract_num=request.args.get("last_contract_num", ""), common_name=request.args.get("common_name", "")))
     except Exception as e:
         logging.error(f"Error updating hand-counted entry: {e}")
         return "Internal Server Error", 500
@@ -212,10 +213,10 @@ def subcat_data():
     try:
         contract = request.args.get('contract')
         common_name = request.args.get('common_name')
-        page = int(request.args.get('page', 1))  # Default to 1 if not an integer
+        page = int(request.args.get('page', 1))
         per_page = 20
     except ValueError:
-        page = 1  # Fallback to page 1 on invalid input
+        page = 1
         per_page = 20
 
     with DatabaseConnection() as conn:

@@ -78,7 +78,8 @@
                 </thead>
                 <tbody>
                   {% for common_name, totals in child_map[parent.contract].items() %}
-                  {% set child_key = contract_key ~ '_' ~ common_name|lower|replace('[^a-z0-9]', '_') %}
+                  {% set sanitized_common_name = common_name|lower|replace('[^a-z0-9]', '_') %}
+                  {% set child_key = contract_key ~ '_' ~ sanitized_common_name %}
                   <tr class="child-row">
                     <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#grandchild-{{ child_key }}">+</span></td>
                     <td>{{ common_name }}</td>
@@ -261,15 +262,15 @@ function loadSubcatData(contract, common_name, page, childKey) {
       data.items.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${item.tag_id}</td>
-          <td>${item.common_name}</td>
-          <td>${item.status}</td>
-          <td>${item.bin_location}</td>
-          <td>${item.quality}</td>
-          <td>${item.last_contract_num}</td>
-          <td>${item.date_last_scanned}</td>
-          <td>${item.last_scanned_by}</td>
-          <td>${item.notes}</td>
+          <td>${item.tag_id || 'N/A'}</td>
+          <td>${item.common_name || 'N/A'}</td>
+          <td>${item.status || 'N/A'}</td>
+          <td>${item.bin_location || 'N/A'}</td>
+          <td>${item.quality || 'N/A'}</td>
+          <td>${item.last_contract_num || 'N/A'}</td>
+          <td>${item.date_last_scanned || 'N/A'}</td>
+          <td>${item.last_scanned_by || 'N/A'}</td>
+          <td>${item.notes || 'N/A'}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -388,98 +389,132 @@ function printTable(level, contract, common_name) {
       console.error(`Child row not found for contract: ${contract}, common_name: ${common_name}`);
       return;
     }
-    const tbodyId = `grandchildTbody-${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${common_name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${common_name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const tbodyId = `grandchildTbody-${childKey}`;
     const tbody = document.getElementById(tbodyId);
+    let items = [];
     if (!tbody || tbody.children.length === 0) {
-      console.warn(`No grandchild data for ${tbodyId}, fetching...`);
-      loadSubcatData(contract, common_name, 1, tbodyId.split('grandchildTbody-')[1]);
-      setTimeout(() => printTable(level, contract, common_name), 500); // Retry after load
-      return;
+      console.warn(`No grandchild data for ${tbodyId}, fetching synchronously...`);
+      const urlParams = new URLSearchParams(window.location.search);
+      const params = {
+        contract: contract,
+        common_name: common_name,
+        page: 1,
+        last_contract_num: urlParams.get('last_contract_num') || '',
+        common_name_filter: urlParams.get('common_name') || '',
+        sort: 'last_contract_num:asc'
+      };
+      const url = `/tab1/data?${new URLSearchParams(params).toString()}`;
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          items = data.items.map(item => ({
+            tag_id: item.tag_id || 'N/A',
+            common_name: item.common_name || 'N/A',
+            status: item.status || 'N/A',
+            bin_location: item.bin_location || 'N/A',
+            quality: item.quality || 'N/A',
+            last_contract_num: item.last_contract_num || 'N/A',
+            date_last_scanned: item.date_last_scanned || 'N/A',
+            last_scanned_by: item.last_scanned_by || 'N/A',
+            notes: item.notes || 'N/A'
+          }));
+          printChildItems(contract, common_name, parentRow, items);
+        })
+        .catch(error => console.error('Error fetching grandchild data for print:', error));
+    } else {
+      items = Array.from(tbody.children).map(row => ({
+        tag_id: row.cells[0].innerText,
+        common_name: row.cells[1].innerText,
+        status: row.cells[2].innerText,
+        bin_location: row.cells[3].innerText,
+        quality: row.cells[4].innerText,
+        last_contract_num: row.cells[5].innerText,
+        date_last_scanned: row.cells[6].innerText,
+        last_scanned_by: row.cells[7].innerText,
+        notes: row.cells[8].innerText
+      }));
+      printChildItems(contract, common_name, parentRow, items);
     }
-    const items = Array.from(tbody.children).map(row => ({
-      tag_id: row.cells[0].innerText,
-      common_name: row.cells[1].innerText,
-      status: row.cells[2].innerText,
-      bin_location: row.cells[3].innerText,
-      quality: row.cells[4].innerText,
-      last_contract_num: row.cells[5].innerText,
-      date_last_scanned: row.cells[6].innerText,
-      last_scanned_by: row.cells[7].innerText,
-      notes: row.cells[8].innerText
-    }));
-    const contractNum = contract;
-    const commonName = common_name;
-    let html = `
-      <html>
-      <head>
-        <title>Contract ${contractNum} - ${commonName} Items</title>
-        <style>
-          @page { size: A4; margin: 20mm; }
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-          .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-          .title { font-size: 18px; }
-          .company { font-size: 14px; text-align: right; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { border: 1px solid black; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          .signature { margin-top: 40px; }
-          .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">Contract #: ${contractNum}<br>Common Name: ${commonName}<br>Client Name: ${parentRow.cells[2].innerText}</div>
-          <div class="company">Broadway Tent and Event</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Tag ID</th>
-              <th>Common Name</th>
-              <th>Status</th>
-              <th>Bin Location</th>
-              <th>Quality</th>
-              <th>Last Contract Num</th>
-              <th>Date Last Scanned</th>
-              <th>Last Scanned By</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    items.forEach(item => {
-      html += `
-        <tr>
-          <td>${item.tag_id || 'N/A'}</td>
-          <td>${item.common_name || 'N/A'}</td>
-          <td>${item.status || 'N/A'}</td>
-          <td>${item.bin_location || 'N/A'}</td>
-          <td>${item.quality || 'N/A'}</td>
-          <td>${item.last_contract_num || 'N/A'}</td>
-          <td>${item.date_last_scanned || 'N/A'}</td>
-          <td>${item.last_scanned_by || 'N/A'}</td>
-          <td>${item.notes || 'N/A'}</td>
-        </tr>
-      `;
-    });
-    html += `
-          </tbody>
-        </table>
-        <div class="signature">
-          <div class="signature-line"></div>
-          <p>Signature</p>
-          <div class="signature-line"></div>
-          <p>Date</p>
-        </div>
-      </body>
-      </html>
-    `;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
   }
+}
+
+function printChildItems(contract, common_name, parentRow, items) {
+  const contractNum = contract;
+  const commonName = common_name;
+  let html = `
+    <html>
+    <head>
+      <title>Contract ${contractNum} - ${commonName} Items</title>
+      <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .title { font-size: 18px; }
+        .company { font-size: 14px; text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .signature { margin-top: 40px; }
+        .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="title">Contract #: ${contractNum}<br>Common Name: ${commonName}<br>Client Name: ${parentRow.cells[2].innerText}</div>
+        <div class="company">Broadway Tent and Event</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tag ID</th>
+            <th>Common Name</th>
+            <th>Status</th>
+            <th>Bin Location</th>
+            <th>Quality</th>
+            <th>Last Contract Num</th>
+            <th>Date Last Scanned</th>
+            <th>Last Scanned By</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  items.forEach(item => {
+    html += `
+      <tr>
+        <td>${item.tag_id}</td>
+        <td>${item.common_name}</td>
+        <td>${item.status}</td>
+        <td>${item.bin_location}</td>
+        <td>${item.quality}</td>
+        <td>${item.last_contract_num}</td>
+        <td>${item.date_last_scanned}</td>
+        <td>${item.last_scanned_by}</td>
+        <td>${item.notes}</td>
+      </tr>
+    `;
+  });
+  html += `
+        </tbody>
+      </table>
+      <div class="signature">
+        <div class="signature-line"></div>
+        <p>Signature</p>
+        <div class="signature-line"></div>
+        <p>Date</p>
+      </div>
+    </body>
+    </html>
+  `;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
 }
 
 function refreshTable() {
@@ -488,7 +523,10 @@ function refreshTable() {
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/tab1/?${urlParams.toString()}`;
   fetch(url)
-    .then(response => response.text())
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.text();
+    })
     .then(html => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
@@ -496,9 +534,9 @@ function refreshTable() {
       const newTopPagination = doc.querySelector('#top-pagination');
       const newBottomPagination = doc.querySelector('#bottom-pagination');
 
-      document.getElementById('parentTableBody').innerHTML = newTableBody.innerHTML;
-      document.getElementById('top-pagination').innerHTML = newTopPagination.innerHTML;
-      document.getElementById('bottom-pagination').innerHTML = newBottomPagination.innerHTML;
+      if (newTableBody) document.getElementById('parentTableBody').innerHTML = newTableBody.innerHTML;
+      if (newTopPagination) document.getElementById('top-pagination').innerHTML = newTopPagination.innerHTML;
+      if (newBottomPagination) document.getElementById('bottom-pagination').innerHTML = newBottomPagination.innerHTML;
 
       expandedIds.forEach(id => {
         const element = document.getElementById(id);
