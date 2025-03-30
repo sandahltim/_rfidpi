@@ -90,13 +90,14 @@ def show_tab5():
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
                 total_rfid = len(rfid_items)
-                total_hand = sum(i.get("total_items", 0) for i in hand_items)
+                total_hand = sum(int(i.get("total_items", 0)) for i in hand_items)  # Ensure int
                 total_items = total_rfid + total_hand
                 total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
                 on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
                               item["status"] in ["On Rent", "Delivered"] and 
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
-                service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
+                service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - \
+                          sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
                 child_data[common_name] = {
                     "total": total_items,
                     "available": total_available,
@@ -105,7 +106,7 @@ def show_tab5():
                 }
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
-            hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
+            hand_total = sum(int(i.get("total_items", 0)) for i in item_list if i.get("tag_id") is None)  # Ensure int
             parent_data.append({
                 "contract": contract,
                 "total": rfid_total + hand_total
@@ -177,7 +178,7 @@ def update_hand_counted():
                 logging.error(f"No matching L contract found: {last_contract_num}, {common_name}")
                 return "No matching L contract found", 404
 
-            orig_id, orig_total = row["id"], row["total_items"]
+            orig_id, orig_total = row["id"], int(row["total_items"])  # Ensure int
             new_total = orig_total - returned_qty
 
             if new_total < 0:
