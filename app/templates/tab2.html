@@ -54,7 +54,7 @@
           <div id="child-{{ cat_key }}" class="collapse" data-category="{{ parent.category }}" {% if expand_category == parent.category %}data-auto-expand="true"{% endif %}>
             <div class="mb-2 mx-2">
               <select class="form-select subcategory-dropdown" data-category="{{ parent.category }}">
-                {% for subcat in sub_map[parent.category].subcategories %}
+                {% for subcat in sub_map[parent.category].subcategories.keys() %}
                 <option value="{{ subcat }}">{{ subcat }}</option>
                 {% endfor %}
               </select>
@@ -270,10 +270,11 @@ function printTable(level, category, subcat, tagId) {
     `;
     const subcategories = document.querySelector(`#child-${category.toLowerCase().replace(/ /g, '_')} .subcategory-dropdown`).options;
     Array.from(subcategories).forEach(option => {
+      const total = childMap[category].subcategories[option.value] ? childMap[category].subcategories[option.value].total : 0;
       html += `
         <tr>
           <td>${option.value}</td>
-          <td>${childMap[category][option.value].total}</td>
+          <td>${total}</td>
         </tr>
       `;
     });
@@ -548,7 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  setInterval(refreshTable, 60000); // Auto-refresh every 60 seconds
+  setInterval(refreshTable, 60000);
 });
 </script>
 

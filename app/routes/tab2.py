@@ -6,60 +6,58 @@ import sqlite3
 tab2_bp = Blueprint("tab2_bp", __name__, url_prefix="/tab2")
 
 def categorize_item(rental_class_id):
-    """Map rental_class_id to categories based on seed data ranges."""
-    rid = int(rental_class_id)
-    if 4000 <= rid <= 72412:  # Tent-related items (HP, Navi, etc.)
+    rid = int(rental_class_id or 0)  # Handle None or invalid
+    if 4000 <= rid <= 72412:
         return 'Tent Tops'
-    elif 63131 <= rid <= 66555:  # Tables, Chairs, Legs
+    elif 63131 <= rid <= 66555:
         return 'Tables and Chairs'
-    elif 61885 <= rid <= 61981:  # 108, 120, 132 Round Linens
+    elif 61885 <= rid <= 61981:
         return 'Round Linen'
-    elif 62088 <= rid <= 62280:  # 54 Square, 60x120, 90x132, 90x156
+    elif 62088 <= rid <= 62280:
         return 'Rectangle Linen'
-    elif 62468 <= rid <= 62654:  # Concession equipment
+    elif 62468 <= rid <= 62654:
         return 'Concession'
     else:
         return 'Other'
 
 def subcategorize_item(category, rental_class_id):
-    """Map rental_class_id to subcategories within a category."""
-    rid = int(rental_class_id)
+    rid = int(rental_class_id or 0)
     if category == 'Tent Tops':
-        if rid == 66456:  # HP IKEs
+        if rid == 66456:
             return 'HP Tents'
-        elif 4203 <= rid <= 72412:  # Navi, HP assemblies
+        elif 4203 <= rid <= 72412:
             return 'Navi Tents'
         else:
             return 'Other Tents'
     elif category == 'Tables and Chairs':
-        if 63131 <= rid <= 66548:  # Table Tops
+        if 63131 <= rid <= 66548:
             return 'Tables'
-        elif rid == 66555:  # Chair Legs
+        elif rid == 66555:
             return 'Chairs'
         else:
             return 'Other T&C'
     elif category == 'Round Linen':
-        if 61885 <= rid <= 61917:  # 108 Round
+        if 61885 <= rid <= 61917:
             return '108-inch Round'
-        elif 61933 <= rid <= 61981:  # 120 Round
+        elif 61933 <= rid <= 61981:
             return '120-inch Round'
-        elif 61982 <= rid <= 62035:  # 132 Round
+        elif 61982 <= rid <= 62035:
             return '132-inch Round'
         else:
             return 'Other Round Linen'
     elif category == 'Rectangle Linen':
-        if 62291 <= rid <= 62339:  # 54 Square
+        if 62291 <= rid <= 62339:
             return '54 Square'
-        elif 62088 <= rid <= 62142:  # 60x120
+        elif 62088 <= rid <= 62142:
             return '60x120'
-        elif 62187 <= rid <= 62231:  # 90x132
+        elif 62187 <= rid <= 62231:
             return '90x132'
-        elif 62235 <= rid <= 62280:  # 90x156
+        elif 62235 <= rid <= 62280:
             return '90x156'
         else:
             return 'Other Rectangle Linen'
     elif category == 'Concession':
-        if 62468 <= rid <= 62654:  # Beverage, Chafers, Fountains
+        if 62468 <= rid <= 62654:
             return 'Equipment'
         else:
             return 'Other Concessions'
@@ -71,11 +69,10 @@ def show_tab2():
     print("Loading /tab2/ endpoint")
     with DatabaseConnection() as conn:
         items = conn.execute("SELECT * FROM id_item_master").fetchall()
-        contracts = conn.execute("SELECT DISTINCT last_contract_num, client_name, MAX(date_last_scanned) as scan_date FROM id_item_master GROUP BY last_contract_num").fetchall()
+        contracts = conn.execute("SELECT DISTINCT last_contract_num, client_name, MAX(date_last_scanned) as scan_date FROM id_item_master WHERE last_contract_num IS NOT NULL GROUP BY last_contract_num").fetchall()
     items = [dict(row) for row in items]
     contract_map = {c["last_contract_num"]: {"client_name": c["client_name"], "scan_date": c["scan_date"]} for c in contracts}
 
-    # Filters
     filter_common_name = request.args.get("common_name", "").lower().strip()
     filter_tag_id = request.args.get("tag_id", "").lower().strip()
     filter_bin_location = request.args.get("bin_location", "").lower().strip()
@@ -96,7 +93,7 @@ def show_tab2():
 
     category_map = defaultdict(list)
     for item in filtered_items:
-        cat = categorize_item(item.get("rental_class_num", "0"))
+        cat = categorize_item(item.get("rental_class_num"))
         category_map[cat].append(item)
 
     parent_data = []
@@ -105,16 +102,16 @@ def show_tab2():
         available = sum(1 for item in item_list if item["status"] == "Ready to Rent")
         on_rent = sum(1 for item in item_list if item["status"] in ["On Rent", "Delivered"])
         service = len(item_list) - available - on_rent
-        client_name = contract_map.get(item_list[0]["last_contract_num"], {}).get("client_name", "N/A") if item_list else "N/A"
-        scan_date = contract_map.get(item_list[0]["last_contract_num"], {}).get("scan_date", "N/A") if item_list else "N/A"
+        client_name = contract_map.get(item_list[0]["last_contract_num"], {}).get("client_name", "N/A") if item_list and item_list[0]["last_contract_num"] else "N/A"
+        scan_date = contract_map.get(item_list[0]["last_contract_num"], {}).get("scan_date", "N/A") if item_list and item_list[0]["last_contract_num"] else "N/A"
 
         temp_sub_map = defaultdict(list)
         for itm in item_list:
-            subcat = subcategorize_item(category, itm.get("rental_class_num", "0"))
+            subcat = subcategorize_item(category, itm.get("rental_class_num"))
             temp_sub_map[subcat].append(itm)
 
         sub_map[category] = {
-            "subcategories": list(temp_sub_map.keys())
+            "subcategories": {subcat: {"total": len(items)} for subcat, items in temp_sub_map.items()}
         }
 
         parent_data.append({
@@ -154,7 +151,6 @@ def subcat_data():
         rows = conn.execute("SELECT * FROM id_item_master").fetchall()
     items = [dict(row) for row in rows]
 
-    # Apply filters
     filter_common_name = request.args.get("common_name", "").lower().strip()
     filter_tag_id = request.args.get("tag_id", "").lower().strip()
     filter_bin_location = request.args.get("bin_location", "").lower().strip()
@@ -173,8 +169,8 @@ def subcat_data():
     if filter_status:
         filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
 
-    category_items = [item for item in filtered_items if categorize_item(item.get("rental_class_num", "0")) == category]
-    subcat_items = [item for item in category_items if subcategorize_item(category, item.get("rental_class_num", "0")) == subcat]
+    category_items = [item for item in filtered_items if categorize_item(item.get("rental_class_num")) == category]
+    subcat_items = [item for item in category_items if subcategorize_item(category, item.get("rental_class_num")) == subcat]
 
     total_items = len(subcat_items)
     total_pages = (total_items + per_page - 1) // per_page
@@ -183,7 +179,7 @@ def subcat_data():
     end = start + per_page
     paginated_items = subcat_items[start:end]
 
-    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Total Items: {total_items}, Page: {page}")
+    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Total Items: {total_items}, Page: ${page}")
 
     return jsonify({
         "items": [{
