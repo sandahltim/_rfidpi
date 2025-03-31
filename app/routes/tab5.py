@@ -255,6 +255,23 @@ def subcat_data():
     end = start + per_page
     paginated_items = subcat_items[start:end]
 
+    # Enrich items with client_name from id_transactions
+    with DatabaseConnection() as conn:
+        cursor = conn.cursor()
+        for item in paginated_items:
+            if item.get("tag_id"):  # RFID item
+                cursor.execute("""
+                    SELECT client_name, notes
+                    FROM id_transactions
+                    WHERE contract_number = ? AND tag_id = ?
+                    ORDER BY scan_date DESC LIMIT 1
+                """, (item["last_contract_num"], item["tag_id"]))
+                result = cursor.fetchone()
+                item["client_name"] = result["client_name"] if result else "N/A"
+                item["notes"] = result["notes"] if result else item.get("notes", "N/A")
+            else:  # Hand-counted item
+                item["client_name"] = "N/A"  # Hand-counted items don’t have client_name
+
     logging.debug(f"AJAX: Contract: {contract}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
 
     return jsonify({
@@ -266,7 +283,9 @@ def subcat_data():
             "quality": item.get("quality", "N/A"),
             "last_contract_num": item["last_contract_num"],
             "date_last_scanned": item.get("date_last_scanned", "N/A"),
-            "last_scanned_by": item.get("last_scanned_by", "Unknown")
+            "last_scanned_by": item.get("last_scanned_by", "Unknown"),
+            "notes": item.get("notes", "N/A"),
+            "client_name": item.get("client_name", "N/A")
         } for item in paginated_items],
         "total_items": total_items,
         "total_pages": total_pages,
