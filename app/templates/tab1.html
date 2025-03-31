@@ -524,16 +524,20 @@ function printChildItems(contract, common_name, parentRow, items) {
 }
 
 function refreshTable() {
+  console.log("Refreshing table at " + new Date().toLocaleTimeString());
   const expandedIds = Array.from(document.querySelectorAll('.collapse.show')).map(el => el.id);
 
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/tab1/?${urlParams.toString()}`;
+  console.log(`Fetching refresh URL: ${url}`);
   fetch(url)
     .then(response => {
+      console.log(`Refresh response status: ${response.status}`);
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       return response.text();
     })
     .then(html => {
+      console.log("Refresh data received");
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       const newTableBody = doc.querySelector('#parentTableBody');
@@ -547,6 +551,7 @@ function refreshTable() {
       expandedIds.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
+          console.log(`Restoring expanded state for: ${id}`);
           new bootstrap.Collapse(element, { toggle: false }).show();
           const toggle = document.querySelector(`[data-bs-target="#${id}"]`);
           if (toggle) toggle.textContent = '-';
@@ -628,7 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("input", debouncedSubmit);
   });
 
-  setInterval(refreshTable, 60000);
+  setInterval(refreshTable, 30000); // Changed to 30 seconds
 });
 </script>
 
