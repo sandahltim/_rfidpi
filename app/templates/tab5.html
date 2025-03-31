@@ -48,7 +48,7 @@
     <tbody id="parentTableBody">
       {% for parent in parent_data %}
       {% set contract_key = parent.contract|lower|replace('[^a-z0-9]', '_') %}
-      <tr class="table-active">
+      <tr class="table-active" data-client-name="{{ parent.client_name }}" data-scan-date="{{ parent.scan_date }}">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ contract_key }}">+</span></td>
         <td>{{ parent.contract }}</td>
         <td>{{ parent.total }}</td>
@@ -284,81 +284,64 @@ function printTable(level, contract, common_name) {
       return;
     }
     const contractNum = parentRow.cells[1].innerText;
-    const urlParams = new URLSearchParams(window.location.search);
-    const params = {
-      contract: contract,
-      page: 1,
-      last_contract_num: urlParams.get('last_contract_num') || '',
-      common_name_filter: urlParams.get('common_name') || ''
-    };
-    const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
-    fetch(url)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.json();
-      })
-      .then(data => {
-        console.log('Parent print data:', data);
-        const clientName = data.items.length > 0 ? (data.items[0].client_name || 'N/A') : 'N/A';
-        const firstScanDate = data.items.length > 0 ? (data.items[0].date_last_scanned || 'N/A') : 'N/A';
-        let html = `
-          <html>
-          <head>
-            <title>Contract ${contractNum} Print</title>
-            <style>
-              @page { size: A4; margin: 20mm; }
-              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-              .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-              .title { font-size: 18px; }
-              .company { font-size: 14px; text-align: right; }
-              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-              th, td { border: 1px solid black; padding: 8px; text-align: left; }
-              th { background-color: #f2f2f2; }
-              .signature { margin-top: 40px; }
-              .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <div class="title">Contract #: ${contractNum}<br>Client Name: ${clientName}<br>Last Scan Date: ${firstScanDate}</div>
-              <div class="company">Broadway Tent and Event</div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Common Name</th>
-                  <th>Total Items</th>
-                </tr>
-              </thead>
-              <tbody>
-        `;
-        Object.entries(childMap[contract]).forEach(([_, totals]) => {
-          html += `
+    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
+    const firstScanDate = parentRow.getAttribute('data-scan-date') || 'N/A';
+    let html = `
+      <html>
+      <head>
+        <title>Contract ${contractNum} Print</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .title { font-size: 18px; }
+          .company { font-size: 14px; text-align: right; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid black; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .signature { margin-top: 40px; }
+          .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Contract #: ${contractNum}<br>Client Name: ${clientName}<br>Last Scan Date: ${firstScanDate}</div>
+          <div class="company">Broadway Tent and Event</div>
+        </div>
+        <table>
+          <thead>
             <tr>
-              <td>${totals.common_name}</td>
-              <td>${totals.total}</td>
+              <th>Common Name</th>
+              <th>Total Items</th>
             </tr>
-          `;
-        });
-        html += `
-              </tbody>
-            </table>
-            <div class="signature">
-              <div class="signature-line"></div>
-              <p>Signature</p>
-              <div class="signature-line"></div>
-              <p>Date</p>
-            </div>
-          </body>
-          </html>
-        `;
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-      })
-      .catch(error => console.error('Error fetching data for parent print:', error));
+          </thead>
+          <tbody>
+    `;
+    Object.entries(childMap[contract]).forEach(([_, totals]) => {
+      html += `
+        <tr>
+          <td>${totals.common_name}</td>
+          <td>${totals.total}</td>
+        </tr>
+      `;
+    });
+    html += `
+          </tbody>
+        </table>
+        <div class="signature">
+          <div class="signature-line"></div>
+          <p>Signature</p>
+          <div class="signature-line"></div>
+          <p>Date</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   } else if (level === 'child') {
     const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
       .find(row => row.cells[1].innerText === contract);
@@ -385,6 +368,7 @@ function printTable(level, contract, common_name) {
     const tbodyId = `grandchildTbody-${childKey}`;
     const tbody = document.getElementById(tbodyId);
     let items = [];
+    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
     if (!tbody || tbody.children.length === 0) {
       console.warn(`No grandchild data for ${tbodyId}, fetching synchronously...`);
       const urlParams = new URLSearchParams(window.location.search);
@@ -404,7 +388,6 @@ function printTable(level, contract, common_name) {
         })
         .then(data => {
           console.log('Child print data:', data);
-          const clientName = data.items.length > 0 ? (data.items[0].client_name || 'N/A') : 'N/A';
           items = data.items.map(item => ({
             tag_id: item.tag_id || 'N/A',
             common_name: item.common_name || 'N/A',
@@ -420,41 +403,18 @@ function printTable(level, contract, common_name) {
         })
         .catch(error => console.error('Error fetching grandchild data for print:', error));
     } else {
-      const urlParams = new URLSearchParams(window.location.search);
-      const params = {
-        contract: contract,
-        common_name: common_name,
-        page: 1,
-        last_contract_num: urlParams.get('last_contract_num') || '',
-        common_name_filter: urlParams.get('common_name') || ''
-      };
-      const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
-      fetch(url)
-        .then(response => {
-          console.log(`Fetch response status for ${url}: ${response.status}`);
-          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-          return response.json();
-        })
-        .then(data => {
-          console.log('Child print data (with tbody):', data);
-          const clientName = data.items.length > 0 ? (data.items[0].client_name || 'N/A') : 'N/A';
-          items = Array.from(tbody.children).map(row => {
-            const item = data.items.find(i => i.tag_id === row.cells[0].innerText) || {};
-            return {
-              tag_id: row.cells[0].innerText,
-              common_name: row.cells[1].innerText,
-              status: row.cells[2].innerText,
-              bin_location: row.cells[3].innerText,
-              quality: row.cells[4].innerText,
-              last_contract_num: row.cells[5].innerText,
-              date_last_scanned: row.cells[6].innerText,
-              last_scanned_by: row.cells[7].innerText,
-              notes: item.notes || 'N/A'
-            };
-          });
-          printChildItems(contract, common_name, clientName, items);
-        })
-        .catch(error => console.error('Error fetching client_name for print:', error));
+      items = Array.from(tbody.children).map(row => ({
+        tag_id: row.cells[0].innerText,
+        common_name: row.cells[1].innerText,
+        status: row.cells[2].innerText,
+        bin_location: row.cells[3].innerText,
+        quality: row.cells[4].innerText,
+        last_contract_num: row.cells[5].innerText,
+        date_last_scanned: row.cells[6].innerText,
+        last_scanned_by: row.cells[7].innerText,
+        notes: 'N/A'  // Notes not in table, fetched separately if needed
+      }));
+      printChildItems(contract, common_name, clientName, items);
     }
   }
 }

@@ -86,7 +86,7 @@ def show_tab5():
 
             child_data = {}
             for rental_class_id, items in rental_class_map.items():
-                common_name = items[0]["common_name"]  # Assume consistent common_name per rental_class_id
+                common_name = items[0]["common_name"]
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
                 total_rfid = len(rfid_items)
@@ -109,9 +109,15 @@ def show_tab5():
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
             hand_total = sum(int(i.get("total_items", 0)) for i in item_list if i.get("tag_id") is None)
+            # Get client_name and scan_date from contracts or first RFID item
+            contract_info = next((c for c in contracts if c["last_contract_num"] == contract), None)
+            client_name = contract_info["client_name"] if contract_info else "N/A"
+            scan_date = contract_info["scan_date"] if contract_info else (item_list[0]["date_last_scanned"] if item_list and item_list[0].get("date_last_scanned") else "N/A")
             parent_data.append({
                 "contract": contract,
-                "total": rfid_total + hand_total
+                "total": rfid_total + hand_total,
+                "client_name": client_name,
+                "scan_date": scan_date
             })
             child_map[contract] = child_data
 
@@ -254,23 +260,6 @@ def subcat_data():
     start = (page - 1) * per_page
     end = start + per_page
     paginated_items = subcat_items[start:end]
-
-    # Enrich items with client_name from id_transactions
-    with DatabaseConnection() as conn:
-        cursor = conn.cursor()
-        for item in paginated_items:
-            if item.get("tag_id"):  # RFID item
-                cursor.execute("""
-                    SELECT client_name, notes
-                    FROM id_transactions
-                    WHERE contract_number = ? AND tag_id = ?
-                    ORDER BY scan_date DESC LIMIT 1
-                """, (item["last_contract_num"], item["tag_id"]))
-                result = cursor.fetchone()
-                item["client_name"] = result["client_name"] if result else "N/A"
-                item["notes"] = result["notes"] if result else item.get("notes", "N/A")
-            else:  # Hand-counted item
-                item["client_name"] = "N/A"  # Hand-counted items don’t have client_name
 
     logging.debug(f"AJAX: Contract: {contract}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
 
