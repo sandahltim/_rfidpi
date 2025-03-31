@@ -153,474 +153,145 @@
 </nav>
 
 <script>
-const childMap = {{ child_map|tojson }};
-
-function sortTable(tableEl, colName) {
-  let tbody = tableEl.querySelector("tbody");
-  if (!tbody) return;
-
-  let asc = tableEl.getAttribute("data-sort-col") === colName 
-            ? tableEl.getAttribute("data-sort-dir") !== "asc" 
-            : true;
-  tableEl.setAttribute("data-sort-col", colName);
-  tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
-
-  let headers = Array.from(tableEl.querySelectorAll("th"));
-  let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
-
-  let rows = Array.from(tbody.children);
-  if (tableEl.id === "parentTable") {
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let parentRow = rows[i];
-      let childRow = rows[i + 1] || null;
-      if (parentRow && parentRow.classList.contains("table-active")) {
-        pairs.push({ parent: parentRow, child: childRow });
+  const childMap = {{ child_map|tojson }};
+  
+  // ... (sortTable, loadSubcatData, printTable, printChildItems, refreshTable, debounce unchanged) ...
+  
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM Content Loaded");
+  
+    document.getElementById("table-container").addEventListener("click", function(event) {
+      if (event.target.classList.contains("sortable")) {
+        const table = event.target.closest("table");
+        const colName = event.target.getAttribute("data-col-name");
+        sortTable(table, colName);
       }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.parent);
-      if (pair.child) tbody.appendChild(pair.child);
-    });
-  } else if (tableEl.classList.contains("child-table")) {
-    let pairs = [];
-    for (let i = 0; i < rows.length; i += 2) {
-      let childRow = rows[i];
-      let grandRow = rows[i + 1] || null;
-      if (childRow && childRow.classList.contains("child-row")) {
-        pairs.push({ child: childRow, grand: grandRow });
-      }
-    }
-    pairs.sort((a, b) => {
-      let cellA = a.child.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.child.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    pairs.forEach(pair => {
-      tbody.appendChild(pair.child);
-      if (pair.grand) tbody.appendChild(pair.grand);
-    });
-  } else {
-    rows.sort((a, b) => {
-      let cellA = a.cells[colIndex]?.innerText.trim() || "";
-      let cellB = b.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    rows.forEach(row => tbody.appendChild(row));
-  }
-}
-
-function loadSubcatData(contract, common_name, page, childKey) {
-  console.log(`Loading: Contract: ${contract}, Common Name: ${common_name}, Page: ${page}, ChildKey: ${childKey}`);
-  const loading = document.getElementById(`loading-${childKey}`);
-  if (loading) loading.style.display = 'block';
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const params = {
-    contract: contract,
-    common_name: common_name,
-    page: page,
-    last_contract_num: urlParams.get('last_contract_num') || '',
-    common_name_filter: urlParams.get('common_name') || '',
-    sort: urlParams.get('sort') || 'last_contract_num:asc'
-  };
-  const url = `/tab1/data?${new URLSearchParams(params).toString()}`;
-  console.log(`Fetching URL: ${url}`);
-
-  fetch(url)
-    .then(response => {
-      console.log(`Response Status: ${response.status}`);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      return response.json();
-    })
-    .then(data => {
-      console.log('AJAX Response:', data);
-      const tbody = document.getElementById(`grandchildTbody-${childKey}`);
-      if (!tbody) {
-        console.error(`Tbody not found for ChildKey: ${childKey}`);
-        return;
-      }
-      tbody.innerHTML = '';
-      data.items.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.tag_id || 'N/A'}</td>
-          <td>${item.common_name || 'N/A'}</td>
-          <td>${item.status || 'N/A'}</td>
-          <td>${item.bin_location || 'N/A'}</td>
-          <td>${item.quality || 'N/A'}</td>
-          <td>${item.last_contract_num || 'N/A'}</td>
-          <td>${item.date_last_scanned || 'N/A'}</td>
-          <td>${item.last_scanned_by || 'N/A'}</td>
-          <td>${item.notes || 'N/A'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      const pagination = document.getElementById(`pagination-${childKey}`)?.querySelector('.pagination');
-      if (pagination) {
-        pagination.innerHTML = '';
-        if (data.total_pages > 1) {
-          const prevLi = document.createElement('li');
-          prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
-          prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
-          pagination.appendChild(prevLi);
-
-          for (let p = 1; p <= data.total_pages; p++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
-            li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
-            pagination.appendChild(li);
-          }
-
-          const nextLi = document.createElement('li');
-          nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
-          nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
-          pagination.appendChild(nextLi);
+  
+      if (event.target.classList.contains("print-btn")) {
+        console.log("Direct print-btn click detected");
+        const level = event.target.getAttribute("data-level");
+        const contract = event.target.getAttribute("data-contract");
+        const common_name = event.target.getAttribute("data-common-name");
+        if (level === "parent") {
+          console.log(`Parent print button clicked for contract: ${contract}`);
+          printTable("parent", contract);
+        } else if (level === "child") {
+          console.log(`Child print button clicked for contract: ${contract}, common_name: ${common_name}`);
+          printTable("child", contract, common_name);
         }
       }
-      if (loading) loading.style.display = 'none';
-    })
-    .catch(error => {
-      console.error('Error loading subcat data:', error);
-      if (loading) loading.style.display = 'none';
-    });
-}
-
-function printTable(level, contract, common_name) {
-  if (level === 'parent') {
-    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
-      .find(row => row.cells[1].innerText === contract);
-    if (!parentRow) {
-      console.error(`Parent row not found for contract: ${contract}`);
-      return;
-    }
-    const contractNum = parentRow.cells[1].innerText;
-    const clientName = parentRow.cells[2].innerText;
-    const firstScanDate = parentRow.cells[4].innerText;
-    let html = `
-      <html>
-      <head>
-        <title>Contract ${contractNum} Print</title>
-        <style>
-          @page { size: A4; margin: 20mm; }
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-          .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-          .title { font-size: 18px; }
-          .company { font-size: 14px; text-align: right; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { border: 1px solid black; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          .signature { margin-top: 40px; }
-          .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">Contract #: ${contractNum}<br>Client Name: ${clientName}<br>Last Scan Date: ${firstScanDate}</div>
-          <div class="company">Broadway Tent and Event</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Common Name</th>
-              <th>Total Items</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    Object.entries(childMap[contract]).forEach(([_, totals]) => {
-      html += `
-        <tr>
-          <td>${totals.common_name}</td>
-          <td>${totals.total}</td>
-        </tr>
-      `;
-    });
-    html += `
-          </tbody>
-        </table>
-        <div class="signature">
-          <div class="signature-line"></div>
-          <p>Signature</p>
-          <div class="signature-line"></div>
-          <p>Date</p>
-        </div>
-      </body>
-      </html>
-    `;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-  } else if (level === 'child') {
-    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
-      .find(row => row.cells[1].innerText === contract);
-    if (!parentRow) {
-      console.error(`Parent row not found for contract: ${contract}`);
-      return;
-    }
-    const childTableId = `childTable-${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-    const childTable = document.getElementById(childTableId);
-    if (!childTable) {
-      console.error(`Child table not found: ${childTableId}`);
-      return;
-    }
-    const normalizedCommonName = common_name.toLowerCase().replace(/\s+/g, ' ').trim();
-    const childRow = Array.from(childTable.querySelectorAll('.child-row'))
-      .find(row => row.cells[1].innerText.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
-    if (!childRow) {
-      console.error(`Child row not found for contract: ${contract}, common_name: ${common_name} (normalized: ${normalizedCommonName})`);
-      return;
-    }
-    const rental_class_id = Object.keys(childMap[contract]).find(id => 
-      childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
-    const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
-    const tbodyId = `grandchildTbody-${childKey}`;
-    const tbody = document.getElementById(tbodyId);
-    let items = [];
-    if (!tbody || tbody.children.length === 0) {
-      console.warn(`No grandchild data for ${tbodyId}, fetching synchronously...`);
-      const urlParams = new URLSearchParams(window.location.search);
-      const params = {
-        contract: contract,
-        common_name: common_name,
-        page: 1,
-        last_contract_num: urlParams.get('last_contract_num') || '',
-        common_name_filter: urlParams.get('common_name') || '',
-        sort: 'last_contract_num:asc'
-      };
-      const url = `/tab1/data?${new URLSearchParams(params).toString()}`;
-      fetch(url)
-        .then(response => {
-          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-          return response.json();
-        })
-        .then(data => {
-          items = data.items.map(item => ({
-            tag_id: item.tag_id || 'N/A',
-            common_name: item.common_name || 'N/A',
-            status: item.status || 'N/A',
-            bin_location: item.bin_location || 'N/A',
-            quality: item.quality || 'N/A',
-            last_contract_num: item.last_contract_num || 'N/A',
-            date_last_scanned: item.date_last_scanned || 'N/A',
-            last_scanned_by: item.last_scanned_by || 'N/A',
-            notes: item.notes || 'N/A'
-          }));
-          printChildItems(contract, common_name, parentRow, items);
-        })
-        .catch(error => console.error('Error fetching grandchild data for print:', error));
-    } else {
-      items = Array.from(tbody.children).map(row => ({
-        tag_id: row.cells[0].innerText,
-        common_name: row.cells[1].innerText,
-        status: row.cells[2].innerText,
-        bin_location: row.cells[3].innerText,
-        quality: row.cells[4].innerText,
-        last_contract_num: row.cells[5].innerText,
-        date_last_scanned: row.cells[6].innerText,
-        last_scanned_by: row.cells[7].innerText,
-        notes: row.cells[8].innerText
-      }));
-      printChildItems(contract, common_name, parentRow, items);
-    }
-  }
-}
-
-function printChildItems(contract, common_name, parentRow, items) {
-  const contractNum = contract;
-  const commonName = common_name;
-  let html = `
-    <html>
-    <head>
-      <title>Contract ${contractNum} - ${commonName} Items</title>
-      <style>
-        @page { size: A4; margin: 20mm; }
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .title { font-size: 18px; }
-        .company { font-size: 14px; text-align: right; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid black; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .signature { margin-top: 40px; }
-        .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="title">Contract #: ${contractNum}<br>Common Name: ${commonName}<br>Client Name: ${parentRow.cells[2].innerText}</div>
-        <div class="company">Broadway Tent and Event</div>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Tag ID</th>
-            <th>Common Name</th>
-            <th>Status</th>
-            <th>Bin Location</th>
-            <th>Quality</th>
-            <th>Last Contract Num</th>
-            <th>Date Last Scanned</th>
-            <th>Last Scanned By</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-  `;
-  items.forEach(item => {
-    html += `
-      <tr>
-        <td>${item.tag_id}</td>
-        <td>${item.common_name}</td>
-        <td>${item.status}</td>
-        <td>${item.bin_location}</td>
-        <td>${item.quality}</td>
-        <td>${item.last_contract_num}</td>
-        <td>${item.date_last_scanned}</td>
-        <td>${item.last_scanned_by}</td>
-        <td>${item.notes}</td>
-      </tr>
-    `;
-  });
-  html += `
-        </tbody>
-      </table>
-      <div class="signature">
-        <div class="signature-line"></div>
-        <p>Signature</p>
-        <div class="signature-line"></div>
-        <p>Date</p>
-      </div>
-    </body>
-    </html>
-  `;
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-}
-
-function refreshTable() {
-  const expandedIds = Array.from(document.querySelectorAll('.collapse.show')).map(el => el.id);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const url = `/tab1/?${urlParams.toString()}`;
-  fetch(url)
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      return response.text();
-    })
-    .then(html => {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      const newTableBody = doc.querySelector('#parentTableBody');
-      const newTopPagination = doc.querySelector('#top-pagination');
-      const newBottomPagination = doc.querySelector('#bottom-pagination');
-
-      if (newTableBody) document.getElementById('parentTableBody').innerHTML = newTableBody.innerHTML;
-      if (newTopPagination) document.getElementById('top-pagination').innerHTML = newTopPagination.innerHTML;
-      if (newBottomPagination) document.getElementById('bottom-pagination').innerHTML = newBottomPagination.innerHTML;
-
-      expandedIds.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-          new bootstrap.Collapse(element, { toggle: false }).show();
-          const toggle = document.querySelector(`[data-bs-target="#${id}"]`);
-          if (toggle) toggle.textContent = '-';
-        }
-      });
-    })
-    .catch(error => console.error('Error refreshing table:', error));
-}
-
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM Content Loaded");
-
-  document.getElementById("table-container").addEventListener("click", function(event) {
-    if (event.target.classList.contains("sortable")) {
-      const table = event.target.closest("table");
-      const colName = event.target.getAttribute("data-col-name");
-      sortTable(table, colName);
-    }
-
-    if (event.target.classList.contains("print-btn")) {
-      console.log("Direct print-btn click detected");
-      const level = event.target.getAttribute("data-level");
-      const contract = event.target.getAttribute("data-contract");
-      const common_name = event.target.getAttribute("data-common-name");
-      if (level === "parent") {
-        console.log(`Parent print button clicked for contract: ${contract}`);
-        printTable("parent", contract);
-      } else if (level === "child") {
-        console.log(`Child print button clicked for contract: ${contract}, common_name: ${common_name}`);
-        printTable("child", contract, common_name);
-      }
-    }
-
-    if (event.target.classList.contains("expand-toggle")) {
-      const targetId = event.target.getAttribute("data-bs-target").substring(1);
-      const collapseEl = document.getElementById(targetId);
-      if (collapseEl && collapseEl.classList.contains("collapse") && !collapseEl.classList.contains("show")) {
-        const contract = collapseEl.getAttribute("data-contract");
-        const common_name = collapseEl.getAttribute("data-common-name");
-        if (contract && common_name) {
-          const normalizedCommonName = common_name.toLowerCase().replace(/\s+/g, ' ').trim();
-          const rental_class_id = Object.keys(childMap[contract]).find(id => 
-            childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
-          if (rental_class_id) {
-            const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
-            console.log(`Expanding grandchild for contract: ${contract}, common_name: ${common_name}, childKey: ${childKey}`);
-            loadSubcatData(contract, common_name, 1, childKey);
+  
+      if (event.target.classList.contains("expand-toggle")) {
+        const targetId = event.target.getAttribute("data-bs-target").substring(1);
+        const collapseEl = document.getElementById(targetId);
+        console.log(`Expand toggle clicked, target: ${targetId}, showing: ${collapseEl.classList.contains('show')}`);
+        if (collapseEl && !collapseEl.classList.contains("show")) {
+          const contract = collapseEl.getAttribute("data-contract");
+          const common_name = collapseEl.getAttribute("data-common-name");
+          if (contract && common_name) {
+            const normalizedCommonName = common_name.toLowerCase().replace(/\s+/g, ' ').trim();
+            const rental_class_id = Object.keys(childMap[contract]).find(id => 
+              childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
+            if (rental_class_id) {
+              const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
+              console.log(`Triggering loadSubcatData for contract: ${contract}, common_name: ${common_name}, childKey: ${childKey}`);
+              loadSubcatData(contract, common_name, 1, childKey);
+            } else {
+              console.error(`No rental_class_id found for contract: ${contract}, common_name: ${common_name}`);
+            }
           } else {
-            console.error(`No rental_class_id found for contract: ${contract}, common_name: ${common_name}`);
+            console.error(`Missing contract or common_name on collapse element: ${targetId}`);
           }
         }
       }
-    }
+    });
+  
+    const filterForm = document.getElementById("filter-form");
+    const debouncedSubmit = debounce(() => filterForm.submit(), 500);
+    filterForm.querySelectorAll("input").forEach(input => {
+      input.addEventListener("input", debouncedSubmit);
+    });
+  
+    setInterval(refreshTable, 60000);
   });
-
-  const filterForm = document.getElementById("filter-form");
-  const debouncedSubmit = debounce(() => filterForm.submit(), 500);
-  filterForm.querySelectorAll("input").forEach(input => {
-    input.addEventListener("input", debouncedSubmit);
+  </script>
+  
+  # ... (styles unchanged) ...
+  Step 6: Update tab5.html (Expand Fix Only)
+  text
+  
+  Collapse
+  
+  Wrap
+  
+  Copy
+  # ... (rest of the file unchanged up to script) ...
+  
+  <script>
+  const childMap = {{ child_map|tojson }};
+  
+  // ... (sortTable, loadSubcatData, printTable, printChildItems, confirmSave, confirmUpdate, debounce unchanged) ...
+  
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM Content Loaded");
+  
+    document.getElementById("date_last_scanned").value = new Date().toISOString().replace("T", " ").slice(0, 19);
+  
+    document.getElementById("table-container").addEventListener("click", function(event) {
+      if (event.target.classList.contains("sortable")) {
+        const table = event.target.closest("table");
+        const colName = event.target.getAttribute("data-col-name");
+        sortTable(table, colName);
+      }
+  
+      if (event.target.classList.contains("print-btn")) {
+        console.log("Direct print-btn click detected");
+        const level = event.target.getAttribute("data-level");
+        const contract = event.target.getAttribute("data-contract");
+        const common_name = event.target.getAttribute("data-common-name");
+        if (level === "parent") {
+          console.log(`Parent print button clicked for contract: ${contract}`);
+          printTable("parent", contract);
+        } else if (level === "child") {
+          console.log(`Child print button clicked for contract: ${contract}, common_name: ${common_name}`);
+          printTable("child", contract, common_name);
+        }
+      }
+  
+      if (event.target.classList.contains("expand-toggle")) {
+        const targetId = event.target.getAttribute("data-bs-target").substring(1);
+        const collapseEl = document.getElementById(targetId);
+        console.log(`Expand toggle clicked, target: ${targetId}, showing: ${collapseEl.classList.contains('show')}`);
+        if (collapseEl && !collapseEl.classList.contains("show")) {
+          const contract = collapseEl.getAttribute("data-contract");
+          const common_name = collapseEl.getAttribute("data-common-name");
+          if (contract && common_name) {
+            const normalizedCommonName = common_name.toLowerCase().replace(/\s+/g, ' ').trim();
+            const rental_class_id = Object.keys(childMap[contract]).find(id => 
+              childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
+            if (rental_class_id) {
+              const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
+              console.log(`Triggering loadSubcatData for contract: ${contract}, common_name: ${common_name}, childKey: ${childKey}`);
+              loadSubcatData(contract, common_name, 1, childKey);
+            } else {
+              console.error(`No rental_class_id found for contract: ${contract}, common_name: ${common_name}`);
+            }
+          } else {
+            console.error(`Missing contract or common_name on collapse element: ${targetId}`);
+          }
+        }
+      }
+    });
+  
+    const filterForm = document.getElementById("filter-form");
+    const debouncedSubmit = debounce(() => filterForm.submit(), 500);
+    filterForm.querySelectorAll("input").forEach(input => {
+      input.addEventListener("input", debouncedSubmit);
+    });
   });
-
-  setInterval(refreshTable, 60000);
-});
-</script>
+  
+  // ... (confirmSave, confirmUpdate, debounce unchanged) ...
+  </script>
 
 <style>
   body, html { height: 100%; overflow-y: auto; margin: 0; padding: 0; }

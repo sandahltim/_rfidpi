@@ -83,6 +83,8 @@ def subcat_data():
         with DatabaseConnection() as conn:
             items = get_active_rental_items(conn)
 
+        # Convert SQLite rows to dicts explicitly
+        items = [dict(item) for item in items]
         filtered_items = [
             item for item in items
             if item["last_contract_num"] == contract and item["common_name"] == common_name
