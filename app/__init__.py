@@ -1,4 +1,5 @@
-from flask import Flask, request, url_for
+from flask import Flask, request, url_for, jsonify
+from refresh_logic import IS_RELOADING
 
 def create_app():
     app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -18,6 +19,10 @@ def create_app():
     app.register_blueprint(tab4_bp, url_prefix="/tab4")
     app.register_blueprint(tab5_bp, url_prefix="/tab5")
     app.register_blueprint(tab6_bp, url_prefix="/tab6")
+
+    @app.route('/status', methods=['GET'])
+    def status():
+        return jsonify({"is_reloading": IS_RELOADING}), 200
 
     @app.context_processor
     def utility_processor():

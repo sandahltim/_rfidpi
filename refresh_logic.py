@@ -8,6 +8,7 @@ from config import LOGIN_URL, DB_FILE, SEED_URL, ITEM_MASTER_URL, TRANSACTION_UR
 TOKEN = None
 TOKEN_EXPIRY = None
 LAST_REFRESH = None
+IS_RELOADING = False
 
 def get_access_token():
     """Fetch and cache API access token."""
@@ -255,10 +256,12 @@ def update_seed_data(data):
 
 def refresh_data(full_refresh=False):
     """Refresh database: full on start, incremental after."""
-    global LAST_REFRESH
+    global LAST_REFRESH, IS_RELOADING
+    IS_RELOADING = True  # Set reloading flag
     token = get_access_token()
     if not token:
         print(" No access token. Aborting refresh.")
+        IS_RELOADING = False
         return
 
     since_date = None if full_refresh else LAST_REFRESH
@@ -281,6 +284,7 @@ def refresh_data(full_refresh=False):
 
     LAST_REFRESH = datetime.utcnow()
     print(f"Database refreshed at {LAST_REFRESH}")
+    IS_RELOADING = False  # Clear reloading flag
 
 def background_refresh():
     """Run full refresh once, then incremental every 60 seconds."""
