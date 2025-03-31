@@ -508,7 +508,6 @@ function refreshTable() {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       const newTableBody = doc.querySelector('#parentTableBody');
-      const newPagination = doc.querySelector('#pagination'); // Note: Tab 5 has no top/bottom pagination, adjust if needed
 
       if (newTableBody) document.getElementById('parentTableBody').innerHTML = newTableBody.innerHTML;
 
@@ -569,7 +568,7 @@ document.addEventListener("DOMContentLoaded", () => {
             childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
           console.log(`Computed rental_class_id: ${rental_class_id}`);
           if (rental_class_id) {
-            const childKey = `${contract.toLowerCase().replace(/[^0-9.\-]/g, '_')}_${rental_class_id}`;
+            const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
             console.log(`Triggering loadSubcatData for contract: ${contract}, common_name: ${common_name}, childKey: ${childKey}`);
             loadSubcatData(contract, common_name, 1, childKey);
           } else {
@@ -590,7 +589,7 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("input", debouncedSubmit);
   });
 
-  setInterval(refreshTable, 30000); // Changed to 30 seconds
+  setInterval(refreshTable, 60000); // 60 seconds
 });
 
 function confirmSave() {

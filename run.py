@@ -4,7 +4,7 @@ import time
 import threading
 import sqlite3
 from db_utils import initialize_db
-from refresh_logic import refresh_data
+from refresh_logic import background_refresh
 from app import create_app
 from werkzeug.serving import is_running_from_reloader
 from config import DB_FILE
@@ -18,13 +18,6 @@ def check_schema():
     conn.close()
     return required_tables.issubset(existing_tables)
 
-def background_refresh():
-    """Continuously refresh data every 10 minutes."""
-    while True:
-        refresh_data()
-        print("Waiting 10 minutes before next update...")
-        time.sleep(600)
-
 # Initialize Flask app globally for Gunicorn
 app = create_app()
 
@@ -35,7 +28,6 @@ if not os.path.exists(db_path) or os.path.getsize(db_path) == 0 or not check_sch
     if os.path.exists(db_path):
         os.rename(db_path, db_path + '.bak')  # Backup old DB
     initialize_db()
-    refresh_data()
 
 # Start background refresh thread only in primary process
 if not is_running_from_reloader():
