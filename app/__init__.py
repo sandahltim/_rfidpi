@@ -20,6 +20,7 @@ def create_app():
     app.register_blueprint(tab5_bp, url_prefix="/tab5")
     app.register_blueprint(tab6_bp, url_prefix="/tab6")
 
+
     @app.route('/status', methods=['GET'])
     def status():
         return jsonify({"is_reloading": IS_RELOADING}), 200

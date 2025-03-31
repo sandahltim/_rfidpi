@@ -1,0 +1,15 @@
+[Unit]
+Description=RFID Dashboard Flask App
+After=network.target
+
+[Service]
+User=tim
+WorkingDirectory=/home/tim/dev_rfidpi
+ExecStart=/home/tim/dev_rfidpi/start.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/rfid_dash_dev.log
+StandardError=append:/var/log/rfid_dash_dev.log
+
+[Install]
+WantedBy=multi-user.target

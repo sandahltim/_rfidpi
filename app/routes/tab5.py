@@ -6,8 +6,10 @@ import sqlite3
 import os
 import logging
 
+
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
 HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
+
 logging.basicConfig(level=logging.DEBUG)
 
 def init_hand_counted_db():
@@ -31,7 +33,9 @@ def init_hand_counted_db():
             logging.debug("Initialized tab5_hand_counted.db")
         os.chmod(HAND_COUNTED_DB, 0o666)
     except Exception as e:
+
         logging.error(f"Error initializing tab5_hand_counted.db: {e}")
+
 
 @tab5_bp.route("/")
 def show_tab5():
@@ -77,6 +81,7 @@ def show_tab5():
 
         parent_data = []
         child_map = {}
+
         for contract, item_list in contract_map.items():
             logging.debug(f"Processing contract: {contract}")
             rental_class_map = defaultdict(list)
@@ -91,11 +96,13 @@ def show_tab5():
                 hand_items = [i for i in items if i.get("tag_id") is None]
                 total_rfid = len(rfid_items)
                 total_hand = sum(int(i.get("total_items", 0)) for i in hand_items)
+
                 total_items = total_rfid + total_hand
                 total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
                 on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
                               item["status"] in ["On Rent", "Delivered"] and 
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
+
                 service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - \
                           sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
                 child_data[rental_class_id] = {
@@ -124,16 +131,19 @@ def show_tab5():
         logging.debug("Sorting parent data")
         parent_data.sort(key=lambda x: x["contract"].lower())
 
+
         logging.debug("Rendering Tab 5")
         return render_template(
             "tab5.html",
             parent_data=parent_data,
             child_map=child_map,
+
             filter_contract=filter_contract,
             filter_common_name=filter_common_name
         )
     except Exception as e:
         logging.error(f"Error in show_tab5: {e}")
+
         return "Internal Server Error", 500
 
 @tab5_bp.route("/save_hand_counted", methods=["POST"])
@@ -154,9 +164,11 @@ def save_hand_counted():
             """, (last_contract_num, common_name, total_items, date_last_scanned, last_scanned_by))
             conn.commit()
 
+
         return redirect(url_for("tab5_bp.show_tab5", last_contract_num=request.args.get("last_contract_num", ""), common_name=request.args.get("common_name", "")))
     except Exception as e:
         logging.error(f"Error saving hand-counted entry: {e}")
+
         return "Internal Server Error", 500
 
 @tab5_bp.route("/update_hand_counted", methods=["POST"])
@@ -186,7 +198,9 @@ def update_hand_counted():
                 logging.error(f"No matching L contract found: {last_contract_num}, {common_name}")
                 return "No matching L contract found", 404
 
+
             orig_id, orig_total = row["id"], int(row["total_items"])
+
             new_total = orig_total - returned_qty
 
             if new_total < 0:
@@ -209,14 +223,17 @@ def update_hand_counted():
 
             conn.commit()
 
+
         return redirect(url_for("tab5_bp.show_tab5", last_contract_num=request.args.get("last_contract_num", ""), common_name=request.args.get("common_name", "")))
     except Exception as e:
         logging.error(f"Error updating hand-counted entry: {e}")
+
         return "Internal Server Error", 500
 
 @tab5_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
     logging.debug("Hit /tab5/subcat_data endpoint")
+
     try:
         contract = request.args.get('contract')
         common_name = request.args.get('common_name')
@@ -226,8 +243,21 @@ def subcat_data():
         page = 1
         per_page = 20
 
+
+    logging.debug(f"Params - Contract: {contract}, Common Name: {common_name}, Page: {page}")
+
     with DatabaseConnection() as conn:
         items = get_active_rental_items(conn)
+        logging.debug(f"Fetched {len(items)} active rental items")
+
+    with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
+        logging.debug("Fetching hand-counted data for subcat")
+        conn.row_factory = sqlite3.Row
+        hand_items = conn.execute(
+            "SELECT * FROM hand_counted_items WHERE last_contract_num = ? AND common_name = ?", 
+            (contract, common_name)
+        ).fetchall()
+        logging.debug(f"Fetched {len(hand_items)} hand-counted items for {contract}, {common_name}")
 
     with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
         conn.row_factory = sqlite3.Row
@@ -236,7 +266,7 @@ def subcat_data():
 
     laundry_items = [
         item for item in [dict(row) for row in items]
-        if item.get("last_contract_num", "").lower().startswith("l")
+        if item.get("last_contract_num", "") == contract and item.get("common_name", "") == common_name
     ]
     hand_counted = [dict(row) for row in hand_items]
 
@@ -244,26 +274,25 @@ def subcat_data():
     filter_common_name = request.args.get("common_name_filter", "").lower().strip()
 
     filtered_items = laundry_items + hand_counted
+
     if filter_contract:
         filtered_items = [item for item in filtered_items if filter_contract in item["last_contract_num"].lower()]
+        logging.debug(f"After contract filter: {len(filtered_items)}")
     if filter_common_name:
         filtered_items = [item for item in filtered_items if filter_common_name in item.get("common_name", "").lower()]
+        logging.debug(f"After common_name filter: {len(filtered_items)}")
 
-    subcat_items = [
-        item for item in filtered_items
-        if item.get("last_contract_num") == contract and item.get("common_name") == common_name
-    ]
-
-    total_items = len(subcat_items)
+    total_items = len(filtered_items)
     total_pages = (total_items + per_page - 1) // per_page
     page = max(1, min(page, total_pages))
     start = (page - 1) * per_page
     end = start + per_page
-    paginated_items = subcat_items[start:end]
+    paginated_items = filtered_items[start:end]
+
 
     logging.debug(f"AJAX: Contract: {contract}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
 
-    return jsonify({
+    response = {
         "items": [{
             "tag_id": item.get("tag_id", "N/A"),
             "common_name": item["common_name"],
@@ -279,4 +308,6 @@ def subcat_data():
         "total_items": total_items,
         "total_pages": total_pages,
         "current_page": page
+
     })
+

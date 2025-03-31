@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1>Full Inventory List</h1>
+<h1 style="color: #2c3e50; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">Full Inventory List</h1>
 
-<!-- Filter inputs with URL submission -->
 <form method="GET" class="mb-3 row g-2">
   <div class="col-12 col-md-2">
     <input type="text" class="form-control" name="common_name" placeholder="Filter Common Name" value="{{ filter_common_name }}" />
@@ -21,16 +20,15 @@
     <input type="text" class="form-control" name="status" placeholder="Filter Status" value="{{ filter_status }}" />
   </div>
   <div class="col-12 col-md-2">
-    <button type="submit" class="btn btn-primary">Apply Filters</button>
+    <button type="submit" class="btn btn-primary" style="background: #e74c3c; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Apply Filters</button>
   </div>
 </form>
 
-<!-- Pagination controls (top) -->
 <nav aria-label="Page navigation" class="mb-3">
   <ul class="pagination justify-content-center flex-wrap">
     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('tab4_bp.show_tab4', page=current_page-1, common_name=filter_common_name, tag_id=filter_tag_id, bin_location=filter_bin_location, last_contract_num=filter_last_contract, status=filter_status) }}" aria-label="Previous">
-        <span aria-hidden="true">&laquo; Prev</span>
+        <span aria-hidden="true">« Prev</span>
       </a>
     </li>
     {% for p in range(1, total_pages + 1) %}
@@ -40,38 +38,36 @@
     {% endfor %}
     <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('tab4_bp.show_tab4', page=current_page+1, common_name=filter_common_name, tag_id=filter_tag_id, bin_location=filter_bin_location, last_contract_num=filter_last_contract, status=filter_status) }}" aria-label="Next">
-        <span aria-hidden="true">Next &raquo;</span>
+        <span aria-hidden="true">Next »</span>
       </a>
     </li>
   </ul>
 </nav>
 
-<!-- Parent Table: Common Names -->
-<div class="table-responsive">
-  <table class="table table-striped table-bordered" id="parentTable">
-    <thead>
+<div class="table-container">
+  <table class="table table-striped table-bordered" id="parentTable" style="border: 3px solid #2c3e50;">
+    <thead style="background: #34495e; color: #ecf0f1;">
       <tr>
-        <th style="width: 50px;"></th> <!-- Toggle column -->
+        <th style="width: 50px;"></th>
         <th class="sortable" data-col-name="common_name">Common Name</th>
         <th class="sortable" data-col-name="total">Total Items</th>
+        <th style="width: 100px;">Print Items</th>
       </tr>
     </thead>
     <tbody>
       {% for parent in parent_data %}
       {% set parent_idx = loop.index + (current_page - 1) * 20 %}
-      <!-- Parent Row -->
-      <tr class="table-active">
+      <tr class="table-active" style="background: linear-gradient(to right, #ecf0f1, #dfe6e9);">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ parent_idx }}">+</span></td>
         <td>{{ parent.common_name }}</td>
         <td>{{ parent.total }}</td>
+        <td><button class="btn btn-outline-dark btn-sm tab4-print-items" data-common-name="{{ parent.common_name }}" style="border: 2px solid #2c3e50; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s;">Print</button></td>
       </tr>
-
-      <!-- Child Row: Full Item Details -->
       <tr>
-        <td colspan="3" class="p-0">
+        <td colspan="4" class="p-0">
           <div id="child-{{ parent_idx }}" class="collapse">
-            <table class="table mb-0 child-table" id="childTable-{{ parent_idx }}">
-              <thead>
+            <table class="table mb-0 child-table" style="border: 2px solid #34495e;">
+              <thead style="background: #3498db; color: #fff;">
                 <tr>
                   <th class="sortable" data-col-name="tag_id">Tag ID</th>
                   <th class="sortable" data-col-name="account_uuid">Account UUID</th>
@@ -93,27 +89,33 @@
                 </tr>
               </thead>
               <tbody>
+                {% if item_map[parent.common_name] %}
                 {% for item in item_map[parent.common_name] %}
                 <tr class="{% if item.status in ['On Rent', 'Delivered'] %}on-rent{% elif item.status == 'Ready to Rent' %}ready{% else %}service{% endif %}">
                   <td>{{ item.tag_id }}</td>
-                  <td>{{ item.uuid_accounts_fk }}</td>
-                  <td>{{ item.serial_number }}</td>
-                  <td>{{ item.client_name }}</td>
-                  <td>{{ item.rental_class_num }}</td>
-                  <td>{{ item.quality }}</td>
-                  <td>{{ item.bin_location }}</td>
-                  <td>{{ item.status }}</td>
-                  <td>{{ item.last_contract_num }}</td>
-                  <td>{{ item.last_scanned_by }}</td>
-                  <td>{{ item.notes }}</td>
-                  <td>{{ item.status_notes }}</td>
-                  <td>{{ item.long }}</td>
-                  <td>{{ item.lat }}</td>
-                  <td>{{ item.date_last_scanned }}</td>
-                  <td>{{ item.date_created }}</td>
-                  <td>{{ item.date_updated }}</td>
+                  <td>{{ item.uuid_accounts_fk | default('') }}</td>
+                  <td>{{ item.serial_number | default('') }}</td>
+                  <td>{{ item.client_name | default('') }}</td>
+                  <td>{{ item.rental_class_num | default('') }}</td>
+                  <td>{{ item.quality | default('') }}</td>
+                  <td>{{ item.bin_location | default('') }}</td>
+                  <td>{{ item.status | default('') }}</td>
+                  <td>{{ item.last_contract_num | default('') }}</td>
+                  <td>{{ item.last_scanned_by | default('') }}</td>
+                  <td>{{ item.notes | default('') }}</td>
+                  <td>{{ item.status_notes | default('') }}</td>
+                  <td>{{ item.long | default('') }}</td>
+                  <td>{{ item.lat | default('') }}</td>
+                  <td>{{ item.date_last_scanned | default('') }}</td>
+                  <td>{{ item.date_created | default('') }}</td>
+                  <td>{{ item.date_updated | default('') }}</td>
                 </tr>
                 {% endfor %}
+                {% else %}
+                <tr>
+                  <td colspan="17" class="text-center">No items found.</td>
+                </tr>
+                {% endif %}
               </tbody>
             </table>
           </div>
@@ -124,12 +126,11 @@
   </table>
 </div>
 
-<!-- Pagination controls (bottom) -->
 <nav aria-label="Page navigation" class="mt-3">
   <ul class="pagination justify-content-center flex-wrap">
     <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('tab4_bp.show_tab4', page=current_page-1, common_name=filter_common_name, tag_id=filter_tag_id, bin_location=filter_bin_location, last_contract_num=filter_last_contract, status=filter_status) }}" aria-label="Previous">
-        <span aria-hidden="true">&laquo; Prev</span>
+        <span aria-hidden="true">« Prev</span>
       </a>
     </li>
     {% for p in range(1, total_pages + 1) %}
@@ -139,13 +140,12 @@
     {% endfor %}
     <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('tab4_bp.show_tab4', page=current_page+1, common_name=filter_common_name, tag_id=filter_tag_id, bin_location=filter_bin_location, last_contract_num=filter_last_contract, status=filter_status) }}" aria-label="Next">
-        <span aria-hidden="true">Next &raquo;</span>
+        <span aria-hidden="true">Next »</span>
       </a>
     </li>
   </ul>
 </nav>
 
-<!-- Inline JS for sorting -->
 <script>
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
@@ -192,7 +192,7 @@ function sortTable(tableEl, colName) {
       if (!isNaN(numA) && !isNaN(numB)) {
         return asc ? numA - numB : numB - numA;
       }
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellB);
     });
     tbody.innerHTML = "";
     pairs.forEach(pair => {
@@ -202,31 +202,124 @@ function sortTable(tableEl, colName) {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  let parentTable = document.getElementById("parentTable");
-  parentTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
-      sortTable(parentTable, colName);
-    });
+function tab4PrintItems(commonName) {
+  const itemMap = {{ item_map|tojson }};
+  const items = itemMap[commonName] || [];
+
+  const printWin = window.open('', '_blank');
+  if (!printWin) {
+    return;
+  }
+
+  printWin.document.write(`
+    <html>
+      <head>
+        <title>Items: ${commonName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+          h1 { font-size: 1.5em; text-align: center; color: #2c3e50; margin-bottom: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+          table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          th, td { border: 2px solid #34495e; padding: 8px; text-align: left; }
+          th { background: #3498db; color: #fff; font-weight: bold; }
+          tr:nth-child(even) { background: #f9f9f9; }
+          tr:hover { background: #dfe6e9; }
+          .on-rent { background-color: #ffff99; }
+          .ready { background-color: #ccffcc; }
+          .service { background-color: #ffcccc; }
+        </style>
+      </head>
+      <body>
+        <h1>Items: ${commonName}</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>Tag ID</th>
+              <th>Account UUID</th>
+              <th>Serial Number</th>
+              <th>Client Name</th>
+              <th>Rental Class</th>
+              <th>Quality</th>
+              <th>Bin Location</th>
+              <th>Status</th>
+              <th>Last Contract</th>
+              <th>Last Scanned By</th>
+              <th>Notes</th>
+              <th>Status Notes</th>
+              <th>Longitude</th>
+              <th>Latitude</th>
+              <th>Date Last Scanned</th>
+              <th>Date Created</th>
+              <th>Date Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+  `);
+
+  items.forEach(item => {
+    printWin.document.write(`
+      <tr class="${item.status in ['On Rent', 'Delivered'] ? 'on-rent' : item.status == 'Ready to Rent' ? 'ready' : 'service'}">
+        <td>${item.tag_id}</td>
+        <td>${item.uuid_accounts_fk || ''}</td>
+        <td>${item.serial_number || ''}</td>
+        <td>${item.client_name || ''}</td>
+        <td>${item.rental_class_num || ''}</td>
+        <td>${item.quality || ''}</td>
+        <td>${item.bin_location || ''}</td>
+        <td>${item.status || ''}</td>
+        <td>${item.last_contract_num || ''}</td>
+        <td>${item.last_scanned_by || ''}</td>
+        <td>${item.notes || ''}</td>
+        <td>${item.status_notes || ''}</td>
+        <td>${item.long || ''}</td>
+        <td>${item.lat || ''}</td>
+        <td>${item.date_last_scanned || ''}</td>
+        <td>${item.date_created || ''}</td>
+        <td>${item.date_updated || ''}</td>
+      </tr>
+    `);
   });
 
-  document.querySelectorAll(".child-table").forEach(childTbl => {
-    childTbl.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(childTbl, colName);
-      });
+  printWin.document.write(`
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `);
+  printWin.document.close();
+  printWin.focus();
+  printWin.print();
+  printWin.close();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const table = th.closest("table");
+      const colName = th.getAttribute("data-col-name");
+      sortTable(table, colName);
     });
   });
 
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
-    let target = document.querySelector(toggle.getAttribute("data-bs-target"));
-    target.addEventListener("show.bs.collapse", () => {
-      toggle.textContent = "-";
+    toggle.addEventListener("click", () => {
+      const targetId = toggle.getAttribute("data-bs-target");
+      const target = document.querySelector(targetId);
+      if (target.classList.contains("show")) {
+        toggle.textContent = "+";
+      } else {
+        toggle.textContent = "-";
+      }
     });
-    target.addEventListener("hide.bs.collapse", () => {
-      toggle.textContent = "+";
+  });
+
+  document.querySelectorAll(".btn").forEach(btn => {
+    btn.addEventListener("mouseover", () => {
+      btn.style.transform = "translateY(-2px)";
+      btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
+    });
+    btn.addEventListener("mouseout", () => {
+      btn.style.transform = "translateY(0)";
+      btn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
     });
   });
 
@@ -237,9 +330,26 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 <style>
-  .on-rent { background-color: #ffff99; } /* Light yellow */
-  .ready { background-color: #ccffcc; } /* Light green */
-  .service { background-color: #ffcccc; } /* Light red */
+  body, html {
+    height: 100%;
+    overflow: auto;
+    margin: 0;
+    padding: 0;
+  }
+  .table-container {
+    width: 100%;
+    overflow-y: auto;
+  }
+  .table-container table {
+    width: 100%;
+    table-layout: auto;
+  }
+  .collapse {
+    width: 100%;
+  }
+  .on-rent { background-color: #ffff99; }
+  .ready { background-color: #ccffcc; }
+  .service { background-color: #ffcccc; }
   @media (max-width: 768px) {
     .pagination .page-link { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
   }

@@ -196,7 +196,9 @@ function sortTable(tableEl, colName) {
 }
 
 function loadSubcatData(category, commonName, page, catKey) {
+
   console.log(`Loading: Category: ${category}, Common Name: ${commonName}, Page: ${page}, CatKey: ${catKey}`);
+
   const loading = document.getElementById(`loading-${catKey}`);
   if (loading) loading.style.display = 'block';
 
@@ -212,19 +214,23 @@ function loadSubcatData(category, commonName, page, catKey) {
     rental_class_num: urlParams.get('rental_class_num') || ''
   };
   const url = `/tab6/subcat_data?${new URLSearchParams(params).toString()}`;
+
   console.log(`Fetching URL: ${url}`);
 
   fetch(url)
     .then(response => {
       console.log(`Response Status: ${response.status}`);
+
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       return response.json();
     })
     .then(data => {
+
       console.log('AJAX Response:', data);
       const tbody = document.getElementById(`grandchildTbody-${catKey}`);
       if (!tbody) {
         console.error(`Tbody not found for CatKey: ${catKey}`);
+
         alert("Error: Table body not found!");
         return;
       }
@@ -277,7 +283,9 @@ function loadSubcatData(category, commonName, page, catKey) {
       if (loading) loading.style.display = 'none';
     })
     .catch(error => {
+
       console.error('Error loading subcat data:', error);
+
       alert('Failed to load items: ' + error.message);
       if (loading) loading.style.display = 'none';
     });
@@ -301,10 +309,12 @@ document.addEventListener('click', (e) => {
     const target = document.querySelector(targetId);
     if (target) {
       if (!target.classList.contains('show')) {
+
         console.log(`Expanding: ${target.id}`);
         toggle.textContent = "-";
         if (target.id.startsWith("child-")) {
           const category = target.closest(".collapse[data-category]").getAttribute("data-category");
+
           const commonName = target.getAttribute("data-common-name");
           const catKey = target.id.split("child-")[1];
           loadSubcatData(category, commonName, 1, catKey);

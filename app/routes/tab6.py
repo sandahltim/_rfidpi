@@ -14,7 +14,9 @@ def get_resale_items(conn):
 
 def categorize_item(item):
     common_name = item.get("common_name", "").upper()
+
     if "FOG"  in common_name or "JUICE"  in common_name:
+
         return "A/V Resale"
     elif "CHOCOLATE" in common_name:
         return "Chocolate Resale"
@@ -42,7 +44,9 @@ def categorize_item(item):
 
 @tab6_bp.route("/")
 def show_tab6():
+
     print("Loading /tab6/ endpoint")
+
     with DatabaseConnection() as conn:
         rows = get_resale_items(conn)
     items = [dict(row) for row in rows]
@@ -92,6 +96,7 @@ def show_tab6():
     middle_map = {}
     for category, item_list in category_map.items():
         total_amount = len(item_list)
+
         on_contract = sum(1 for item in item_list if item["status"] in ["Delivered", "On Rent"])
 
         # Middle child: Common names
@@ -102,6 +107,7 @@ def show_tab6():
         middle_map[category] = [
             {"common_name": name, "total": len(items)}
             for name, items in common_name_map.items()
+
         ]
 
         parent_data.append({
@@ -125,7 +131,9 @@ def show_tab6():
 
 @tab6_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
+
     print("Hit /tab6/subcat_data endpoint")
+
     category = request.args.get('category')
     common_name = request.args.get('common_name')
     page = int(request.args.get('page', 1))
@@ -144,6 +152,7 @@ def subcat_data():
 
     filtered_items = items
     if filter_common_name:
+
         filtered_items = [item for item in filtered_items if item.get("common_name") == filter_common_name]
     if filter_tag_id:
         filtered_items = [item for item in filtered_items if item.get("tag_id") == filter_tag_id]
@@ -151,6 +160,7 @@ def subcat_data():
         filtered_items = [item for item in filtered_items if item.get("last_contract_num") == filter_last_contract]
     if filter_status:
         filtered_items = [item for item in filtered_items if item.get("status") == filter_status]
+
     if filter_rental_class_num:
         rental_class_nums = [num.strip() for num in filter_rental_class_num.split(',') if num.strip()]
         if not rental_class_nums:  # Full list from your data
@@ -166,10 +176,12 @@ def subcat_data():
                 "64906", "64907", "64908", "64909", "64910", "64911", "64912", "64913", "64914", "64915", "64916", "64917",
                 "64918", "64919", "64920", "65495", "65498"
             ]
+
         filtered_items = [item for item in filtered_items if item.get("rental_class_num") in rental_class_nums]
 
     category_items = [item for item in filtered_items if categorize_item(item) == category]
     subcat_items = [item for item in category_items if item.get("common_name") == common_name] if common_name else category_items
+
 
     total_items = len(subcat_items)
     total_pages = (total_items + per_page - 1) // per_page
@@ -177,6 +189,7 @@ def subcat_data():
     start = (page - 1) * per_page
     end = start + per_page
     paginated_items = subcat_items[start:end]
+
 
     print(f"AJAX: Category: {category}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
 
@@ -192,3 +205,4 @@ def subcat_data():
         "total_pages": total_pages,
         "current_page": page
     })
+

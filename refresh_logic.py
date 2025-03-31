@@ -1,14 +1,19 @@
 import os
 import requests
 import sqlite3
-import time
 from datetime import datetime, timedelta
+
 from config import LOGIN_URL, DB_FILE, SEED_URL, ITEM_MASTER_URL, TRANSACTION_URL, API_PASSWORD, API_USERNAME
+
 
 TOKEN = None
 TOKEN_EXPIRY = None
 LAST_REFRESH = None
 IS_RELOADING = False
+
+# Refresh intervals
+FULL_REFRESH_INTERVAL = 300  # 5 minutes
+FAST_REFRESH_INTERVAL = 30   # 30 seconds
 
 def get_access_token():
     """Fetch and cache API access token."""
@@ -36,6 +41,7 @@ def fetch_paginated_data(url, token, since_date=None):
     params = {"limit": 200, "offset": 0}
     if since_date:
         params["filter[]"] = f"date_last_scanned>{since_date}"
+
     all_data = []
 
     while True:
@@ -44,7 +50,7 @@ def fetch_paginated_data(url, token, since_date=None):
             response.raise_for_status()
             data = response.json().get("data", [])
             if not data:
-                print(f"Finished fetching {len(all_data)} records from {url}")
+                print(f"Finished fetching {len(all_data)} records from {url}{' with filter ' + status_filter if status_filter else ''}")
                 break
             all_data.extend(data)
             print(f" Fetched {len(data)} more records, total: {len(all_data)}")
@@ -223,6 +229,7 @@ def update_transactions(data):
     finally:
         conn.close()
 
+
 def update_seed_data(data):
     """Inserts or updates SEED data in SQLite (full refresh only)."""
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
@@ -262,6 +269,7 @@ def refresh_data(full_refresh=False):
     if not token:
         print(" No access token. Aborting refresh.")
         IS_RELOADING = False
+
         return
 
     since_date = None if full_refresh else LAST_REFRESH
@@ -282,6 +290,7 @@ def refresh_data(full_refresh=False):
     finally:
         conn.close()
 
+
     LAST_REFRESH = datetime.utcnow()
     print(f"Database refreshed at {LAST_REFRESH}")
     IS_RELOADING = False  # Clear reloading flag
@@ -292,3 +301,4 @@ def background_refresh():
     while True:
         time.sleep(60)  # 60 seconds
         refresh_data(full_refresh=False)  # Incremental refresh
+

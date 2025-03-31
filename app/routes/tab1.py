@@ -4,12 +4,80 @@ from db_connection import DatabaseConnection
 from data_service import get_active_rental_contracts, get_active_rental_items
 import logging
 
+
 tab1_bp = Blueprint("tab1", __name__, url_prefix="/tab1")
 logging.basicConfig(level=logging.DEBUG)
 
-@tab1_bp.route("/")
+
+def get_tab1_data(page=1, per_page=20):
+    try:
+        with DatabaseConnection() as conn:
+            contracts = get_active_rental_contracts(conn)
+            items = get_active_rental_items(conn)
+            trans = conn.execute("""
+                SELECT contract_number, MAX(scan_date) as scan_date, notes
+                FROM id_transactions
+                WHERE contract_number IN (
+                    SELECT last_contract_num 
+                    FROM id_item_master 
+                    WHERE status IN ('On Rent', 'Delivered')
+                )
+                GROUP BY contract_number, notes
+            """).fetchall()
+
+        trans_map = {
+            row["contract_number"]: {
+                "scan_date": row["scan_date"],
+                "notes": row["notes"]
+            } 
+            for row in trans
+        }
+        contract_map = defaultdict(lambda: defaultdict(list))
+        for item in [dict(row) for row in items]:
+            contract_map[item["last_contract_num"]][item["common_name"]].append(item)
+
+        parent_data = []
+        for row in contracts:
+            contract = row["last_contract_num"]
+            total_items = sum(len(i) for i in contract_map[contract].values())
+            trans_info = trans_map.get(contract, {"scan_date": "N/A", "notes": "N/A"})
+            parent_data.append({
+                "contract_num": contract,
+                "client_name": row["client_name"] or "UNKNOWN",
+                "total_items": total_items,
+                "scan_date": trans_info["scan_date"],
+                "transaction_notes": trans_info["notes"]
+            })
+
+        middle_data = {}
+        for contract, common_names in contract_map.items():
+            middle_data[contract] = [
+                {"common_name": name, "total_on_contract": len(items)}
+                for name, items in common_names.items()
+            ]
+
+        total_items = len(parent_data)
+        total_pages = (total_items + per_page - 1) // per_page
+        page = max(1, min(page, total_pages))
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_data = parent_data[start:end]
+
+        return {
+            "parent_data": paginated_data,
+            "middle_data": middle_data,
+            "contract_map": contract_map,
+            "current_page": page,
+            "total_pages": total_pages
+        }
+    except Exception as e:
+        # Preserve the raise to handle the exception at a higher level
+        raise
+
+@tab1_bp.route("/", methods=["GET"])
 def show_tab1():
     page = request.args.get("page", 1, type=int)
+
     per_page = 10
     filter_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_common = request.args.get("common_name", "").lower().strip()
@@ -123,3 +191,4 @@ def subcat_data():
     except Exception as e:
         logging.error(f"Error in subcat_data: {e}")
         return "Internal Server Error", 500
+
