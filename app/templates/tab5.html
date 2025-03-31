@@ -497,11 +497,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("table-container").addEventListener("click", function(event) {
     const target = event.target;
-    console.log(`Click event on: ${target.tagName}, class: ${target.className}`);
+    console.log(`Click event on: ${target.tagName}, class: ${target.className}, id: ${target.id || 'none'}`);
 
     if (target.classList.contains("sortable")) {
       const table = target.closest("table");
       const colName = target.getAttribute("data-col-name");
+      console.log(`Sorting table: ${table.id}, column: ${colName}`);
       sortTable(table, colName);
     }
 
@@ -522,14 +523,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (target.classList.contains("expand-toggle")) {
       const targetId = target.getAttribute("data-bs-target").substring(1);
       const collapseEl = document.getElementById(targetId);
-      console.log(`Expand toggle clicked, target: ${targetId}, currently showing: ${collapseEl.classList.contains('show')}`);
+      console.log(`Expand toggle clicked, target: ${targetId}, currently showing: ${collapseEl ? collapseEl.classList.contains('show') : 'element not found'}`);
       if (collapseEl && !collapseEl.classList.contains("show")) {
         const contract = collapseEl.getAttribute("data-contract");
         const common_name = collapseEl.getAttribute("data-common-name");
+        console.log(`Collapse data - contract: ${contract}, common_name: ${common_name}`);
         if (contract && common_name) {
           const normalizedCommonName = common_name.toLowerCase().replace(/\s+/g, ' ').trim();
           const rental_class_id = Object.keys(childMap[contract]).find(id => 
             childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
+          console.log(`Computed rental_class_id: ${rental_class_id}`);
           if (rental_class_id) {
             const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
             console.log(`Triggering loadSubcatData for contract: ${contract}, common_name: ${common_name}, childKey: ${childKey}`);
