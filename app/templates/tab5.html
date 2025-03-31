@@ -382,10 +382,12 @@ function printTable(level, contract, common_name) {
       const url = `/tab5/subcat_data?${new URLSearchParams(params).toString()}`;
       fetch(url)
         .then(response => {
+          console.log(`Fetch response status for ${url}: ${response.status}`);
           if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
           return response.json();
         })
         .then(data => {
+          console.log('Fetch data:', data);
           items = data.items.map(item => ({
             tag_id: item.tag_id || 'N/A',
             common_name: item.common_name || 'N/A',
@@ -494,17 +496,20 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("date_last_scanned").value = new Date().toISOString().replace("T", " ").slice(0, 19);
 
   document.getElementById("table-container").addEventListener("click", function(event) {
-    if (event.target.classList.contains("sortable")) {
-      const table = event.target.closest("table");
-      const colName = event.target.getAttribute("data-col-name");
+    const target = event.target;
+    console.log(`Click event on: ${target.tagName}, class: ${target.className}`);
+
+    if (target.classList.contains("sortable")) {
+      const table = target.closest("table");
+      const colName = target.getAttribute("data-col-name");
       sortTable(table, colName);
     }
 
-    if (event.target.classList.contains("print-btn")) {
+    if (target.classList.contains("print-btn")) {
       console.log("Direct print-btn click detected");
-      const level = event.target.getAttribute("data-level");
-      const contract = event.target.getAttribute("data-contract");
-      const common_name = event.target.getAttribute("data-common-name");
+      const level = target.getAttribute("data-level");
+      const contract = target.getAttribute("data-contract");
+      const common_name = target.getAttribute("data-common-name");
       if (level === "parent") {
         console.log(`Parent print button clicked for contract: ${contract}`);
         printTable("parent", contract);
@@ -514,10 +519,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    if (event.target.classList.contains("expand-toggle")) {
-      const targetId = event.target.getAttribute("data-bs-target").substring(1);
+    if (target.classList.contains("expand-toggle")) {
+      const targetId = target.getAttribute("data-bs-target").substring(1);
       const collapseEl = document.getElementById(targetId);
-      if (collapseEl && collapseEl.classList.contains("collapse") && !collapseEl.classList.contains("show")) {
+      console.log(`Expand toggle clicked, target: ${targetId}, currently showing: ${collapseEl.classList.contains('show')}`);
+      if (collapseEl && !collapseEl.classList.contains("show")) {
         const contract = collapseEl.getAttribute("data-contract");
         const common_name = collapseEl.getAttribute("data-common-name");
         if (contract && common_name) {
@@ -526,12 +532,16 @@ document.addEventListener("DOMContentLoaded", () => {
             childMap[contract][id].common_name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedCommonName);
           if (rental_class_id) {
             const childKey = `${contract.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${rental_class_id}`;
-            console.log(`Expanding grandchild for contract: ${contract}, common_name: ${common_name}, childKey: ${childKey}`);
+            console.log(`Triggering loadSubcatData for contract: ${contract}, common_name: ${common_name}, childKey: ${childKey}`);
             loadSubcatData(contract, common_name, 1, childKey);
           } else {
             console.error(`No rental_class_id found for contract: ${contract}, common_name: ${common_name}`);
           }
+        } else {
+          console.error(`Missing contract or common_name on collapse element: ${targetId}`);
         }
+      } else {
+        console.log(`Collapse element ${targetId} already showing or not found`);
       }
     }
   });

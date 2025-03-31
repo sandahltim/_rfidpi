@@ -58,6 +58,7 @@ def show_tab1():
                 parent_idx = [p["contract"] for p in parent_data].index(contract)
                 parent_data[parent_idx]["total"] += 1
 
+        logging.debug(f"Tab 1 rendered: {len(parent_data)} parents, child_map keys: {list(child_map.keys())}")
         return render_template(
             "tab1.html",
             parent_data=parent_data,
@@ -80,15 +81,19 @@ def subcat_data():
     per_page = 20
 
     try:
+        logging.debug(f"Fetching subcat data: contract={contract}, common_name={common_name}, page={page}")
         with DatabaseConnection() as conn:
             items = get_active_rental_items(conn)
-
-        # Convert SQLite rows to dicts explicitly
+        
+        # Ensure items is a list of dicts
         items = [dict(item) for item in items]
+        logging.debug(f"Total items fetched: {len(items)}")
+        
         filtered_items = [
             item for item in items
             if item["last_contract_num"] == contract and item["common_name"] == common_name
         ]
+        logging.debug(f"Filtered items: {len(filtered_items)}")
 
         total_items = len(filtered_items)
         total_pages = (total_items + per_page - 1) // per_page
@@ -97,7 +102,7 @@ def subcat_data():
         end = start + per_page
         paginated_items = filtered_items[start:end]
 
-        return jsonify({
+        response = {
             "items": [{
                 "tag_id": item["tag_id"],
                 "common_name": item["common_name"],
@@ -112,7 +117,9 @@ def subcat_data():
             "total_items": total_items,
             "total_pages": total_pages,
             "current_page": page
-        })
+        }
+        logging.debug(f"Subcat data response: {response}")
+        return jsonify(response)
     except Exception as e:
         logging.error(f"Error in subcat_data: {e}")
         return "Internal Server Error", 500
