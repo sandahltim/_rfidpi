@@ -3,7 +3,6 @@
 
 <h1>Inventory by Category</h1>
 
-<!-- Filter inputs with URL submission -->
 <form method="GET" class="mb-3 row g-2">
   <div class="col-12 col-md-2">
     <input type="text" class="form-control" name="common_name" placeholder="Filter Common Name" value="{{ filter_common_name }}" />
@@ -25,35 +24,33 @@
   </div>
 </form>
 
-<!-- Parent Table: Categories (No Pagination) -->
 <div class="table-container">
   <table class="table table-striped table-bordered" id="parentTable">
     <thead>
       <tr>
-        <th style="width: 50px;"></th> <!-- Toggle column -->
+        <th style="width: 50px;"></th>
         <th class="sortable" data-col-name="category">Category</th>
         <th class="sortable" data-col-name="total">Total Items</th>
         <th class="sortable" data-col-name="available">Items Available</th>
         <th class="sortable" data-col-name="on_rent">Items On Rent</th>
         <th class="sortable" data-col-name="service">Service</th>
+        <th>Actions</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="parentTableBody">
       {% for parent in parent_data %}
       {% set cat_key = parent.category|lower|replace(' ', '_') %}
-      <!-- Parent Row -->
-      <tr class="table-active">
+      <tr class="table-active" data-client-name="{{ parent.client_name }}" data-scan-date="{{ parent.scan_date }}">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-{{ cat_key }}">+</span></td>
         <td>{{ parent.category }}</td>
         <td>{{ parent.total }}</td>
         <td>{{ parent.available }}</td>
         <td>{{ parent.on_rent }}</td>
         <td>{{ parent.service }}</td>
+        <td><button class="btn btn-sm btn-primary print-btn" data-level="parent" data-category="{{ parent.category }}">Print</button></td>
       </tr>
-
-      <!-- Child Row: Subcategories and Items -->
       <tr>
-        <td colspan="6" class="p-0">
+        <td colspan="7" class="p-0">
           <div id="child-{{ cat_key }}" class="collapse" data-category="{{ parent.category }}" {% if expand_category == parent.category %}data-auto-expand="true"{% endif %}>
             <div class="mb-2 mx-2">
               <select class="form-select subcategory-dropdown" data-category="{{ parent.category }}">
@@ -62,20 +59,14 @@
                 {% endfor %}
               </select>
             </div>
-
-            <!-- Loading Spinner -->
             <div id="loading-{{ cat_key }}" class="text-center my-2" style="display: none;">
               <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
               </div>
             </div>
-
-            <!-- Item Pagination (Above Table) -->
             <nav aria-label="Item navigation" class="mb-2 mx-2" id="pagination-{{ cat_key }}">
               <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
             </nav>
-
-            <!-- Items Table -->
             <div class="child-table-container">
               <table class="table mb-0 child-table" id="childTable-{{ cat_key }}">
                 <thead>
@@ -85,6 +76,7 @@
                     <th class="sortable" data-col-name="status">Status</th>
                     <th class="sortable" data-col-name="bin_location">Bin Location</th>
                     <th class="sortable" data-col-name="quality">Quality</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="childTbody-{{ cat_key }}"></tbody>
@@ -98,7 +90,6 @@
   </table>
 </div>
 
-<!-- Inline JS for sorting, dropdown, and AJAX -->
 <script>
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
@@ -113,19 +104,41 @@ function sortTable(tableEl, colName) {
   let headers = Array.from(tableEl.querySelectorAll("th"));
   let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
 
-  let rows = Array.from(tbody.querySelectorAll("tr"));
-  rows.sort((a, b) => {
-    let cellA = a.cells[colIndex]?.innerText.trim() || "";
-    let cellB = b.cells[colIndex]?.innerText.trim() || "";
-    let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-    let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-    if (!isNaN(numA) && !isNaN(numB)) {
-      return asc ? numA - numB : numB - numA;
+  let rows = Array.from(tbody.children);
+  if (tableEl.id === "parentTable") {
+    let pairs = [];
+    for (let i = 0; i < rows.length; i += 2) {
+      let parentRow = rows[i];
+      let childRow = rows[i + 1] || null;
+      if (parentRow && parentRow.classList.contains("table-active")) {
+        pairs.push({ parent: parentRow, child: childRow });
+      }
     }
-    return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-  });
-  tbody.innerHTML = "";
-  rows.forEach(row => tbody.appendChild(row));
+    pairs.sort((a, b) => {
+      let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
+      let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
+      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
+      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+    tbody.innerHTML = "";
+    pairs.forEach(pair => {
+      tbody.appendChild(pair.parent);
+      if (pair.child) tbody.appendChild(pair.child);
+    });
+  } else {
+    rows.sort((a, b) => {
+      let cellA = a.cells[colIndex]?.innerText.trim() || "";
+      let cellB = b.cells[colIndex]?.innerText.trim() || "";
+      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
+      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
+      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
+      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+    tbody.innerHTML = "";
+    rows.forEach(row => tbody.appendChild(row));
+  }
 }
 
 function loadSubcatData(category, subcat, page, catKey) {
@@ -170,6 +183,7 @@ function loadSubcatData(category, subcat, page, catKey) {
           <td>${item.status}</td>
           <td>${item.bin_location}</td>
           <td>${item.quality}</td>
+          <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-category="${category}" data-subcat="${subcat}" data-tag-id="${item.tag_id}">Print</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -213,29 +227,257 @@ function loadSubcatData(category, subcat, page, catKey) {
     });
 }
 
+function printTable(level, category, subcat, tagId) {
+  if (level === 'parent') {
+    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
+      .find(row => row.cells[1].innerText === category);
+    if (!parentRow) {
+      console.error(`Parent row not found for category: ${category}`);
+      return;
+    }
+    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
+    const firstScanDate = parentRow.getAttribute('data-scan-date') || 'N/A';
+    let html = `
+      <html>
+      <head>
+        <title>Category ${category} Print</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .title { font-size: 18px; }
+          .company { font-size: 14px; text-align: right; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid black; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .signature { margin-top: 40px; }
+          .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Category: ${category}<br>Client Name: ${clientName}<br>Last Scan Date: ${firstScanDate}</div>
+          <div class="company">Broadway Tent and Event</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Subcategory</th>
+              <th>Total Items</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    const subcategories = document.querySelector(`#child-${category.toLowerCase().replace(/ /g, '_')} .subcategory-dropdown`).options;
+    Array.from(subcategories).forEach(option => {
+      html += `
+        <tr>
+          <td>${option.value}</td>
+          <td>${childMap[category][option.value].total}</td>
+        </tr>
+      `;
+    });
+    html += `
+          </tbody>
+        </table>
+        <div class="signature">
+          <div class="signature-line"></div>
+          <p>Signature</p>
+          <div class="signature-line"></div>
+          <p>Date</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  } else if (level === 'child') {
+    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
+      .find(row => row.cells[1].innerText === category);
+    if (!parentRow) {
+      console.error(`Parent row not found for category: ${category}`);
+      return;
+    }
+    const catKey = category.toLowerCase().replace(/ /g, '_');
+    const tbodyId = `childTbody-${catKey}`;
+    const tbody = document.getElementById(tbodyId);
+    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
+    let items = [];
+
+    if (!tbody || tbody.children.length === 0 || (tagId && !Array.from(tbody.children).some(row => row.cells[0].innerText === tagId))) {
+      console.warn(`No child data for ${tbodyId} or tag ${tagId}, fetching synchronously...`);
+      const urlParams = new URLSearchParams(window.location.search);
+      const params = {
+        category: category,
+        subcat: subcat,
+        page: 1,
+        common_name: urlParams.get('common_name') || '',
+        tag_id: urlParams.get('tag_id') || '',
+        bin_location: urlParams.get('bin_location') || '',
+        last_contract_num: urlParams.get('last_contract_num') || '',
+        status: urlParams.get('status') || ''
+      };
+      const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Child print data:', data);
+          items = data.items.map(item => ({
+            tag_id: item.tag_id,
+            common_name: item.common_name,
+            status: item.status,
+            bin_location: item.bin_location,
+            quality: item.quality,
+            last_contract_num: item.last_contract_num,
+            date_last_scanned: item.date_last_scanned,
+            last_scanned_by: item.last_scanned_by,
+            notes: item.notes
+          }));
+          if (tagId) items = items.filter(item => item.tag_id === tagId);
+          printChildItems(category, subcat, clientName, items);
+        })
+        .catch(error => console.error('Error fetching child data for print:', error));
+    } else {
+      items = Array.from(tbody.children).map(row => ({
+        tag_id: row.cells[0].innerText,
+        common_name: row.cells[1].innerText,
+        status: row.cells[2].innerText,
+        bin_location: row.cells[3].innerText,
+        quality: row.cells[4].innerText,
+        last_contract_num: 'N/A',
+        date_last_scanned: 'N/A',
+        last_scanned_by: 'N/A',
+        notes: 'N/A'
+      }));
+      if (tagId) items = items.filter(item => item.tag_id === tagId);
+      printChildItems(category, subcat, clientName, items);
+    }
+  }
+}
+
+function printChildItems(category, subcat, clientName, items) {
+  let html = `
+    <html>
+    <head>
+      <title>${category} - ${subcat} Items</title>
+      <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .title { font-size: 18px; }
+        .company { font-size: 14px; text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .signature { margin-top: 40px; }
+        .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="title">Category: ${category}<br>Subcategory: ${subcat}<br>Client Name: ${clientName}</div>
+        <div class="company">Broadway Tent and Event</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tag ID</th>
+            <th>Common Name</th>
+            <th>Status</th>
+            <th>Bin Location</th>
+            <th>Quality</th>
+            <th>Last Contract Num</th>
+            <th>Date Last Scanned</th>
+            <th>Last Scanned By</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  items.forEach(item => {
+    html += `
+      <tr>
+        <td>${item.tag_id}</td>
+        <td>${item.common_name}</td>
+        <td>${item.status}</td>
+        <td>${item.bin_location}</td>
+        <td>${item.quality}</td>
+        <td>${item.last_contract_num}</td>
+        <td>${item.date_last_scanned}</td>
+        <td>${item.last_scanned_by}</td>
+        <td>${item.notes}</td>
+      </tr>
+    `;
+  });
+  html += `
+        </tbody>
+      </table>
+      <div class="signature">
+        <div class="signature-line"></div>
+        <p>Signature</p>
+        <div class="signature-line"></div>
+        <p>Date</p>
+      </div>
+    </body>
+    </html>
+  `;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+function refreshTable() {
+  console.log("Refreshing table at " + new Date().toLocaleTimeString());
+  const expandedIds = Array.from(document.querySelectorAll('.collapse.show')).map(el => el.id);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const url = `/tab2/?${urlParams.toString()}`;
+  console.log(`Fetching refresh URL: ${url}`);
+  fetch(url)
+    .then(response => {
+      console.log(`Refresh response status: ${response.status}`);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.text();
+    })
+    .then(html => {
+      console.log("Refresh data received");
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const newTableBody = doc.querySelector('#parentTableBody');
+
+      if (newTableBody) document.getElementById('parentTableBody').innerHTML = newTableBody.innerHTML;
+
+      expandedIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          console.log(`Restoring expanded state for: ${id}`);
+          new bootstrap.Collapse(element, { toggle: false }).show();
+          const toggle = document.querySelector(`[data-bs-target="#${id}"]`);
+          if (toggle) toggle.textContent = '-';
+          const category = element.getAttribute("data-category");
+          const catKey = category.toLowerCase().replace(/ /g, '_');
+          const select = element.querySelector(".subcategory-dropdown");
+          const subcat = select.value;
+          loadSubcatData(category, subcat, 1, catKey);
+        }
+      });
+    })
+    .catch(error => console.error('Error refreshing table:', error));
+}
+
+const childMap = {{ sub_map|tojson }};
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded");
-  
-  // Parent table sorting
-  let parentTable = document.getElementById("parentTable");
-  parentTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
-      sortTable(parentTable, colName);
-    });
-  });
 
-  // Child table sorting
-  document.querySelectorAll(".child-table").forEach(childTable => {
-    childTable.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(childTable, colName);
-      });
-    });
-  });
-
-  // Expand/collapse toggles
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
     let target = document.querySelector(toggle.getAttribute("data-bs-target"));
     target.addEventListener("show.bs.collapse", () => {
@@ -252,7 +494,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Dropdown changes
   document.querySelectorAll(".subcategory-dropdown").forEach(select => {
     select.addEventListener("change", () => {
       const category = select.getAttribute("data-category");
@@ -263,7 +504,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Initial expand if set
+  document.getElementById("parentTable").addEventListener("click", function(event) {
+    const target = event.target;
+    if (target.classList.contains("sortable")) {
+      const table = target.closest("table");
+      const colName = target.getAttribute("data-col-name");
+      sortTable(table, colName);
+    }
+    if (target.classList.contains("print-btn")) {
+      const level = target.getAttribute("data-level");
+      const category = target.getAttribute("data-category");
+      const subcat = target.getAttribute("data-subcat");
+      const tagId = target.getAttribute("data-tag-id");
+      if (level === "parent") {
+        printTable("parent", category);
+      } else if (level === "child") {
+        const select = document.querySelector(`#child-${category.toLowerCase().replace(/ /g, '_')} .subcategory-dropdown`);
+        const selectedSubcat = subcat || select.value;
+        printTable("child", category, selectedSubcat, tagId);
+      }
+    }
+  });
+
   let expandCat = "{{ expand_category | default('') }}";
   if (expandCat) {
     let collapse = document.querySelector(`#child-${expandCat.toLowerCase().replace(/ /g, '_')}`);
@@ -285,38 +547,19 @@ document.addEventListener("DOMContentLoaded", () => {
       collapse.classList.remove("show");
     }
   });
+
+  setInterval(refreshTable, 60000); // Auto-refresh every 60 seconds
 });
 </script>
 
 <style>
-  body, html {
-    height: 100%;
-    overflow: auto;
-    margin: 0;
-    padding: 0;
-  }
-  .table-container {
-    width: 100%;
-    overflow-y: auto;
-  }
-  .table-container table {
-    width: 100%;
-    table-layout: auto;
-  }
-  .child-table-container {
-    width: 100%;
-    overflow-y: auto;
-  }
-  .child-table-container table {
-    width: 100%;
-    table-layout: auto;
-  }
-  .collapse {
-    width: 100%;
-  }
-  @media (max-width: 768px) {
-    .pagination .page-link { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
-  }
+  body, html { height: 100%; overflow: auto; margin: 0; padding: 0; }
+  .table-container { width: 100%; overflow-y: auto; }
+  .table-container table { width: 100%; table-layout: auto; }
+  .child-table-container { width: 100%; overflow-y: auto; }
+  .child-table-container table { width: 100%; table-layout: auto; }
+  .collapse { width: 100%; }
+  @media (max-width: 768px) { .pagination .page-link { padding: 0.25rem 0.5rem; font-size: 0.9rem; } }
 </style>
 
 {% endblock %}

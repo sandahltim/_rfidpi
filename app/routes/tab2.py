@@ -1,85 +1,66 @@
 from flask import Blueprint, render_template, request, jsonify
 from collections import defaultdict
 from db_connection import DatabaseConnection
-import re
+import sqlite3
 
 tab2_bp = Blueprint("tab2_bp", __name__, url_prefix="/tab2")
 
-def tokenize_name(name):
-    return re.split(r'\W+', name.lower())
-
-def categorize_item(item):
-    tokens = tokenize_name(item.get("common_name", ""))
-    if any(word in tokens for word in ['tent', 'canopy', 'pole','hp','mid','end','navi']):
+def categorize_item(rental_class_id):
+    """Map rental_class_id to categories based on seed data ranges."""
+    rid = int(rental_class_id)
+    if 4000 <= rid <= 72412:  # Tent-related items (HP, Navi, etc.)
         return 'Tent Tops'
-    elif any(word in tokens for word in ['table', 'chair', 'plywood','prong']):
+    elif 63131 <= rid <= 66555:  # Tables, Chairs, Legs
         return 'Tables and Chairs'
-    elif any(word in tokens for word in ['132','120','90','108']):
+    elif 61885 <= rid <= 61981:  # 108, 120, 132 Round Linens
         return 'Round Linen'
-    elif any(word in tokens for word in ['90x90', '90x132', '60x120','90x156','54']):
+    elif 62088 <= rid <= 62280:  # 54 Square, 60x120, 90x132, 90x156
         return 'Rectangle Linen'
-    elif any(word in tokens for word in ['otc', 'machine', 'hotdog','nacho']):
+    elif 62468 <= rid <= 62654:  # Concession equipment
         return 'Concession'
     else:
         return 'Other'
 
-def subcategorize_item(category, item):
-    tokens = tokenize_name(item.get("common_name", ""))
+def subcategorize_item(category, rental_class_id):
+    """Map rental_class_id to subcategories within a category."""
+    rid = int(rental_class_id)
     if category == 'Tent Tops':
-        if any(word in tokens for word in ['hp']):
+        if rid == 66456:  # HP IKEs
             return 'HP Tents'
-        elif any(word in tokens for word in ['ncp','nc','end','pole']):
-            return 'Pole Tents'
-        elif any(word in tokens for word in ['navi']):
+        elif 4203 <= rid <= 72412:  # Navi, HP assemblies
             return 'Navi Tents'
-        elif any(word in tokens for word in ['canopy']):
-            return 'AP Tents'
         else:
             return 'Other Tents'
     elif category == 'Tables and Chairs':
-        if 'table' in tokens:
+        if 63131 <= rid <= 66548:  # Table Tops
             return 'Tables'
-        elif 'chair' in tokens:
+        elif rid == 66555:  # Chair Legs
             return 'Chairs'
         else:
             return 'Other T&C'
     elif category == 'Round Linen':
-        if '90' in tokens:
-            return '90-inch Round'
-        elif '108' in tokens:
+        if 61885 <= rid <= 61917:  # 108 Round
             return '108-inch Round'
-        elif '120' in tokens:
+        elif 61933 <= rid <= 61981:  # 120 Round
             return '120-inch Round'
-        elif '132' in tokens:
+        elif 61982 <= rid <= 62035:  # 132 Round
             return '132-inch Round'
         else:
             return 'Other Round Linen'
     elif category == 'Rectangle Linen':
-        if '90x90' in tokens:
-            return '90 Square'
-        elif '54' in tokens:
+        if 62291 <= rid <= 62339:  # 54 Square
             return '54 Square'
-        elif '90x132' in tokens:
-            return '90x132'
-        elif '90x156' in tokens:
-            return '90x156'
-        elif '60x120' in tokens:
+        elif 62088 <= rid <= 62142:  # 60x120
             return '60x120'
+        elif 62187 <= rid <= 62231:  # 90x132
+            return '90x132'
+        elif 62235 <= rid <= 62280:  # 90x156
+            return '90x156'
         else:
             return 'Other Rectangle Linen'
     elif category == 'Concession':
-        if 'frozen' in tokens:
-            return 'Frozen Drink Machines'
-        elif 'cotton' in tokens:
-            return 'Cotton Candy Machines'
-        elif 'sno' in tokens:
-            return 'SnoKone Machines'
-        elif 'hotdog' in tokens:
-            return 'Hotdog Machines'
-        elif 'cheese' in tokens:
-            return 'Warmers'
-        elif 'popcorn' in tokens:
-            return 'Popcorn Machines'
+        if 62468 <= rid <= 62654:  # Beverage, Chafers, Fountains
+            return 'Equipment'
         else:
             return 'Other Concessions'
     else:
@@ -89,17 +70,18 @@ def subcategorize_item(category, item):
 def show_tab2():
     print("Loading /tab2/ endpoint")
     with DatabaseConnection() as conn:
-        rows = conn.execute("SELECT * FROM id_item_master").fetchall()
-    items = [dict(row) for row in rows]
+        items = conn.execute("SELECT * FROM id_item_master").fetchall()
+        contracts = conn.execute("SELECT DISTINCT last_contract_num, client_name, MAX(date_last_scanned) as scan_date FROM id_item_master GROUP BY last_contract_num").fetchall()
+    items = [dict(row) for row in items]
+    contract_map = {c["last_contract_num"]: {"client_name": c["client_name"], "scan_date": c["scan_date"]} for c in contracts}
 
-    # Get filter parameters
+    # Filters
     filter_common_name = request.args.get("common_name", "").lower().strip()
     filter_tag_id = request.args.get("tag_id", "").lower().strip()
     filter_bin_location = request.args.get("bin_location", "").lower().strip()
     filter_last_contract = request.args.get("last_contract_num", "").lower().strip()
     filter_status = request.args.get("status", "").lower().strip()
 
-    # Filter items
     filtered_items = items
     if filter_common_name:
         filtered_items = [item for item in filtered_items if filter_common_name in (item.get("common_name") or "").lower()]
@@ -114,7 +96,7 @@ def show_tab2():
 
     category_map = defaultdict(list)
     for item in filtered_items:
-        cat = categorize_item(item)
+        cat = categorize_item(item.get("rental_class_num", "0"))
         category_map[cat].append(item)
 
     parent_data = []
@@ -123,10 +105,12 @@ def show_tab2():
         available = sum(1 for item in item_list if item["status"] == "Ready to Rent")
         on_rent = sum(1 for item in item_list if item["status"] in ["On Rent", "Delivered"])
         service = len(item_list) - available - on_rent
+        client_name = contract_map.get(item_list[0]["last_contract_num"], {}).get("client_name", "N/A") if item_list else "N/A"
+        scan_date = contract_map.get(item_list[0]["last_contract_num"], {}).get("scan_date", "N/A") if item_list else "N/A"
 
         temp_sub_map = defaultdict(list)
         for itm in item_list:
-            subcat = subcategorize_item(category, itm)
+            subcat = subcategorize_item(category, itm.get("rental_class_num", "0"))
             temp_sub_map[subcat].append(itm)
 
         sub_map[category] = {
@@ -138,7 +122,9 @@ def show_tab2():
             "total": len(item_list),
             "available": available,
             "on_rent": on_rent,
-            "service": service
+            "service": service,
+            "client_name": client_name,
+            "scan_date": scan_date
         })
 
     parent_data.sort(key=lambda x: x["category"])
@@ -168,7 +154,7 @@ def subcat_data():
         rows = conn.execute("SELECT * FROM id_item_master").fetchall()
     items = [dict(row) for row in rows]
 
-    # Apply filters from query params
+    # Apply filters
     filter_common_name = request.args.get("common_name", "").lower().strip()
     filter_tag_id = request.args.get("tag_id", "").lower().strip()
     filter_bin_location = request.args.get("bin_location", "").lower().strip()
@@ -187,8 +173,8 @@ def subcat_data():
     if filter_status:
         filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
 
-    category_items = [item for item in filtered_items if categorize_item(item) == category]
-    subcat_items = [item for item in category_items if subcategorize_item(category, item) == subcat]
+    category_items = [item for item in filtered_items if categorize_item(item.get("rental_class_num", "0")) == category]
+    subcat_items = [item for item in category_items if subcategorize_item(category, item.get("rental_class_num", "0")) == subcat]
 
     total_items = len(subcat_items)
     total_pages = (total_items + per_page - 1) // per_page
@@ -204,8 +190,12 @@ def subcat_data():
             "tag_id": item["tag_id"],
             "common_name": item["common_name"],
             "status": item["status"],
-            "bin_location": item["bin_location"],
-            "quality": item["quality"]
+            "bin_location": item.get("bin_location", "N/A"),
+            "quality": item.get("quality", "N/A"),
+            "last_contract_num": item.get("last_contract_num", "N/A"),
+            "date_last_scanned": item.get("date_last_scanned", "N/A"),
+            "last_scanned_by": item.get("last_scanned_by", "N/A"),
+            "notes": item.get("notes", "N/A")
         } for item in paginated_items],
         "total_items": total_items,
         "total_pages": total_pages,

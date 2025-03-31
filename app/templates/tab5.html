@@ -412,7 +412,7 @@ function printTable(level, contract, common_name) {
         last_contract_num: row.cells[5].innerText,
         date_last_scanned: row.cells[6].innerText,
         last_scanned_by: row.cells[7].innerText,
-        notes: 'N/A'  // Notes not in table, fetched separately if needed
+        notes: 'N/A'
       }));
       printChildItems(contract, common_name, clientName, items);
     }
@@ -494,6 +494,46 @@ function printChildItems(contract, common_name, clientName, items) {
   printWindow.print();
 }
 
+function refreshTable() {
+  console.log("Refreshing table at " + new Date().toLocaleTimeString());
+  const expandedIds = Array.from(document.querySelectorAll('.collapse.show')).map(el => el.id);
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const url = `/tab5/?${urlParams.toString()}`;
+  console.log(`Fetching refresh URL: ${url}`);
+  fetch(url)
+    .then(response => {
+      console.log(`Refresh response status: ${response.status}`);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.text();
+    })
+    .then(html => {
+      console.log("Refresh data received");
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const newTableBody = doc.querySelector('#parentTableBody');
+
+      if (newTableBody) document.getElementById('parentTableBody').innerHTML = newTableBody.innerHTML;
+
+      expandedIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          console.log(`Restoring expanded state for: ${id}`);
+          new bootstrap.Collapse(element, { toggle: false }).show();
+          const toggle = document.querySelector(`[data-bs-target="#${id}"]`);
+          if (toggle) toggle.textContent = '-';
+          if (id.startsWith('grandchild-')) {
+            const contract = element.getAttribute("data-contract");
+            const common_name = element.getAttribute("data-common-name");
+            const childKey = id.replace('grandchild-', '');
+            loadSubcatData(contract, common_name, 1, childKey);
+          }
+        }
+      });
+    })
+    .catch(error => console.error('Error refreshing table:', error));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded");
 
@@ -558,6 +598,8 @@ document.addEventListener("DOMContentLoaded", () => {
   filterForm.querySelectorAll("input").forEach(input => {
     input.addEventListener("input", debouncedSubmit);
   });
+
+  setInterval(refreshTable, 60000); // Auto-refresh every 60 seconds
 });
 
 function confirmSave() {
