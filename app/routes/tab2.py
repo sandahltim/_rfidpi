@@ -660,43 +660,43 @@ SUBCATEGORY_MAP = {
     62781: 'HP Sidewalls',  # SIDEWALL HP 30 x 8 (G1) WHITE pole
     62782: 'HP Sidewalls',  # SIDEWALL HP 30 x 8 (G2) WHITE pole
     62805: 'Navi Tops',  # TOP NAVI 30x15 MID (G1)
-    62806: 'Navi Tops',  # MID 30 x 15 (G1) R AND W POLE CMATE
-    62807: 'Navi Tops',  # END 30 x 15 LACE (G1) R AND W POLE
+    62806: 'Pole Tops',  # MID 30 x 15 (G1) R AND W POLE CMATE
+    62807: 'Pole Tops',  # END 30 x 15 LACE (G1) R AND W POLE
     62808: 'Navi Tops',  # TOP NAVI 30x15 HIP
-    62809: 'Navi Tops',  # MID 60 x 20 ANCHOR POLE NC (G1)
-    62810: 'Navi Tops',  # MID 60 x 30 (G1) ANCHOR POLE NC
-    62853: 'Other Tents',  # SIDEWALLMESH 7 H X 20 (G1) WH
-    62857: 'Other Tents',  # SIDEWALL STD 7 X 20 (G1) WINDOW
-    62858: 'Other Tents',  # SIDEWALL STD 7 X 20 (G2) WINDOW
-    62859: 'Other Tents',  # SIDEWALL STD 7 X 20 (G3) WINDOW
-    62861: 'Other Tents',  # SIDEWALL STD 7 X 30 (G1) WINDOW
-    62862: 'Other Tents',  # SIDEWALL STD 7 X 30 (G2) WINDOW
-    62864: 'Other Tents',  # SIDEWALL STD 7 X 40 (G1) WINDOW
-    62865: 'Other Tents',  # SIDEWALL STD 7 X 40 (G2) WINDOW
-    62867: 'Other Tents',  # SIDEWALL STD 8 X 20 (G1) WINDOW
-    62868: 'Other Tents',  # SIDEWALL STD 8 X 20 (G2) WINDOW
+    62809: 'Pole Tops',  # MID 60 x 20 ANCHOR POLE NC (G1)
+    62810: 'Pole Tops',  # MID 60 x 30 (G1) ANCHOR POLE NC
+    62853: 'STD Sidewalls',  # SIDEWALLMESH 7 H X 20 (G1) WH
+    62857: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G1) WINDOW
+    62858: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G2) WINDOW
+    62859: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G3) WINDOW
+    62861: 'STD Sidewalls',  # SIDEWALL STD 7 X 30 (G1) WINDOW
+    62862: 'STD Sidewalls',  # SIDEWALL STD 7 X 30 (G2) WINDOW
+    62864: 'STD Sidewalls',  # SIDEWALL STD 7 X 40 (G1) WINDOW
+    62865: 'STD Sidewalls',  # SIDEWALL STD 7 X 40 (G2) WINDOW
+    62867: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G1) WINDOW
+    62868: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G2) WINDOW
     62871: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G1) WINDOW
     62872: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G2) WINDOW
-    62875: 'Other Tents',  # SIDEWALL STD 8 X 40 (G1) WINDOW
-    62876: 'Other Tents',  # SIDEWALL STD 8 X 40 (G2) WINDOW
-    62883: 'Other Tents',  # SIDEWALLEXTENDER 3 X 20 (G2)
-    62887: 'Other Tents',  # SIDEWALLEXTENDER 3 X 30 (G2)
-    62891: 'Other Tents',  # SIDEWALLEXTENDER 3 X 40 (G2)
-    62894: 'Other Tents',  # SIDEWALL STD 7 X 20 (G1) WHITE
-    62895: 'Other Tents',  # SIDEWALL STD 7 X 20 (G2) WHITE
-    62896: 'Other Tents',  # SIDEWALL STD 7 X 20 (G3) WHITE
+    62875: 'STD Sidewalls',  # SIDEWALL STD 8 X 40 (G1) WINDOW
+    62876: 'STD Sidewalls',  # SIDEWALL STD 8 X 40 (G2) WINDOW
+    62883: 'STD Sidewalls',  # SIDEWALLEXTENDER 3 X 20 (G2)
+    62887: 'STD Sidewalls',  # SIDEWALLEXTENDER 3 X 30 (G2)
+    62891: 'STD Sidewalls',  # SIDEWALLEXTENDER 3 X 40 (G2)
+    62894: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G1) WHITE
+    62895: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G2) WHITE
+    62896: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G3) WHITE
     62797: 'Navi Tops',  # MID 40 x 20 (G1) NCP
     62798: 'Navi Tops',  # END 40 x 20 LACE (G1) NCP
-    62900: 'Other Tents',  # SIDEWALL STD 8 X 20 (G1) WHITE
-    62901: 'Other Tents',  # SIDEWALL STD 8 X 20 (G2) WHITE
-    62902: 'Other Tents',  # SIDEWALL STD 8 X 20 (G3) WHITE
+    62900: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G1) WHITE
+    62901: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G2) WHITE
+    62902: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G3) WHITE
     62904: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G1) WHITE
     62905: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G2) WHITE
     62906: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G3) WHITE
-    65035: 'Navi Tops',  # END 40 x 20 GRMT (G1) ANCHOR POLE NC
-    65036: 'Navi Tops',  # END 60 x 20 LACE (G1) ANCHOR POLE NC
-    65037: 'Navi Tops',  # END 60 x 20 GRMT (G1) ANCHOR POLE NC
-    65039: 'Navi Tops',  # END 30 x 15 GRMT (G1) R AND W POLE
+    65035: 'Pole Tops',  # END 40 x 20 GRMT (G1) ANCHOR POLE NC
+    65036: 'Pole Tops',  # END 60 x 20 LACE (G1) ANCHOR POLE NC
+    65037: 'Pole Tops',  # END 60 x 20 GRMT (G1) ANCHOR POLE NC
+    65039: 'Pole Tops',  # END 30 x 15 GRMT (G1) R AND W POLE
     65367: 'HP Tops',  # TOP HP 20 X 20 (G1)
     65446: 'HP Tops',  # TOP HP HEX 35 X 40 SKYLIGHT
     65449: 'Navi Tops',  # TOP NAVI 15 GABLE ENDCAP LACE
@@ -708,10 +708,10 @@ SUBCATEGORY_MAP = {
     66325: 'Navi Tops',  # TOP NAVI 30x15 MID (G2)
     66326: 'Navi Tops',  # TOPS NAVI 30x15 MID
     67657: 'HP Tops',  # TOP HP 20 X 30 (G1) WHITE DBL PEAK
-    65129: 'Other Tents',  # CANOPY 10X10 POPUP WHITE WEIGHTED
-    66363: 'Other Tents',  # CANOPY AP 16X16 WHITE (R)(G1)
-    72252: 'Other Tents',  # SIDEWALL KEDAR -G 8' x 5' PANEL
-    72253: 'Other Tents',  # SIDEWALL KEDAR -R 8' x 5' PANEL
+    65129: 'POPUP Tents',  # CANOPY 10X10 POPUP WHITE WEIGHTED
+    66363: 'APC Tents',  # CANOPY AP 16X16 WHITE (R)(G1)
+    72252: 'Navi Sidewalls',  # SIDEWALL KEDAR -G 8' x 5' PANEL
+    72253: 'Navi Sidewalls',  # SIDEWALL KEDAR -R 8' x 5' PANEL
     72392: 'Navi Tops',  # TOP NAVI LITE 30x15 HIP G2
     72401: 'HP Crates',  # "CRATE, HP 10 x 10 ASSEMBLY"
     72402: 'HP Crates',  # "CRATE, HP 15 x 15 ASSEMBLY"
@@ -725,13 +725,13 @@ SUBCATEGORY_MAP = {
     72410: 'Navi Crates',  # "CRATE, NAVI LITE HIP ASSEMBLY"
     72411: 'Navi Crates',  # "CRATE, NAVI LITE MID ASSEMBLY"
     72412: 'Navi Crates',  # "CRATE, NAVI INSTALLATION"
-    62668: 'Other Tents',  # CANOPY AP 20X20 WHITE (Rope)(G1)
-    62669: 'Other Tents',  # CANOPY AP 20X20 WHITE (Rope)(G2)
-    62681: 'Other Tents',  # CANOPY AP 20X30 WHITE (Rope)(G2)
-    62682: 'Other Tents',  # CANOPY AP 20X30 WHITE (Rope)(G1)
-    62683: 'Other Tents',  # CANOPY AP 20X40 WHITE (Rope)(G1)
-    62684: 'Other Tents',  # CANOPY AP 20X40 WHITE (Rope)(G2)
-    62686: 'Other Tents',  # CANOPY AP 16X16 WHITE (R)(G2)
+    62668: 'APC Tents',  # CANOPY AP 20X20 WHITE (Rope)(G1)
+    62669: 'APC Tents',  # CANOPY AP 20X20 WHITE (Rope)(G2)
+    62681: 'APC Tents',  # CANOPY AP 20X30 WHITE (Rope)(G2)
+    62682: 'APC Tents',  # CANOPY AP 20X30 WHITE (Rope)(G1)
+    62683: 'APC Tents',  # CANOPY AP 20X40 WHITE (Rope)(G1)
+    62684: 'APC Tents',  # CANOPY AP 20X40 WHITE (Rope)(G2)
+    62686: 'APC Tents',  # CANOPY AP 16X16 WHITE (R)(G2)
     62803: 'Other Tents',  # CANOPY POLE 30 x 30 WHITE
     63851: 'Other Tents',  # TOP 6 GABLE END CAP (FOR MARQUEE
     63852: 'Other Tents',  # TOP 6X10 WHITE GABLE MID FOR FR
@@ -755,8 +755,8 @@ SUBCATEGORY_MAP = {
 
     # Tables and Chairs
     63131: 'Tables',  # "TOP, TABLE ROUND, 30 INCH PLYWOOD"
-    63133: 'Chairs',  # LEG BASE 24 - 4 PRONG X
-    65171: 'Chairs',  # LEG BASE 30 - 4 PRONG X FOR 36R
+    63133: 'Table Legs',  # LEG BASE 24 - 4 PRONG X
+    65171: 'Table Legs',  # LEG BASE 30 - 4 PRONG X FOR 36R
     65722: 'Tables',  # "TOP, TABLE ROUND, 36 INCH PLYWOOD"
     61771: 'Chair Pads',  # CHAIRPAD CHIAVARI 2 BLACK (VEL
     61772: 'Chair Pads',  # CHAIRPAD CHIAVARI WHITE VINYL (
@@ -1239,7 +1239,9 @@ def categorize_item(rental_class_id):
 
 def subcategorize_item(category, rental_class_id):
     rid = int(rental_class_id or 0)
-    if category in ['Tent Tops', 'Tables and Chairs', 'Round Linen', 'Rectangle Linen', 'Concession']:
+    if category in ['Tent Tops', 'Tables and Chairs', 'Round Linen', 'Rectangle Linen', 
+                    'Concession Equipment', 'AV Equipment', 'Runners and Drapes', 
+                    'Other', 'Resale']:
         return SUBCATEGORY_MAP.get(rid, 'Unspecified Subcategory')
     return 'Unspecified Subcategory'
 
@@ -1290,7 +1292,7 @@ def show_tab2():
             temp_sub_map[subcat].append(itm)
 
         sub_map[category] = {
-            "subcategories": {subcat: {"total": len(items)} for subcat, items in temp_sub_map.items()}
+            "subcategories": {subcat: {"total": len(temp_sub_map[subcat])} for subcat in temp_sub_map}
         }
 
         parent_data.append({
