@@ -89,13 +89,13 @@
 </div>
 
 <script>
-function sortTable(tableEl, colName) {
+function sortTable(tableEl, colName, forceAsc = false) {
   let tbody = tableEl.querySelector("tbody");
   if (!tbody) return;
 
-  let asc = tableEl.getAttribute("data-sort-col") === colName 
+  let asc = forceAsc || (tableEl.getAttribute("data-sort-col") === colName 
             ? tableEl.getAttribute("data-sort-dir") !== "asc" 
-            : true;
+            : true);
   tableEl.setAttribute("data-sort-col", colName);
   tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
 
@@ -267,6 +267,12 @@ function loadSubcatData(category, subcat, page, catKey) {
           }
         });
       });
+
+      // Default sort by common_name alphabetically
+      const commonTable = document.getElementById(`commonTable-${catKey}`);
+      if (commonTable) {
+        sortTable(commonTable, 'common_name', true);  // Force ascending sort
+      }
     })
     .catch(error => {
       console.error('Error loading subcat data:', error);
