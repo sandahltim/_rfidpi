@@ -270,7 +270,7 @@ function loadSubcatData(category, subcat, page, catKey) {
 
       const commonTable = document.getElementById(`commonTable-${catKey}`);
       if (commonTable) {
-        sortTable(commonTable, 'common_name', true);  // Default sort
+        sortTable(commonTable, 'common_name', true);
       }
     })
     .catch(error => {
@@ -682,7 +682,6 @@ function refreshTable() {
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/tab2/?${urlParams.toString()}`;
 
-  // Refresh parent totals
   fetch(url)
     .then(response => {
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
@@ -704,7 +703,6 @@ function refreshTable() {
         }
       });
 
-      // Refresh open subcats and items
       expandedIds.forEach(id => {
         const element = document.getElementById(id);
         if (!element) return;
@@ -783,7 +781,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Handle Filtered Refresh from base.html
   document.addEventListener('refresh', (e) => {
     const collapse = e.target;
     if (collapse.classList.contains('child')) {
@@ -826,7 +823,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  setInterval(refreshTable, 60000); // Auto-refresh every minute
+  setInterval(refreshTable, 60000);
 });
 </script>
 
