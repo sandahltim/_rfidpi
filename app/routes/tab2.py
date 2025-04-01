@@ -85,6 +85,7 @@ CATEGORY_MAP = {
     65037: 'Tent Tops',  # END 60 x 20 GRMT (G1) ANCHOR POLE NC
     65039: 'Tent Tops',  # END 30 x 15 GRMT (G1) R AND W POLE
     65367: 'Tent Tops',  # TOP HP 20 X 20 (G1)
+    65119: 'Tent Tops', #g1
     65446: 'Tent Tops',  # TOP HP HEX 35 X 40 SKYLIGHT
     65449: 'Tent Tops',  # TOP NAVI 15 GABLE ENDCAP LACE
     65450: 'Tent Tops',  # TOP NAVI 15 GABLE ENDCAP GRMT
@@ -151,6 +152,8 @@ CATEGORY_MAP = {
     61824: 'Round Linen',  # 90 ROUND  SNOW WHITE LINEN (SEAML
     61825: 'Round Linen',  # 90 ROUND  WHITE LINEN
     61826: 'Round Linen',  # 90 ROUND BLACK LINEN
+    61882: 'Round Linen', #90r bermuda
+    61883: 'Round Linen', #90r apple
     61827: 'Round Linen',  # 90 ROUND GREY LINEN
     61828: 'Round Linen',  # 90 ROUND IVORY LINEN
     61830: 'Round Linen',  # 90 ROUND KHAKI LINEN
@@ -622,22 +625,24 @@ CATEGORY_MAP = {
 SUBCATEGORY_MAP = {
     # Tent Tops
     4052: 'HP Sidewalls',  # SIDEWALL HP 10 x 8 WHITE
-    4054: 'HP Tops',  # Canopy 20x20 HP TOP SKYLIGHT
-    4203: 'Navi Tops',  # TOP NAVI LITE 30x15 HIP G1
-    4204: 'Navi Tops',  # TOP NAVI LITE 30x15 MID G1
+    4054: 'HP 20x Tops',  # Canopy 20x20 HP TOP SKYLIGHT
+    4203: 'Navi Lite Tops',  # TOP NAVI LITE 30x15 HIP G1
+    4204: 'Navi Lite Tops',  # TOP NAVI LITE 30x15 MID G1
     4213: 'Navi Sidewalls',  # SIDEWALL NAVI LITE 8x 15 WINDOW KEDAR
     4214: 'Navi Sidewalls',  # SIDEWALL NAVI LITE 8 x 15 WHITE KEDAR
-    4292: 'HP Tops',  # Canopy 20x30 HP TOP WHITE Single Peak
+    4292: 'HP 20x Tops',  # Canopy 20x30 HP TOP WHITE Single Peak
     4807: 'HP Sidewalls',  # SIDEWALL HP 15 x 9 WINDOW (G1)
     4808: 'HP Sidewalls',  # SIDEWALL HP 15 x 9 WHITE (G1)
     60526: 'Navi Sidewalls',  # SIDEWALL KEDARNAVI 15x8 (G1) WINDOW
     60528: 'Navi Sidewalls',  # SIDEWALL KEDAR NAVI 15x8 (G1) WHITE
-    62706: 'HP Tops',  # TOP HP 10 X 10 (G1)
-    62707: 'HP Tops',  # TOP HP 10 X 20 (G2)
-    62708: 'HP Tops',  # TOP HP 15X15 (G1)
-    62709: 'HP Tops',  # TOP HP 20 X 20 (G2)
-    62711: 'HP Tops',  # TOP HP 30 X 30 (G1)
-    62714: 'HP Tops',  # TOP HP HEX 35 X 40 WHITE
+    65119: 'HP 10x20 Tops', #G1
+
+    62706: 'HP 10x10 Tops',  # TOP HP 10 X 10 (G1)
+    62707: 'HP 10x20 Tops',  # TOP HP 10 X 20 (G2)
+    62708: 'HP 15x15 Tops',  # TOP HP 15X15 (G1)
+    62709: 'HP 20x Tops',  # TOP HP 20 X 20 (G2)
+    62711: 'HP 30x Tops',  # TOP HP 30 X 30 (G1)
+    62714: 'HP 30x Tops',  # TOP HP HEX 35 X 40 WHITE
     62715: 'HP Sidewalls',  # SIDEWALL HP 15 x 8 (G1) WINDOW
     62719: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G1) w/DOOR/WIND
     62723: 'HP Sidewalls',  # SIDEWALL HP 10 x 8 (G1) WINDOW
@@ -663,8 +668,8 @@ SUBCATEGORY_MAP = {
     62806: 'Pole Tops',  # MID 30 x 15 (G1) R AND W POLE CMATE
     62807: 'Pole Tops',  # END 30 x 15 LACE (G1) R AND W POLE
     62808: 'Navi Tops',  # TOP NAVI 30x15 HIP
-    62809: 'Pole Tops',  # MID 60 x 20 ANCHOR POLE NC (G1)
-    62810: 'Pole Tops',  # MID 60 x 30 (G1) ANCHOR POLE NC
+    62809: 'Pole 60x Tops',  # MID 60 x 20 ANCHOR POLE NC (G1)
+    62810: 'Pole 60x Tops',  # MID 60 x 30 (G1) ANCHOR POLE NC
     62853: 'STD Sidewalls',  # SIDEWALLMESH 7 H X 20 (G1) WH
     62857: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G1) WINDOW
     62858: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G2) WINDOW
@@ -685,34 +690,34 @@ SUBCATEGORY_MAP = {
     62894: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G1) WHITE
     62895: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G2) WHITE
     62896: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G3) WHITE
-    62797: 'Navi Tops',  # MID 40 x 20 (G1) NCP
-    62798: 'Navi Tops',  # END 40 x 20 LACE (G1) NCP
+    62797: 'Navi 40x Tops',  # MID 40 x 20 (G1) NCP
+    62798: 'Navi 40x Tops',  # END 40 x 20 LACE (G1) NCP
     62900: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G1) WHITE
     62901: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G2) WHITE
     62902: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G3) WHITE
     62904: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G1) WHITE
     62905: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G2) WHITE
     62906: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G3) WHITE
-    65035: 'Pole Tops',  # END 40 x 20 GRMT (G1) ANCHOR POLE NC
-    65036: 'Pole Tops',  # END 60 x 20 LACE (G1) ANCHOR POLE NC
-    65037: 'Pole Tops',  # END 60 x 20 GRMT (G1) ANCHOR POLE NC
+    65035: 'Pole 40x Tops',  # END 40 x 20 GRMT (G1) ANCHOR POLE NC
+    65036: 'Pole 60x Tops',  # END 60 x 20 LACE (G1) ANCHOR POLE NC
+    65037: 'Pole 60x Tops',  # END 60 x 20 GRMT (G1) ANCHOR POLE NC
     65039: 'Pole Tops',  # END 30 x 15 GRMT (G1) R AND W POLE
-    65367: 'HP Tops',  # TOP HP 20 X 20 (G1)
-    65446: 'HP Tops',  # TOP HP HEX 35 X 40 SKYLIGHT
-    65449: 'Navi Tops',  # TOP NAVI 15 GABLE ENDCAP LACE
-    65450: 'Navi Tops',  # TOP NAVI 15 GABLE ENDCAP GRMT
-    65467: 'Navi Tops',  # TOP NAVI 20 GABLE ENDCAP GRMT
-    65468: 'Navi Tops',  # TOP NAVI 20 GABLE ENDCAP LACE
-    65469: 'Navi Tops',  # TOP NAVI 40x15 MID (G1)
-    66324: 'Navi Tops',  # TOP NAVI LITE 30x15 MID G2
+    65367: 'HP 20x Tops',  # TOP HP 20 X 20 (G1)
+    65446: 'HP 30x Tops',  # TOP HP HEX 35 X 40 SKYLIGHT
+    65449: 'Navi Gable Tops',  # TOP NAVI 15 GABLE ENDCAP LACE
+    65450: 'Navi Gable Tops',  # TOP NAVI 15 GABLE ENDCAP GRMT
+    65467: 'Navi Gable Tops',  # TOP NAVI 20 GABLE ENDCAP GRMT
+    65468: 'Navi Gable Tops',  # TOP NAVI 20 GABLE ENDCAP LACE
+    65469: 'Navi 40x Tops',  # TOP NAVI 40x15 MID (G1)
+    66324: 'Navi Lite Tops',  # TOP NAVI LITE 30x15 MID G2
     66325: 'Navi Tops',  # TOP NAVI 30x15 MID (G2)
     66326: 'Navi Tops',  # TOPS NAVI 30x15 MID
-    67657: 'HP Tops',  # TOP HP 20 X 30 (G1) WHITE DBL PEAK
+    67657: 'HP 20x Tops',  # TOP HP 20 X 30 (G1) WHITE DBL PEAK
     65129: 'POPUP Tents',  # CANOPY 10X10 POPUP WHITE WEIGHTED
     66363: 'APC Tents',  # CANOPY AP 16X16 WHITE (R)(G1)
     72252: 'Navi Sidewalls',  # SIDEWALL KEDAR -G 8' x 5' PANEL
     72253: 'Navi Sidewalls',  # SIDEWALL KEDAR -R 8' x 5' PANEL
-    72392: 'Navi Tops',  # TOP NAVI LITE 30x15 HIP G2
+    72392: 'Navi Lite Tops',  # TOP NAVI LITE 30x15 HIP G2
     72401: 'HP Crates',  # "CRATE, HP 10 x 10 ASSEMBLY"
     72402: 'HP Crates',  # "CRATE, HP 15 x 15 ASSEMBLY"
     72403: 'HP Crates',  # "CRATE, HP 10 x 20 ASSEMBLY"
@@ -764,6 +769,9 @@ SUBCATEGORY_MAP = {
     # Round Linen
     61824: '90 Round',  # 90 ROUND SNOW WHITE LINEN (SEAML
     61825: '90 Round',  # 90 ROUND WHITE LINEN
+    61883: '90 Round', # APPLE GREEN NOVA SOLID
+    61882: '90 ROUND', # BERMUDA BLUE NOVA SOLID
+
     61826: '90 Round',  # 90 ROUND BLACK LINEN
     61827: '90 Round',  # 90 ROUND GREY LINEN
     61828: '90 Round',  # 90 ROUND IVORY LINEN
@@ -1286,13 +1294,18 @@ def show_tab2():
         client_name = contract_map.get(item_list[0]["last_contract_num"], {}).get("client_name", "N/A") if item_list and item_list[0]["last_contract_num"] else "N/A"
         scan_date = contract_map.get(item_list[0]["last_contract_num"], {}).get("scan_date", "N/A") if item_list and item_list[0]["last_contract_num"] else "N/A"
 
-        temp_sub_map = defaultdict(list)
+        temp_sub_map = defaultdict(lambda: defaultdict(list))
         for itm in item_list:
             subcat = subcategorize_item(category, itm.get("rental_class_num"))
-            temp_sub_map[subcat].append(itm)
+            common_name = itm.get("common_name", "Unknown")
+            temp_sub_map[subcat][common_name].append(itm)
 
         sub_map[category] = {
-            "subcategories": {subcat: {"total": len(temp_sub_map[subcat])} for subcat in temp_sub_map}
+            "subcategories": {
+                subcat: {
+                    "common_names": {cn: {"total": len(items)} for cn, items in subcat_items.items()}
+                } for subcat, subcat_items in temp_sub_map.items()
+            }
         }
 
         parent_data.append({
@@ -1353,14 +1366,69 @@ def subcat_data():
     category_items = [item for item in filtered_items if categorize_item(item.get("rental_class_num")) == category]
     subcat_items = [item for item in category_items if subcategorize_item(category, item.get("rental_class_num")) == subcat]
 
-    total_items = len(subcat_items)
+    common_name_map = defaultdict(list)
+    for item in subcat_items:
+        common_name_map[item.get("common_name", "Unknown")].append(item)
+
+    total_common_names = len(common_name_map)
+    total_pages = (total_common_names + per_page - 1) // per_page
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_common_names = list(common_name_map.keys())[start:end]
+
+    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Total Common Names: {total_common_names}, Page: {page}")
+
+    return jsonify({
+        "common_names": [{
+            "common_name": cn,
+            "total": len(common_name_map[cn])
+        } for cn in paginated_common_names],
+        "total_common_names": total_common_names,
+        "total_pages": total_pages,
+        "current_page": page
+    })
+
+@tab2_bp.route("/item_data", methods=["GET"])
+def item_data():
+    print("Hit /tab2/item_data endpoint")
+    category = request.args.get('category')
+    subcat = request.args.get('subcat')
+    common_name = request.args.get('common_name')
+    page = int(request.args.get('page', 1))
+    per_page = 20
+
+    with DatabaseConnection() as conn:
+        rows = conn.execute("SELECT * FROM id_item_master").fetchall()
+    items = [dict(row) for row in rows]
+
+    filter_tag_id = request.args.get("tag_id", "").lower().strip()
+    filter_bin_location = request.args.get("bin_location", "").lower().strip()
+    filter_last_contract = request.args.get("last_contract_num", "").lower().strip()
+    filter_status = request.args.get("status", "").lower().strip()
+
+    filtered_items = items
+    if filter_tag_id:
+        filtered_items = [item for item in filtered_items if filter_tag_id in (item.get("tag_id") or "").lower()]
+    if filter_bin_location:
+        filtered_items = [item for item in filtered_items if filter_bin_location in (item.get("bin_location") or "").lower()]
+    if filter_last_contract:
+        filtered_items = [item for item in filtered_items if filter_last_contract in (item.get("last_contract_num") or "").lower()]
+    if filter_status:
+        filtered_items = [item for item in filtered_items if filter_status in (item.get("status") or "").lower()]
+
+    category_items = [item for item in filtered_items if categorize_item(item.get("rental_class_num")) == category]
+    subcat_items = [item for item in category_items if subcategorize_item(category, item.get("rental_class_num")) == subcat]
+    common_items = [item for item in subcat_items if item.get("common_name", "Unknown") == common_name]
+
+    total_items = len(common_items)
     total_pages = (total_items + per_page - 1) // per_page
     page = max(1, min(page, total_pages))
     start = (page - 1) * per_page
     end = start + per_page
-    paginated_items = subcat_items[start:end]
+    paginated_items = common_items[start:end]
 
-    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Total Items: {total_items}, Page: {page}")
+    print(f"AJAX: Category: {category}, Subcategory: {subcat}, Common Name: {common_name}, Total Items: {total_items}, Page: {page}")
 
     return jsonify({
         "items": [{

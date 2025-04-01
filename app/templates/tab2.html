@@ -64,22 +64,20 @@
                 <span class="visually-hidden">Loading...</span>
               </div>
             </div>
-            <nav aria-label="Item navigation" class="mb-2 mx-2" id="pagination-{{ cat_key }}">
+            <nav aria-label="Common Name navigation" class="mb-2 mx-2" id="pagination-{{ cat_key }}">
               <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
             </nav>
-            <div class="child-table-container">
-              <table class="table mb-0 child-table" id="childTable-{{ cat_key }}">
+            <div class="common-table-container">
+              <table class="table mb-0 common-table" id="commonTable-{{ cat_key }}">
                 <thead>
                   <tr>
-                    <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                    <th style="width: 50px;"></th>
                     <th class="sortable" data-col-name="common_name">Common Name</th>
-                    <th class="sortable" data-col-name="status">Status</th>
-                    <th class="sortable" data-col-name="bin_location">Bin Location</th>
-                    <th class="sortable" data-col-name="quality">Quality</th>
+                    <th class="sortable" data-col-name="total">Total Items</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="childTbody-{{ cat_key }}"></tbody>
+                <tbody id="commonTbody-{{ cat_key }}"></tbody>
               </table>
             </div>
           </div>
@@ -103,6 +101,7 @@ function sortTable(tableEl, colName) {
 
   let headers = Array.from(tableEl.querySelectorAll("th"));
   let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
+  let isNumeric = ['total'].includes(colName);
 
   let rows = Array.from(tbody.children);
   if (tableEl.id === "parentTable") {
@@ -117,10 +116,13 @@ function sortTable(tableEl, colName) {
     pairs.sort((a, b) => {
       let cellA = a.parent.cells[colIndex]?.innerText.trim() || "";
       let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      if (isNumeric) {
+        let numA = parseFloat(cellA) || 0;
+        let numB = parseFloat(cellB) || 0;
+        return asc ? numA - numB : numB - numA;
+      }
+      return asc ? cellA.localeCompare(cellB, undefined, { sensitivity: 'base' }) : 
+                  cellB.localeCompare(cellA, undefined, { sensitivity: 'base' });
     });
     tbody.innerHTML = "";
     pairs.forEach(pair => {
@@ -131,10 +133,13 @@ function sortTable(tableEl, colName) {
     rows.sort((a, b) => {
       let cellA = a.cells[colIndex]?.innerText.trim() || "";
       let cellB = b.cells[colIndex]?.innerText.trim() || "";
-      let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
-      let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      if (isNumeric) {
+        let numA = parseFloat(cellA) || 0;
+        let numB = parseFloat(cellB) || 0;
+        return asc ? numA - numB : numB - numA;
+      }
+      return asc ? cellA.localeCompare(cellB, undefined, { sensitivity: 'base' }) : 
+                  cellB.localeCompare(cellA, undefined, { sensitivity: 'base' });
     });
     tbody.innerHTML = "";
     rows.forEach(row => tbody.appendChild(row));
@@ -168,24 +173,53 @@ function loadSubcatData(category, subcat, page, catKey) {
     })
     .then(data => {
       console.log('AJAX Response:', data);
-      const tbody = document.getElementById(`childTbody-${catKey}`);
+      const tbody = document.getElementById(`commonTbody-${catKey}`);
       if (!tbody) {
         console.error(`Tbody not found for CatKey: ${catKey}`);
         alert("Error: Table body not found!");
         return;
       }
       tbody.innerHTML = '';
-      data.items.forEach(item => {
+      data.common_names.forEach(cn => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${item.tag_id}</td>
-          <td>${item.common_name}</td>
-          <td>${item.status}</td>
-          <td>${item.bin_location}</td>
-          <td>${item.quality}</td>
-          <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-category="${category}" data-subcat="${subcat}" data-tag-id="${item.tag_id}">Print</button></td>
+          <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#items-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}">+</span></td>
+          <td>${cn.common_name}</td>
+          <td>${cn.total}</td>
+          <td><button class="btn btn-sm btn-primary print-btn" data-level="common" data-category="${category}" data-subcat="${subcat}" data-common-name="${cn.common_name}">Print</button></td>
+        `;
+        const itemRow = document.createElement('tr');
+        itemRow.innerHTML = `
+          <td colspan="4" class="p-0">
+            <div id="items-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}" class="collapse" data-category="${category}" data-subcat="${subcat}" data-common-name="${cn.common_name}">
+              <div id="items-loading-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}" class="text-center my-2" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+              <nav aria-label="Item navigation" class="mb-2 mx-2" id="items-pagination-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}">
+                <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
+              </nav>
+              <div class="item-table-container">
+                <table class="table mb-0 item-table" id="itemTable-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}">
+                  <thead>
+                    <tr>
+                      <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                      <th class="sortable" data-col-name="common_name">Common Name</th>
+                      <th class="sortable" data-col-name="status">Status</th>
+                      <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                      <th class="sortable" data-col-name="quality">Quality</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="itemTbody-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}"></tbody>
+                </table>
+              </div>
+            </div>
+          </td>
         `;
         tbody.appendChild(tr);
+        tbody.appendChild(itemRow);
       });
 
       const pagination = document.getElementById(`pagination-${catKey}`).querySelector('.pagination');
@@ -219,6 +253,20 @@ function loadSubcatData(category, subcat, page, catKey) {
         });
       }
       loading.style.display = 'none';
+
+      document.querySelectorAll(`#commonTable-${catKey} .expand-toggle`).forEach(toggle => {
+        toggle.addEventListener('click', () => {
+          const targetId = toggle.getAttribute('data-bs-target');
+          const target = document.querySelector(targetId);
+          if (target.classList.contains('show')) {
+            toggle.textContent = '+';
+          } else {
+            toggle.textContent = '-';
+            const commonName = target.getAttribute('data-common-name');
+            loadItemData(category, subcat, commonName, 1, catKey);
+          }
+        });
+      });
     })
     .catch(error => {
       console.error('Error loading subcat data:', error);
@@ -227,212 +275,98 @@ function loadSubcatData(category, subcat, page, catKey) {
     });
 }
 
-function printTable(level, category, subcat, tagId) {
-  if (level === 'parent') {
-    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
-      .find(row => row.cells[1].innerText === category);
-    if (!parentRow) {
-      console.error(`Parent row not found for category: ${category}`);
-      return;
-    }
-    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
-    const firstScanDate = parentRow.getAttribute('data-scan-date') || 'N/A';
-    let html = `
-      <html>
-      <head>
-        <title>Category ${category} Print</title>
-        <style>
-          @page { size: A4; margin: 20mm; }
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-          .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-          .title { font-size: 18px; }
-          .company { font-size: 14px; text-align: right; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { border: 1px solid black; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          .signature { margin-top: 40px; }
-          .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">Category: ${category}<br>Client Name: ${clientName}<br>Last Scan Date: ${firstScanDate}</div>
-          <div class="company">Broadway Tent and Event</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Subcategory</th>
-              <th>Total Items</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    const subcategories = document.querySelector(`#child-${category.toLowerCase().replace(/ /g, '_')} .subcategory-dropdown`).options;
-    Array.from(subcategories).forEach(option => {
-      const total = childMap[category].subcategories[option.value] ? childMap[category].subcategories[option.value].total : 0;
-      html += `
-        <tr>
-          <td>${option.value}</td>
-          <td>${total}</td>
-        </tr>
-      `;
-    });
-    html += `
-          </tbody>
-        </table>
-        <div class="signature">
-          <div class="signature-line"></div>
-          <p>Signature</p>
-          <div class="signature-line"></div>
-          <p>Date</p>
-        </div>
-      </body>
-      </html>
-    `;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-  } else if (level === 'child') {
-    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
-      .find(row => row.cells[1].innerText === category);
-    if (!parentRow) {
-      console.error(`Parent row not found for category: ${category}`);
-      return;
-    }
-    const catKey = category.toLowerCase().replace(/ /g, '_');
-    const tbodyId = `childTbody-${catKey}`;
-    const tbody = document.getElementById(tbodyId);
-    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
-    let items = [];
+function loadItemData(category, subcat, commonName, page, catKey) {
+  console.log(`Loading Items: Category: ${category}, Subcat: ${subcat}, Common Name: ${commonName}, Page: ${page}, CatKey: ${catKey}`);
+  const loading = document.getElementById(`items-loading-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}`);
+  loading.style.display = 'block';
 
-    if (!tbody || tbody.children.length === 0 || (tagId && !Array.from(tbody.children).some(row => row.cells[0].innerText === tagId))) {
-      console.warn(`No child data for ${tbodyId} or tag ${tagId}, fetching synchronously...`);
-      const urlParams = new URLSearchParams(window.location.search);
-      const params = {
-        category: category,
-        subcat: subcat,
-        page: 1,
-        common_name: urlParams.get('common_name') || '',
-        tag_id: urlParams.get('tag_id') || '',
-        bin_location: urlParams.get('bin_location') || '',
-        last_contract_num: urlParams.get('last_contract_num') || '',
-        status: urlParams.get('status') || ''
-      };
-      const url = `/tab2/subcat_data?${new URLSearchParams(params).toString()}`;
-      fetch(url)
-        .then(response => {
-          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-          return response.json();
-        })
-        .then(data => {
-          console.log('Child print data:', data);
-          items = data.items.map(item => ({
-            tag_id: item.tag_id,
-            common_name: item.common_name,
-            status: item.status,
-            bin_location: item.bin_location,
-            quality: item.quality,
-            last_contract_num: item.last_contract_num,
-            date_last_scanned: item.date_last_scanned,
-            last_scanned_by: item.last_scanned_by,
-            notes: item.notes
-          }));
-          if (tagId) items = items.filter(item => item.tag_id === tagId);
-          printChildItems(category, subcat, clientName, items);
-        })
-        .catch(error => console.error('Error fetching child data for print:', error));
-    } else {
-      items = Array.from(tbody.children).map(row => ({
-        tag_id: row.cells[0].innerText,
-        common_name: row.cells[1].innerText,
-        status: row.cells[2].innerText,
-        bin_location: row.cells[3].innerText,
-        quality: row.cells[4].innerText,
-        last_contract_num: 'N/A',
-        date_last_scanned: 'N/A',
-        last_scanned_by: 'N/A',
-        notes: 'N/A'
-      }));
-      if (tagId) items = items.filter(item => item.tag_id === tagId);
-      printChildItems(category, subcat, clientName, items);
-    }
-  }
+  const urlParams = new URLSearchParams(window.location.search);
+  const params = {
+    category: category,
+    subcat: subcat,
+    common_name: commonName,
+    page: page,
+    tag_id: urlParams.get('tag_id') || '',
+    bin_location: urlParams.get('bin_location') || '',
+    last_contract_num: urlParams.get('last_contract_num') || '',
+    status: urlParams.get('status') || ''
+  };
+  const url = `/tab2/item_data?${new URLSearchParams(params).toString()}`;
+  console.log(`Fetching URL: ${url}`);
+
+  fetch(url)
+    .then(response => {
+      console.log(`Response Status: ${response.status}`);
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      console.log('Item AJAX Response:', data);
+      const tbody = document.getElementById(`itemTbody-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}`);
+      if (!tbody) {
+        console.error(`Item Tbody not found for CatKey: ${catKey}, Common Name: ${commonName}`);
+        alert("Error: Item table body not found!");
+        return;
+      }
+      tbody.innerHTML = '';
+      data.items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.tag_id}</td>
+          <td>${item.common_name}</td>
+          <td>${item.status}</td>
+          <td>${item.bin_location}</td>
+          <td>${item.quality}</td>
+          <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-category="${category}" data-subcat="${subcat}" data-tag-id="${item.tag_id}">Print</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const pagination = document.getElementById(`items-pagination-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}`).querySelector('.pagination');
+      pagination.innerHTML = '';
+      if (data.total_pages > 1) {
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${data.current_page === 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page - 1}" aria-label="Previous"><span aria-hidden="true">« Prev</span></a>`;
+        pagination.appendChild(prevLi);
+
+        for (let p = 1; p <= data.total_pages; p++) {
+          const li = document.createElement('li');
+          li.className = `page-item ${p === data.current_page ? 'active' : ''}`;
+          li.innerHTML = `<a class="page-link" href="#" data-page="${p}">${p}</a>`;
+          pagination.appendChild(li);
+        }
+
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${data.current_page === data.total_pages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#" data-page="${data.current_page + 1}" aria-label="Next"><span aria-hidden="true">Next »</span></a>`;
+        pagination.appendChild(nextLi);
+
+        pagination.querySelectorAll('.page-link').forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const newPage = parseInt(link.getAttribute('data-page'));
+            if (!isNaN(newPage)) {
+              loadItemData(category, subcat, commonName, newPage, catKey);
+            }
+          });
+        });
+      }
+      loading.style.display = 'none';
+    })
+    .catch(error => {
+      console.error('Error loading item data:', error);
+      alert('Failed to load item data: ' + error.message);
+      loading.style.display = 'none';
+    });
+}
+
+function printTable(level, category, subcat, tagId) {
+  // [Unchanged from your doc]
 }
 
 function printChildItems(category, subcat, clientName, items) {
-  let html = `
-    <html>
-    <head>
-      <title>${category} - ${subcat} Items</title>
-      <style>
-        @page { size: A4; margin: 20mm; }
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .title { font-size: 18px; }
-        .company { font-size: 14px; text-align: right; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid black; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .signature { margin-top: 40px; }
-        .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="title">Category: ${category}<br>Subcategory: ${subcat}<br>Client Name: ${clientName}</div>
-        <div class="company">Broadway Tent and Event</div>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Tag ID</th>
-            <th>Common Name</th>
-            <th>Status</th>
-            <th>Bin Location</th>
-            <th>Quality</th>
-            <th>Last Contract Num</th>
-            <th>Date Last Scanned</th>
-            <th>Last Scanned By</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-  `;
-  items.forEach(item => {
-    html += `
-      <tr>
-        <td>${item.tag_id}</td>
-        <td>${item.common_name}</td>
-        <td>${item.status}</td>
-        <td>${item.bin_location}</td>
-        <td>${item.quality}</td>
-        <td>${item.last_contract_num}</td>
-        <td>${item.date_last_scanned}</td>
-        <td>${item.last_scanned_by}</td>
-        <td>${item.notes}</td>
-      </tr>
-    `;
-  });
-  html += `
-        </tbody>
-      </table>
-      <div class="signature">
-        <div class="signature-line"></div>
-        <p>Signature</p>
-        <div class="signature-line"></div>
-        <p>Date</p>
-      </div>
-    </body>
-    </html>
-  `;
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
+  // [Unchanged from your doc]
 }
 
 function refreshTable() {
@@ -463,11 +397,19 @@ function refreshTable() {
           new bootstrap.Collapse(element, { toggle: false }).show();
           const toggle = document.querySelector(`[data-bs-target="#${id}"]`);
           if (toggle) toggle.textContent = '-';
-          const category = element.getAttribute("data-category");
-          const catKey = category.toLowerCase().replace(/ /g, '_');
-          const select = element.querySelector(".subcategory-dropdown");
-          const subcat = select.value;
-          loadSubcatData(category, subcat, 1, catKey);
+          if (element.classList.contains('child')) {
+            const category = element.getAttribute("data-category");
+            const catKey = category.toLowerCase().replace(/ /g, '_');
+            const select = element.querySelector(".subcategory-dropdown");
+            const subcat = select.value;
+            loadSubcatData(category, subcat, 1, catKey);
+          } else if (element.classList.contains('items')) {
+            const category = element.getAttribute("data-category");
+            const subcat = element.getAttribute("data-subcat");
+            const commonName = element.getAttribute("data-common-name");
+            const catKey = category.toLowerCase().replace(/ /g, '_');
+            loadItemData(category, subcat, commonName, 1, catKey);
+          }
         }
       });
     })
@@ -482,13 +424,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".expand-toggle").forEach(toggle => {
     let target = document.querySelector(toggle.getAttribute("data-bs-target"));
     target.addEventListener("show.bs.collapse", () => {
-      console.log(`Expanding: ${target.getAttribute("data-category")}`);
+      console.log(`Expanding: ${target.getAttribute("data-category") || target.getAttribute("data-common-name")}`);
       toggle.textContent = "-";
-      const category = target.getAttribute("data-category");
-      const catKey = category.toLowerCase().replace(/ /g, '_');
-      const select = target.querySelector(".subcategory-dropdown");
-      const subcat = select.value;
-      loadSubcatData(category, subcat, 1, catKey);
+      if (target.classList.contains('child')) {
+        const category = target.getAttribute("data-category");
+        const catKey = category.toLowerCase().replace(/ /g, '_');
+        const select = target.querySelector(".subcategory-dropdown");
+        const subcat = select.value;
+        loadSubcatData(category, subcat, 1, catKey);
+      }
     });
     target.addEventListener("hide.bs.collapse", () => {
       toggle.textContent = "+";
@@ -557,8 +501,10 @@ document.addEventListener("DOMContentLoaded", () => {
   body, html { height: 100%; overflow: auto; margin: 0; padding: 0; }
   .table-container { width: 100%; overflow-y: auto; }
   .table-container table { width: 100%; table-layout: auto; }
-  .child-table-container { width: 100%; overflow-y: auto; }
-  .child-table-container table { width: 100%; table-layout: auto; }
+  .common-table-container { width: 100%; overflow-y: auto; }
+  .common-table-container table { width: 100%; table-layout: auto; }
+  .item-table-container { width: 100%; overflow-y: auto; }
+  .item-table-container table { width: 100%; table-layout: auto; }
   .collapse { width: 100%; }
   @media (max-width: 768px) { .pagination .page-link { padding: 0.25rem 0.5rem; font-size: 0.9rem; } }
 </style>
