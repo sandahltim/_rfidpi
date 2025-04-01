@@ -268,10 +268,9 @@ function loadSubcatData(category, subcat, page, catKey) {
         });
       });
 
-      // Default sort by common_name alphabetically
       const commonTable = document.getElementById(`commonTable-${catKey}`);
       if (commonTable) {
-        sortTable(commonTable, 'common_name', true);  // Force ascending sort
+        sortTable(commonTable, 'common_name', true);  // Default sort
       }
     })
     .catch(error => {
@@ -678,50 +677,52 @@ function printChildItems(category, subcat, clientName, items) {
 }
 
 function refreshTable() {
-  console.log("Refreshing table at " + new Date().toLocaleTimeString());
+  console.log("Auto-refreshing table at " + new Date().toLocaleTimeString());
   const expandedIds = Array.from(document.querySelectorAll('.collapse.show')).map(el => el.id);
-
   const urlParams = new URLSearchParams(window.location.search);
   const url = `/tab2/?${urlParams.toString()}`;
-  console.log(`Fetching refresh URL: ${url}`);
+
+  // Refresh parent totals
   fetch(url)
     .then(response => {
-      console.log(`Refresh response status: ${response.status}`);
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       return response.text();
     })
     .then(html => {
-      console.log("Refresh data received");
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
-      const newTableBody = doc.querySelector('#parentTableBody');
+      const newRows = doc.querySelectorAll('#parentTableBody tr.table-active');
+      newRows.forEach(newRow => {
+        const category = newRow.cells[1].innerText;
+        const existingRow = Array.from(document.querySelectorAll('#parentTableBody tr.table-active'))
+          .find(row => row.cells[1].innerText === category);
+        if (existingRow) {
+          existingRow.cells[2].innerText = newRow.cells[2].innerText; // Total
+          existingRow.cells[3].innerText = newRow.cells[3].innerText; // Available
+          existingRow.cells[4].innerText = newRow.cells[4].innerText; // On Rent
+          existingRow.cells[5].innerText = newRow.cells[5].innerText; // Service
+        }
+      });
 
-      if (newTableBody) document.getElementById('parentTableBody').innerHTML = newTableBody.innerHTML;
-
+      // Refresh open subcats and items
       expandedIds.forEach(id => {
         const element = document.getElementById(id);
-        if (element) {
-          console.log(`Restoring expanded state for: ${id}`);
-          new bootstrap.Collapse(element, { toggle: false }).show();
-          const toggle = document.querySelector(`[data-bs-target="#${id}"]`);
-          if (toggle) toggle.textContent = '-';
-          if (element.classList.contains('child')) {
-            const category = element.getAttribute("data-category");
-            const catKey = category.toLowerCase().replace(/ /g, '_');
-            const select = element.querySelector(".subcategory-dropdown");
-            const subcat = select.value;
-            loadSubcatData(category, subcat, 1, catKey);
-          } else if (element.classList.contains('items')) {
-            const category = element.getAttribute("data-category");
-            const subcat = element.getAttribute("data-subcat");
-            const commonName = element.getAttribute("data-common-name");
-            const catKey = category.toLowerCase().replace(/ /g, '_');
-            loadItemData(category, subcat, commonName, 1, catKey);
-          }
+        if (!element) return;
+        const catKey = id.split('-')[1];
+        if (element.classList.contains('child')) {
+          const category = element.getAttribute("data-category");
+          const select = element.querySelector(".subcategory-dropdown");
+          const subcat = select.value;
+          loadSubcatData(category, subcat, 1, catKey);
+        } else if (element.classList.contains('items')) {
+          const category = element.getAttribute("data-category");
+          const subcat = element.getAttribute("data-subcat");
+          const commonName = element.getAttribute("data-common-name");
+          loadItemData(category, subcat, commonName, 1, catKey);
         }
       });
     })
-    .catch(error => console.error('Error refreshing table:', error));
+    .catch(error => console.error('Error auto-refreshing table:', error));
 }
 
 const childMap = {{ sub_map|tojson }};
@@ -741,7 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const subcat = select.value;
         const subcatCount = select.options.length;
         if (subcatCount === 1) {
-          loadSubcatData(category, subcat, 1, catKey);  // Auto-load if only one subcat
+          loadSubcatData(category, subcat, 1, catKey);
         }
       }
     });
@@ -782,6 +783,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Handle Filtered Refresh from base.html
+  document.addEventListener('refresh', (e) => {
+    const collapse = e.target;
+    if (collapse.classList.contains('child')) {
+      const category = collapse.getAttribute("data-category");
+      const catKey = category.toLowerCase().replace(/ /g, '_');
+      const select = collapse.querySelector(".subcategory-dropdown");
+      const subcat = select.value;
+      loadSubcatData(category, subcat, 1, catKey);
+    } else if (collapse.classList.contains('items')) {
+      const category = collapse.getAttribute("data-category");
+      const subcat = collapse.getAttribute("data-subcat");
+      const commonName = collapse.getAttribute("data-common-name");
+      const catKey = category.toLowerCase().replace(/ /g, '_');
+      loadItemData(category, subcat, commonName, 1, catKey);
+    }
+  });
+
   let expandCat = "{{ expand_category | default('') }}";
   if (expandCat) {
     let collapse = document.querySelector(`#child-${expandCat.toLowerCase().replace(/ /g, '_')}`);
@@ -796,7 +815,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const subcatCount = select.options.length;
       console.log(`Initial expand: ${category} -> ${subcat}`);
       if (subcatCount === 1) {
-        loadSubcatData(category, subcat, 1, catKey);  // Auto-load if only one subcat
+        loadSubcatData(category, subcat, 1, catKey);
       }
     }
   }
@@ -807,7 +826,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  setInterval(refreshTable, 60000);
+  setInterval(refreshTable, 60000); // Auto-refresh every minute
 });
 </script>
 
