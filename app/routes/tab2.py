@@ -621,74 +621,50 @@ CATEGORY_MAP = {
 
 SUBCATEGORY_MAP = {
     # Tent Tops
+    4052: 'HP Sidewalls',  # SIDEWALL HP 10 x 8 WHITE
     4054: 'HP Tops',  # Canopy 20x20 HP TOP SKYLIGHT
+    4203: 'Navi Tops',  # TOP NAVI LITE 30x15 HIP G1
+    4204: 'Navi Tops',  # TOP NAVI LITE 30x15 MID G1
+    4213: 'Navi Sidewalls',  # SIDEWALL NAVI LITE 8x 15 WINDOW KEDAR
+    4214: 'Navi Sidewalls',  # SIDEWALL NAVI LITE 8 x 15 WHITE KEDAR
     4292: 'HP Tops',  # Canopy 20x30 HP TOP WHITE Single Peak
+    4807: 'HP Sidewalls',  # SIDEWALL HP 15 x 9 WINDOW (G1)
+    4808: 'HP Sidewalls',  # SIDEWALL HP 15 x 9 WHITE (G1)
+    60526: 'Navi Sidewalls',  # SIDEWALL KEDARNAVI 15x8 (G1) WINDOW
+    60528: 'Navi Sidewalls',  # SIDEWALL KEDAR NAVI 15x8 (G1) WHITE
     62706: 'HP Tops',  # TOP HP 10 X 10 (G1)
     62707: 'HP Tops',  # TOP HP 10 X 20 (G2)
     62708: 'HP Tops',  # TOP HP 15X15 (G1)
     62709: 'HP Tops',  # TOP HP 20 X 20 (G2)
     62711: 'HP Tops',  # TOP HP 30 X 30 (G1)
     62714: 'HP Tops',  # TOP HP HEX 35 X 40 WHITE
-    65367: 'HP Tops',  # TOP HP 20 X 20 (G1)
-    65446: 'HP Tops',  # TOP HP HEX 35 X 40 SKYLIGHT
-    67657: 'HP Tops',  # TOP HP 20 X 30 (G1) WHITE DBL PEAK
-    72401: 'HP Crate',  # "CRATE, HP 10 x 10 ASSEMBLY"
-    72402: 'HP Crate',  # "CRATE, HP 15 x 15 ASSEMBLY"
-    72403: 'HP Crate',  # "CRATE, HP 10 x 20 ASSEMBLY"
-    72404: 'HP Crate',  # "CRATE, HP 20 x 20 ASSEMBLY"
-    72405: 'HP Crate',  # "CRATE, HP 30 x 30 ASSEMBLY"
-    72406: 'HP Crate',  # "CRATE, HP HEX 35 x 40 ASSEMBLY"
-    72407: 'HP Crate',  # "CRATE, HP 20 x 30 ASSEMBLY"
-    62805: '30x & 40x Navi Tops',  # TOP NAVI 30x15 MID (G1)
-    62808: '30x & 40x Navi Tops',  # TOP NAVI 30x15 HIP
-    65469: '30x & 40x Navi Tops',  # TOP NAVI 40x15 MID (G1)
-    66325: '30x & 40x Navi Tops',  # TOP NAVI 30x15 MID (G2)
-    66326: '30x & 40x Navi Tops',  # TOPS NAVI 30x15 MID
-    72408: '30x & 40x Navi Crate',  # "CRATE, NAVI HIP ASSEMBLY"
-    72409: '30x & 40x Navi Crate',  # "CRATE, NAVI MID ASSEMBLY"
-    72412: '30x & 40x Navi Crate',  # "CRATE, NAVI INSTALLATION"
-    4203: '30x Navi Lite Tops',  # TOP NAVI LITE 30x15 HIP G1
-    4204: '30x Navi Lite Tops',  # TOP NAVI LITE 30x15 MID G1
-    66324: '30x Navi Lite Tops',  # TOP NAVI LITE 30x15 MID G2
-    72392: '30x Navi Lite Tops',  # TOP NAVI LITE 30x15 HIP G2
-    72410: '30x Navi Lite Crate',  # "CRATE, NAVI LITE HIP ASSEMBLY"
-    72411: '30x Navi Lite Crate',  # "CRATE, NAVI LITE MID ASSEMBLY"
-    62806: '30x Pole',  # MID 30 x 15 (G1) R AND W POLE CMATE
-    62807: '30x Pole',  # END 30 x 15 LACE (G1) R AND W POLE
-    65039: '30x Pole',  # END 30 x 15 GRMT (G1) R AND W POLE
-    62797: '40x Pole',  # MID 40 x 20 (G1) NCP
-    62798: '40x Pole',  # END 40 x 20 LACE (G1) NCP
-    65035: '40x Pole',  # END 40 x 20 GRMT (G1) ANCHOR POLE NC
-    62809: '60x Pole',  # MID 60 x 20 ANCHOR POLE NC (G1)
-    62810: '60x Pole',  # MID 60 x 30 (G1) ANCHOR POLE NC
-    65036: '60x Pole',  # END 60 x 20 LACE (G1) ANCHOR POLE NC
-    65037: '60x Pole',  # END 60 x 20 GRMT (G1) ANCHOR POLE NC
-    4052: 'Other Tents',  # SIDEWALL HP 10 x 8 WHITE
-    4807: 'Other Tents',  # SIDEWALL HP 15 x 9 WINDOW (G1)
-    4808: 'Other Tents',  # SIDEWALL HP 15 x 9 WHITE (G1)
-    60526: 'Other Tents',  # SIDEWALL KEDARNAVI 15x8 (G1) WINDOW
-    60528: 'Other Tents',  # SIDEWALL KEDAR NAVI 15x8 (G1) WHITE
-    62715: 'Other Tents',  # SIDEWALL HP 15 x 8 (G1) WINDOW
-    62719: 'Other Tents',  # SIDEWALL HP 20 x 8 (G1) w/DOOR/WIND
-    62723: 'Other Tents',  # SIDEWALL HP 10 x 8 (G1) WINDOW
-    62727: 'Other Tents',  # SIDEWALL HP 20 x 8 (G1) WINDOW
-    62731: 'Other Tents',  # SIDEWALL HP 30 x 8 (G1) WINDOW
-    62735: 'Other Tents',  # SIDEWALL HP 20 x 9 (G1) WINDOW
-    62737: 'Other Tents',  # SIDEWALL HP 20 x 9 (G3) WINDOW
-    62745: 'Other Tents',  # SIDEWALL HP 15 x 8 (G1) w/DOOR
-    62749: 'Other Tents',  # SIDEWALL HP 20 x 8 (G1) w/DOOR pole
-    62750: 'Other Tents',  # SIDEWALL HP 20 x 8 (G2) w/DOOR pole
-    62753: 'Other Tents',  # SIDEWALL HP 10 x 8 (G1) WHITE
-    62755: 'Other Tents',  # SIDEWALL HP 10 x 8 (G3) WHITE
-    62757: 'Other Tents',  # SIDEWALL HP 15 x 8 (G1) WHITE
-    62761: 'Other Tents',  # SIDEWALL HP 20 x 8 (G1) WHITE
-    62762: 'Other Tents',  # SIDEWALL HP 20 x 8 (G2) WHITE
-    62763: 'Other Tents',  # SIDEWALL HP 20 x 8 (G3) WHITE
-    62769: 'Other Tents',  # SIDEWALL HP 20 x 9 (G1) WHITE
-    62770: 'Other Tents',  # SIDEWALL HP 20 x 9 (G2) WHITE
-    62773: 'Other Tents',  # SIDEWALL HP 20 x 7 (G1) WHITE
-    62781: 'Other Tents',  # SIDEWALL HP 30 x 8 (G1) WHITE pole
-    62782: 'Other Tents',  # SIDEWALL HP 30 x 8 (G2) WHITE pole
+    62715: 'HP Sidewalls',  # SIDEWALL HP 15 x 8 (G1) WINDOW
+    62719: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G1) w/DOOR/WIND
+    62723: 'HP Sidewalls',  # SIDEWALL HP 10 x 8 (G1) WINDOW
+    62727: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G1) WINDOW
+    62731: 'HP Sidewalls',  # SIDEWALL HP 30 x 8 (G1) WINDOW
+    62735: 'HP Sidewalls',  # SIDEWALL HP 20 x 9 (G1) WINDOW
+    62737: 'HP Sidewalls',  # SIDEWALL HP 20 x 9 (G3) WINDOW
+    62745: 'HP Sidewalls',  # SIDEWALL HP 15 x 8 (G1) w/DOOR
+    62749: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G1) w/DOOR pole
+    62750: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G2) w/DOOR pole
+    62753: 'HP Sidewalls',  # SIDEWALL HP 10 x 8 (G1) WHITE
+    62755: 'HP Sidewalls',  # SIDEWALL HP 10 x 8 (G3) WHITE
+    62757: 'HP Sidewalls',  # SIDEWALL HP 15 x 8 (G1) WHITE
+    62761: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G1) WHITE
+    62762: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G2) WHITE
+    62763: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G3) WHITE
+    62769: 'HP Sidewalls',  # SIDEWALL HP 20 x 9 (G1) WHITE
+    62770: 'HP Sidewalls',  # SIDEWALL HP 20 x 9 (G2) WHITE
+    62773: 'HP Sidewalls',  # SIDEWALL HP 20 x 7 (G1) WHITE
+    62781: 'HP Sidewalls',  # SIDEWALL HP 30 x 8 (G1) WHITE pole
+    62782: 'HP Sidewalls',  # SIDEWALL HP 30 x 8 (G2) WHITE pole
+    62805: 'Navi Tops',  # TOP NAVI 30x15 MID (G1)
+    62806: 'Navi Tops',  # MID 30 x 15 (G1) R AND W POLE CMATE
+    62807: 'Navi Tops',  # END 30 x 15 LACE (G1) R AND W POLE
+    62808: 'Navi Tops',  # TOP NAVI 30x15 HIP
+    62809: 'Navi Tops',  # MID 60 x 20 ANCHOR POLE NC (G1)
+    62810: 'Navi Tops',  # MID 60 x 30 (G1) ANCHOR POLE NC
     62853: 'Other Tents',  # SIDEWALLMESH 7 H X 20 (G1) WH
     62857: 'Other Tents',  # SIDEWALL STD 7 X 20 (G1) WINDOW
     62858: 'Other Tents',  # SIDEWALL STD 7 X 20 (G2) WINDOW
@@ -699,8 +675,8 @@ SUBCATEGORY_MAP = {
     62865: 'Other Tents',  # SIDEWALL STD 7 X 40 (G2) WINDOW
     62867: 'Other Tents',  # SIDEWALL STD 8 X 20 (G1) WINDOW
     62868: 'Other Tents',  # SIDEWALL STD 8 X 20 (G2) WINDOW
-    62871: 'Other Tents',  # SIDEWALL NAVI 8 X 30 (G1) WINDOW
-    62872: 'Other Tents',  # SIDEWALL NAVI 8 X 30 (G2) WINDOW
+    62871: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G1) WINDOW
+    62872: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G2) WINDOW
     62875: 'Other Tents',  # SIDEWALL STD 8 X 40 (G1) WINDOW
     62876: 'Other Tents',  # SIDEWALL STD 8 X 40 (G2) WINDOW
     62883: 'Other Tents',  # SIDEWALLEXTENDER 3 X 20 (G2)
@@ -709,18 +685,46 @@ SUBCATEGORY_MAP = {
     62894: 'Other Tents',  # SIDEWALL STD 7 X 20 (G1) WHITE
     62895: 'Other Tents',  # SIDEWALL STD 7 X 20 (G2) WHITE
     62896: 'Other Tents',  # SIDEWALL STD 7 X 20 (G3) WHITE
+    62797: 'Navi Tops',  # MID 40 x 20 (G1) NCP
+    62798: 'Navi Tops',  # END 40 x 20 LACE (G1) NCP
     62900: 'Other Tents',  # SIDEWALL STD 8 X 20 (G1) WHITE
     62901: 'Other Tents',  # SIDEWALL STD 8 X 20 (G2) WHITE
     62902: 'Other Tents',  # SIDEWALL STD 8 X 20 (G3) WHITE
-    62904: 'Other Tents',  # SIDEWALL NAVI 8 X 30 (G1) WHITE
-    62905: 'Other Tents',  # SIDEWALL NAVI 8 X 30 (G2) WHITE
-    62906: 'Other Tents',  # SIDEWALL NAVI 8 X 30 (G3) WHITE
-    65450: 'Other Tents',  # TOP NAVI 15 GABLE ENDCAP GRMT
-    65449: 'Other Tents',  # TOP NAVI 15 GABLE ENDCAP LACE
-    65467: 'Other Tents',  # TOP NAVI 20 GABLE ENDCAP GRMT
-    65468: 'Other Tents',  # TOP NAVI 20 GABLE ENDCAP LACE
-    65129: 'Other Tents',  # CANOPY 10X10 POPUP  WHITE WEIGHTED
+    62904: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G1) WHITE
+    62905: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G2) WHITE
+    62906: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G3) WHITE
+    65035: 'Navi Tops',  # END 40 x 20 GRMT (G1) ANCHOR POLE NC
+    65036: 'Navi Tops',  # END 60 x 20 LACE (G1) ANCHOR POLE NC
+    65037: 'Navi Tops',  # END 60 x 20 GRMT (G1) ANCHOR POLE NC
+    65039: 'Navi Tops',  # END 30 x 15 GRMT (G1) R AND W POLE
+    65367: 'HP Tops',  # TOP HP 20 X 20 (G1)
+    65446: 'HP Tops',  # TOP HP HEX 35 X 40 SKYLIGHT
+    65449: 'Navi Tops',  # TOP NAVI 15 GABLE ENDCAP LACE
+    65450: 'Navi Tops',  # TOP NAVI 15 GABLE ENDCAP GRMT
+    65467: 'Navi Tops',  # TOP NAVI 20 GABLE ENDCAP GRMT
+    65468: 'Navi Tops',  # TOP NAVI 20 GABLE ENDCAP LACE
+    65469: 'Navi Tops',  # TOP NAVI 40x15 MID (G1)
+    66324: 'Navi Tops',  # TOP NAVI LITE 30x15 MID G2
+    66325: 'Navi Tops',  # TOP NAVI 30x15 MID (G2)
+    66326: 'Navi Tops',  # TOPS NAVI 30x15 MID
+    67657: 'HP Tops',  # TOP HP 20 X 30 (G1) WHITE DBL PEAK
+    65129: 'Other Tents',  # CANOPY 10X10 POPUP WHITE WEIGHTED
     66363: 'Other Tents',  # CANOPY AP 16X16 WHITE (R)(G1)
+    72252: 'Other Tents',  # SIDEWALL KEDAR -G 8' x 5' PANEL
+    72253: 'Other Tents',  # SIDEWALL KEDAR -R 8' x 5' PANEL
+    72392: 'Navi Tops',  # TOP NAVI LITE 30x15 HIP G2
+    72401: 'HP Crates',  # "CRATE, HP 10 x 10 ASSEMBLY"
+    72402: 'HP Crates',  # "CRATE, HP 15 x 15 ASSEMBLY"
+    72403: 'HP Crates',  # "CRATE, HP 10 x 20 ASSEMBLY"
+    72404: 'HP Crates',  # "CRATE, HP 20 x 20 ASSEMBLY"
+    72405: 'HP Crates',  # "CRATE, HP 30 x 30 ASSEMBLY"
+    72406: 'HP Crates',  # "CRATE, HP HEX 35 x 40 ASSEMBLY"
+    72407: 'HP Crates',  # "CRATE, HP 20 x 30 ASSEMBLY"
+    72408: 'Navi Crates',  # "CRATE, NAVI HIP ASSEMBLY"
+    72409: 'Navi Crates',  # "CRATE, NAVI MID ASSEMBLY"
+    72410: 'Navi Crates',  # "CRATE, NAVI LITE HIP ASSEMBLY"
+    72411: 'Navi Crates',  # "CRATE, NAVI LITE MID ASSEMBLY"
+    72412: 'Navi Crates',  # "CRATE, NAVI INSTALLATION"
     62668: 'Other Tents',  # CANOPY AP 20X20 WHITE (Rope)(G1)
     62669: 'Other Tents',  # CANOPY AP 20X20 WHITE (Rope)(G2)
     62681: 'Other Tents',  # CANOPY AP 20X30 WHITE (Rope)(G2)
@@ -731,18 +735,35 @@ SUBCATEGORY_MAP = {
     62803: 'Other Tents',  # CANOPY POLE 30 x 30 WHITE
     63851: 'Other Tents',  # TOP 6 GABLE END CAP (FOR MARQUEE
     63852: 'Other Tents',  # TOP 6X10 WHITE GABLE MID FOR FR
-    4213: 'Other Tents',  # SIDEWALL NAVI LITE 8x 15 WINDOW KEDAR
-    4214: 'Other Tents',  # SIDEWALL NAVI LITE 8 x 15 WHITE KEDAR
+
+    # AV Equipment
+    60533: 'Bullhorns',  # "BULLHORN MV10S, 16WATT (SMALL)"
+    60537: 'Bullhorns',  # "BULLHORN MV16S, 20WATT (LARGE)"
+    60731: 'Bubble Machines',  # "BUBBLE MACHINE, 3 DOUBLE WANDS, 11"
+    60735: 'Fog Machines',  # "FOG MACHINE, HAZE, MINI"
+    61543: 'Sound Systems',  # "SOUND SYSTEM, BIG FOOT v1"
+    61545: 'Sound Systems',  # "SOUND SYSTEM, BIGFOOT 1.9GhZ(AA)"
+    61548: 'Sound Systems',  # "SOUND SYSTEM, MiniVOX 1.9GhZ(AA)"
+    61566: 'Microphones',  # "MIC, WIRELESS, HANDHELD (AA BIG FOOT V1)"
+    61570: 'Microphones',  # "MIC, WIRELESS, HANDHELD 1.9GhZ(AA)"
+    61571: 'Microphones',  # "MIC WIRED, HANDHELD (MINI-VOX)"
+    61572: 'Microphones',  # "MIC, WIRELESS, HANDHELD  1.9GhZ(AA)"
+    61573: 'Microphones',  # "MIC, WIRELESS, LAPEL 1.9GhZ(AA)"
+    63343: 'Fog Machines',  # FOG MACHINE (HAZE)
+    63359: 'Microphones',  # "MIC, WIRELESS, HANDHELD (SHURE)"
+    63430: 'Projectors',  # "PROJECTOR, LCD, 4000 LUMENS 1080P"
 
     # Tables and Chairs
-    63131: 'Tables',  # TOP, TABLE ROUND, 30 INCH PLYWOOD
-    65722: 'Tables',  # TOP, TABLE ROUND, 36 INCH PLYWOOD
-    66554: 'Chairs',  # LEG BASE 24 - 4 PRONG X
-    66555: 'Chairs',  # LEG BASE 30 - 4 PRONG X FOR 36R
+    63131: 'Tables',  # "TOP, TABLE ROUND, 30 INCH PLYWOOD"
+    63133: 'Chairs',  # LEG BASE 24 - 4 PRONG X
+    65171: 'Chairs',  # LEG BASE 30 - 4 PRONG X FOR 36R
+    65722: 'Tables',  # "TOP, TABLE ROUND, 36 INCH PLYWOOD"
+    61771: 'Chair Pads',  # CHAIRPAD CHIAVARI 2 BLACK (VEL
+    61772: 'Chair Pads',  # CHAIRPAD CHIAVARI WHITE VINYL (
 
     # Round Linen
-    61824: '90 Round',  # 90 ROUND  SNOW WHITE LINEN (SEAML
-    61825: '90 Round',  # 90 ROUND  WHITE LINEN
+    61824: '90 Round',  # 90 ROUND SNOW WHITE LINEN (SEAML
+    61825: '90 Round',  # 90 ROUND WHITE LINEN
     61826: '90 Round',  # 90 ROUND BLACK LINEN
     61827: '90 Round',  # 90 ROUND GREY LINEN
     61828: '90 Round',  # 90 ROUND IVORY LINEN
@@ -780,14 +801,12 @@ SUBCATEGORY_MAP = {
     61871: '90 Round',  # 90 ROUND ZEBRA PRINT LINEN
     61872: '90 Round',  # 90 ROUND PLATINUM IRIDESCENT CRUS
     61873: '90 Round',  # 90 ROUND CHAMPAGNE IRIDESCENT CRU
-    61874: '90 Round',  # 90 ROUND  WHITE SAND IRIDESCENT C
+    61874: '90 Round',  # 90 ROUND WHITE SAND IRIDESCENT C
     61875: '90 Round',  # 90 ROUND ROSE IRIDESCENT CRUSH LI
     61876: '90 Round',  # 90 ROUND VIOLET GREEN IRIDESCENT
     61879: '90 Round',  # 90 ROUND MIMOSA NOVA SOLID LINE
     61880: '90 Round',  # 90 ROUND FUCHSIA NOVA SOLID LIN
     61881: '90 Round',  # 90 ROUND TIFFANY BLUE NOVA SOLID
-    61882: '90 Round',  # 90 ROUND BERMUDA BLUE NOVA SOLID
-    61883: '90 Round',  # 90 ROUND APPLE GREEN NOVA SOLID
     61885: '108 Round',  # 108 ROUND WHITE LINEN
     61886: '108 Round',  # 108 ROUND BLACK LINEN
     61887: '108 Round',  # 108 ROUND GREY LINEN
@@ -813,7 +832,7 @@ SUBCATEGORY_MAP = {
     61926: '108 Round',  # 108 ROUND HUNTER GREEN LINEN
     61927: '108 Round',  # 108 ROUND KELLY GREEN LINEN
     61928: '108 Round',  # 108 ROUND LIME GREEN LINEN
-    61930: '120 Round',  # 120 ROUND  WHITE LINEN
+    61930: '120 Round',  # 120 ROUND WHITE LINEN
     61931: '120 Round',  # 120 ROUND BLACK LINEN
     61933: '120 Round',  # 120 ROUND IVORY LINEN
     61934: '120 Round',  # 120 ROUND BEIGE LINEN
@@ -846,10 +865,10 @@ SUBCATEGORY_MAP = {
     61976: '120 Round',  # 120 ROUND FUCHSIA NOVA SOLID LINE
     61977: '120 Round',  # 120 ROUND BERMUDA BLUE NOVA SOLID
     61978: '120 Round',  # 120 ROUND APPLE GREEN NOVA SOLID
-    61979: '120 Round',  # 120 ROUND  WHITE NOVA SWIRL LINEN
+    61979: '120 Round',  # 120 ROUND WHITE NOVA SWIRL LINEN
     72485: '120 Round',  # 120 ROUND DUSTY ROSE
-    61981: '132 Round',  # 132 ROUND  WHITE LINEN
-    61982: '132 Round',  # 132 ROUND BLACK  LINEN
+    61981: '132 Round',  # 132 ROUND WHITE LINEN
+    61982: '132 Round',  # 132 ROUND BLACK LINEN
     61984: '132 Round',  # 132 ROUND PEWTER LINEN
     61985: '132 Round',  # 132 ROUND IVORY LINEN
     61986: '132 Round',  # 132 ROUND BEIGE LINEN
@@ -874,39 +893,31 @@ SUBCATEGORY_MAP = {
     62029: '132 Round',  # 132 ROUND DAMASK SOMERSET GOLD
     62030: '132 Round',  # 132 ROUND DAMASK CAMBRIDGE WHEAT
     62031: '132 Round',  # 132 ROUND CHAMPAGNE IRIDESCENT CR
-    62032: '132 Round',  # 132 ROUND  WHITE SAND IRIDESCENT
+    62032: '132 Round',  # 132 ROUND WHITE SAND IRIDESCENT
     62033: '132 Round',  # 132 ROUND SUNSET ORANGE IRD CRUSH
     62034: '132 Round',  # 132 ROUND MIDNIGHT BLUE IRIDESCEN
     62035: '132 Round',  # 132 ROUND TIFFANY BLUE NOVA SOLID
 
     # Rectangle Linen
-    62287: '30x96 Conference',  # 30X96 CONFERENCE LINEN  WHITE
-    62288: '30x96 Conference',  # 30X96 CONFERENCE LINEN BLACK
-    62289: '30x96 Conference',  # 30X96 CONFERENCE LINEN EGGPLANT
-    62291: '54 Square',  # 54 SQUARE WHITE LINEN
-    62321: '54 Square',  # 54 SQUARE AMETHYST LINEN
-    62336: '54 Square',  # 54 SQUARE ARMY GREEN LINEN
-    62292: '54 Square',  # 54 SQUARE BLACK LINEN
-    62315: '54 Square',  # 54 SQUARE BURGUNDY LINEN
-    62337: '54 Square',  # 54 SQUARE BURLAP (PRAIRIE) LINEN
-    62332: '54 Square',  # 54 SQUARE CELADON LINEN
-    62298: '54 Square',  # 54 SQUARE CHOCOLATE LINEN
-    62319: '54 Square',  # 54 SQUARE EGGPLANT LINEN
-    62333: '54 Square',  # 54 SQUARE HUNTER GREEN LINEN
-    62295: '54 Square',  # 54 SQUARE IVORY LINEN
-    62331: '54 Square',  # 54 SQUARE NAVY BLUE LINEN
-    62330: '54 Square',  # 54 SQUARE PERIWINKLE LINEN
-    62294: '54 Square',  # 54 SQUARE PEWTER LINEN
-    62312: '54 Square',  # 54 SQUARE PINK LINEN
-    62323: '54 Square',  # 54 SQUARE ROYAL BLUE LINEN
-    62338: '54 Square',  # 54 SQUARE SILVER LAME LINEN
-    62339: 'Other Rectangle Linen',  # 72 SQUARE BURLAP (PRAIRIE) LINEN
-    62399: '90 Square',  # 90X90  WHITE LINEN
-    62401: '90 Square',  # 90X90 GREY LINEN
-    62403: '90 Square',  # 90X90 IVORY LINEN
-    62426: '90 Square',  # 90X90 PLUM LINEN
-    62429: '90 Square',  # 90X90 AMETHYST LINEN
-    62088: '60x120',  # 60X120  WHITE LINEN
+    62037: 'Runners',  # LINEN RUNNER 12 X 120 WHITE
+    62038: 'Runners',  # LINEN RUNNER 12 X 120 BLACK
+    62039: 'Runners',  # LINEN RUNNER 12 X 120 GREY
+    62040: 'Runners',  # LINEN RUNNER 12 X 120 PEWTER
+    62041: 'Runners',  # LINEN RUNNER 12 X 120 IVORY
+    62042: 'Runners',  # LINEN RUNNER 12 X 120 BEIGE
+    62045: 'Runners',  # LINEN RUNNER 12 X 120 LEMON YEL
+    62054: 'Runners',  # LINEN RUNNER 12 X 120 CARDINAL
+    62057: 'Runners',  # LINEN RUNNER 12 X 120 PASTEL PI
+    62065: 'Runners',  # LINEN RUNNER 12 X 120 EGGPLANT
+    62067: 'Runners',  # LINEN RUNNER 12 X 120 AMETHYST
+    62077: 'Runners',  # LINEN RUNNER 12 X 120 CELADON
+    62081: 'Runners',  # LINEN RUNNER 12 X 120 TIFFANY B
+    62082: 'Runners',  # LINEN RUNNER 13 X 120 GOLDENROD
+    62083: 'Runners',  # LINEN RUNNER 13 X 120 SILVER LA
+    62085: 'Caplets',  # LINEN CAPLET 30X96X10 WHITE SWIRL
+    62086: 'Caplets',  # LINEN CAPLET 30X96X10 SOFT GOLD SW
+    62087: 'Caplets',  # LINEN CAPLET 30X96X10 LAVENDER SWI
+    62088: '60x120',  # 60X120 WHITE LINEN
     62089: '60x120',  # 60X120 BLACK LINEN
     62090: '60x120',  # 60X120 GREY LINEN
     62091: '60x120',  # 60X120 PEWTER LINEN
@@ -947,7 +958,7 @@ SUBCATEGORY_MAP = {
     62140: '60x120',  # 60X120 CANDY PINK NOVA SWIRL LINEN
     62141: '60x120',  # 60X120 BAMBOO NOVA SWIRL LINEN
     62142: '60x120',  # 60X120 SILVER LAME
-    62187: '90x132',  # 90X132  WHITE LINEN ROUNDED CORNE
+    62187: '90x132',  # 90X132 WHITE LINEN ROUNDED CORNE
     62188: '90x132',  # 90X132 BLACK LINEN ROUNDED CORNER
     62189: '90x132',  # 90X132 GREY LINEN ROUNDED CORNERS
     62191: '90x132',  # 90X132 IVORY LINEN ROUNDED CORNER
@@ -965,7 +976,7 @@ SUBCATEGORY_MAP = {
     62227: '90x132',  # 90X132 NAVY BLUE LINEN ROUNDED CO
     62229: '90x132',  # 90X132 HUNTER GREEN LINEN ROUNDED
     62232: '90x132',  # 90X132 MIDNIGHT BLUE IRD CRUSH RO
-    62235: '90x156',  # 90X156  WHITE LINEN ROUNDED CORNE
+    62235: '90x156',  # 90X156 WHITE LINEN ROUNDED CORNE
     62236: '90x156',  # 90X156 BLACK LINEN ROUNDED CORNER
     62237: '90x156',  # 90X156 GREY LINEN ROUNDED CORNERS
     62238: '90x156',  # 90X156 PEWTER LINEN ROUNDED CORNE
@@ -991,84 +1002,131 @@ SUBCATEGORY_MAP = {
     62281: '90x156',  # 90X156 PLATINUM IRIDESCENT CRUSH L
     62282: '90x156',  # 90X156 CHAMPAGNE IRIDESCENT CRUSH
     62283: '90x156',  # 90X156 MIDNIGHT BLUE IRIDESCENT CR
+    62287: '30x96 Conference',  # 30X96 CONFERENCE LINEN WHITE
+    62288: '30x96 Conference',  # 30X96 CONFERENCE LINEN BLACK
+    62289: '30x96 Conference',  # 30X96 CONFERENCE LINEN EGGPLANT
+    62290: 'Other Rectangle Linen',  # LINEN SERPENTINE FITTED 4 WHITE
+    62291: '54 Square',  # 54 SQUARE WHITE LINEN
+    62292: '54 Square',  # 54 SQUARE BLACK LINEN
+    62294: '54 Square',  # 54 SQUARE PEWTER LINEN
+    62295: '54 Square',  # 54 SQUARE IVORY LINEN
+    62298: '54 Square',  # 54 SQUARE CHOCOLATE LINEN
+    62308: '54 Square',  # 54 SQUARE CARDINAL RED
+    62312: '54 Square',  # 54 SQUARE PINK LINEN
+    62315: '54 Square',  # 54 SQUARE BURGUNDY LINEN
+    62319: '54 Square',  # 54 SQUARE EGGPLANT LINEN
+    62321: '54 Square',  # 54 SQUARE AMETHYST LINEN
+    62323: '54 Square',  # 54 SQUARE ROYAL BLUE LINEN
+    62330: '54 Square',  # 54 SQUARE PERIWINKLE LINEN
+    62331: '54 Square',  # 54 SQUARE NAVY BLUE LINEN
+    62332: '54 Square',  # 54 SQUARE CELADON LINEN
+    62333: '54 Square',  # 54 SQUARE HUNTER GREEN LINEN
+    62336: '54 Square',  # 54 SQUARE ARMY GREEN LINEN
+    62337: '54 Square',  # 54 SQUARE BURLAP (PRAIRIE) LINEN
+    62338: '54 Square',  # 54 SQUARE SILVER LAME LINEN
+    62339: 'Other Rectangle Linen',  # 72 SQUARE BURLAP (PRAIRIE) LINEN
+    62399: '90 Square',  # 90X90 WHITE LINEN
+    62401: '90 Square',  # 90X90 GREY LINEN
+    62403: '90 Square',  # 90X90 IVORY LINEN
+    62426: '90 Square',  # 90X90 PLUM LINEN
+    62429: '90 Square',  # 90X90 AMETHYST LINEN
+    65545: 'Runners',  # LINEN RUNNER 12 X 120 RED CHECK
 
-    # Concession
-    68321: 'Sno Cone Machines',  # "SNO-KONE MACHINE, 7 AMP ELECTRIC"
-    66715: 'Donut Machines',  # MINI DONUT MACHINE
-    63806: 'Frozen Drink Machines',  # FROZEN DRINK MACHINE -SINGLE BARREL
-    68317: 'Frozen Drink Machines',  # FROZEN DRINK MACHINE - OTC (6 AMP)
-    68332: 'Frozen Drink Machines',  # FROZEN DRINK MACHINE -DOUBLE BARREL
-    62651: 'Fountains',  # "FOUNTAIN, 3 GAL PRINCESS (6AMP)"
-    62652: 'Fountains',  # "FOUNTAIN, 7 GAL PRINCESS (6 AMP)"
-    62653: 'Fountains',  # "FOUNTAIN, 4 1/2 GAL EMPRESS (6 AMP)"
-    62654: 'Fountains',  # "FOUNTAIN, 3 GAL EMPRESS (6 AMP)"
-    68322: 'Cotton Candy Machines',  # "COTTON CANDY MACHINE, 9 AMP 120V"
-    68318: 'Popcorn Machines',  # "POPCORN MACHINE, 8 oz DELV CASE"
-    68320: 'Popcorn Machines',  # "POPCORN MACHINE, 8 OZ,10AMP, TABLETOP"
-    3902: 'Cheese Warmers',  # NACHO CHEESE DISPENSER and WARMER
-    63791: 'Cheese Warmers',  # "WARMER 3-1/2 QT, ELECTRIC (5amp, 120v)"
-    63793: 'Cheese Warmers',  # "WARMER 3-1/2 QT, ELECTRIC (HEATED STEM)"
+    # Concession Equipment
+    2857: 'Chocolate Fountain',  # "FOUNTAIN, CHOCOLATE"
     3290: 'Beverage Dispensers',  # "BEVERAGE COOLER, 5 GAL CAMBRO THERMOVAT"
+    3727: 'Hot Dog Machines',  # HOTDOG STEAMER
+    3902: 'Cheese Warmers',  # NACHO CHEESE DISPENSER and WARMER
     62468: 'Beverage Dispensers',  # "BEVERAGE COOLER, 10 GAL CAMBRO THERMOVAT"
     62475: 'Beverage Dispensers',  # "BEVERAGE DISPENSER, CLEAR-IVORY 5 GAL"
     62479: 'Beverage Dispensers',  # "BEVERAGE DISPENSER, CLEAR 5 GAL w/INFUSE"
+    62535: 'Hot Dog Machines',  # "HOTDOG MACH, ROLLER (CAPACITY 50) 12AMP"
     62633: 'Chafers',  # "CHAFER, FULLSIZE, STAINLESS (GOLD TRIM)"
     62634: 'Chafers',  # "CHAFER, FULLSIZE, STAINLESS STEEL"
     62636: 'Chafers',  # "CHAFER, FULLSIZE, ROLLTOP, STAINLESS 8QT"
     62637: 'Chafers',  # "CHAFER, HALFSIZE, STAINLESS STEEL"
-    2857: 'Chocolate Fountain',  # "FOUNTAIN, CHOCOLATE"
-    3727: 'Hot Dog Machines',  # HOTDOG STEAMER
-    62535: 'Hot Dog Machines',  # "HOTDOG MACH, ROLLER (CAPACITY 50) 12AMP"
+    62651: 'Fountains',  # "FOUNTAIN, 3 GAL PRINCESS (6AMP)"
+    62652: 'Fountains',  # "FOUNTAIN, 7 GAL PRINCESS (6 AMP)"
+    62653: 'Fountains',  # "FOUNTAIN, 4 1/2 GAL EMPRESS (6 AMP)"
+    62654: 'Fountains',  # "FOUNTAIN, 3 GAL EMPRESS (6 AMP)"
+    63791: 'Cheese Warmers',  # "WARMER 3-1/2 QT, ELECTRIC (5amp, 120v)"
+    63793: 'Cheese Warmers',  # "WARMER 3-1/2 QT, ELECTRIC (HEATED STEM)"
+    63806: 'Frozen Drink Machines',  # FROZEN DRINK MACHINE -SINGLE BARREL
+    66715: 'Donut Machines',  # MINI DONUT MACHINE
+    68317: 'Frozen Drink Machines',  # FROZEN DRINK MACHINE - OTC (6 AMP)
+    68318: 'Popcorn Machines',  # "POPCORN MACHINE, 8 oz DELV CASE"
+    68320: 'Popcorn Machines',  # "POPCORN MACHINE, 8 OZ,10AMP, TABLETOP"
+    68321: 'Sno Cone Machines',  # "SNO-KONE MACHINE, 7 AMP ELECTRIC"
+    68322: 'Cotton Candy Machines',  # "COTTON CANDY MACHINE, 9 AMP 120V"
+    68332: 'Frozen Drink Machines',  # FROZEN DRINK MACHINE -DOUBLE BARREL
 
-    # AV
+    # Runners and Drapes
+    63278: '16 ft',  # "DRAPES, BLACK 16 X 48 (ADJ 10,12,16)"
+    63295: '3 ft',  # "DRAPES, BLACK 3 X 48 BANJO"
+    63296: '3 ft',  # "DRAPES, SILVER 3 X 48 BANJO"
+    63297: '3 ft',  # "DRAPES, BLUE 3 X 48 BANJO"
+    63298: '8 ft',  # "DRAPES, WHITE -ARCTIC SNOW, 8X 4"
+    63299: '8 ft',  # "DRAPES, BLACK 8 X 58 VELOUR"
+    63300: '8 ft',  # "DRAPES, BLACK 8 X 48 BANJO"
+    63301: '8 ft',  # "DRAPES, SILVER 8 X 48 BANJO"
+    63302: '8 ft',  # "DRAPES, CHARCOAL, 8 X 48 BANJO"
+    63303: '8 ft',  # "DRAPES, IVORY, 8 X 48 BANJO"
+    63304: '8 ft',  # "DRAPES, GOLD, 8 X 48 BANJO"
+    63305: '8 ft',  # "DRAPES, ORANGE, 8 X 48 BANJO"
+    63306: '8 ft',  # "DRAPES, RED, 8 X 48 BANJO"
+    63307: '8 ft',  # "DRAPES, BURGUNDY 8 X 48 BANJO"
+    63308: '8 ft',  # "DRAPES, RASPBERRY, 8 X 48 BANJO"
+    63309: '8 ft',  # "DRAPES, PURPLE, 8 X 48 BANJO"
+    63310: '8 ft',  # "DRAPES, BLUE 8 X 48 BANJO"
+    63311: '8 ft',  # "DRAPES, WHITE -SHEER 8H X 118W"
+    63313: '8 ft',  # "DRAPES, NAVY BLUE, 8 X 48 BANJO"
+    63314: '8 ft',  # "DRAPES, FOREST GREEN 8 X 48 BANJO"
+    63315: '8 ft',  # "DRAPES, HUNTER GREEN 8 X 48 BANJO"
+    63316: '16 ft',  # "DRAPES, BLACK 16 X 48 BANJO"
+    63317: '16 ft',  # "DRAPES, WHITE -SHEER 16H X 118W"
+    63327: 'Red Runner',  # "CARPET RUNNER, RED 4 X 25 (G1)"
+    63328: 'Red Runner',  # "CARPET RUNNER, RED 4 X 25 (G2)"
+    63329: 'Red Runner',  # "CARPET RUNNER, RED 4 X 50 (G1)"
+    63330: 'Red Runner',  # "CARPET RUNNER, RED 4 X 50 (G2)"
+    63331: 'Purple Runner',  # "CARPET RUNNER, PURPLE 4 X 25"
+    63332: 'Purple Runner',  # "CARPET RUNNER, PURPLE 4 X 50 (G1)"
+    64836: 'Resale Runners',  # AISLE CLOTH 75 WHITE
+    64837: 'Resale Runners',  # AISLE CLOTH 100 WHITE
+    66688: '8 ft',  # "DRAPES, BLACK 8 X 48 POLY"
 
-    60735: 'DJ',  # "FOG MACHINE, HAZE, MINI"
-    63343: 'DJ',  # FOG MACHINE (HAZE)
-    60533: 'Sound and Mics',  # "BULLHORN MV10S, 16WATT (SMALL)"
-    60537: 'Sound and Mics',  # "BULLHORN MV16S, 20WATT (LARGE)"
-    61543: 'Sound and Mics',  # "SOUND SYSTEM, BIG FOOT v1"
-    61545: 'Sound and Mics',  # "SOUND SYSTEM, BIGFOOT 1.9GhZ(AA)"
-    61548: 'Sound and Mics',  # "SOUND SYSTEM, MiniVOX 1.9GhZ(AA)"
-    61566: 'Sound and Mics',  # "MIC, WIRELESS, HANDHELD (AA BIG FOOT V1)"
-    61570: 'Sound and Mics',  # "MIC, WIRELESS, HANDHELD 1.9GhZ(AA)"
-    61571: 'Sound and Mics',  # "MIC WIRED, HANDHELD (MINI-VOX)"
-    61572: 'Sound and Mics',  # "MIC, WIRELESS, HANDHELD  1.9GhZ(AA)"
-    61573: 'Sound and Mics',  # "MIC, WIRELESS, LAPEL 1.9GhZ(AA)"
-    63359: 'Sound and Mics',  # "MIC, WIRELESS, HANDHELD (SHURE)"
-    60731: 'DJ',  # "BUBBLE MACHINE, 3 DOUBLE WANDS, 11"
-    63430: 'DJ',  # "PROJECTOR, LCD, 4000 LUMENS 1080P"
-
-    61749: 'Other',  # BAG FOR SOILED LINEN
-    61750: 'Other',  # SKIRT STAGE 24 X 13 BLACK BAN
-    61758: 'Other',  # SKIRT STAGE 44 X 13 BLACK BAN
-    61759: 'Other',  # SKIRT 8 WHITE (30)
-    61760: 'Other',  # SKIRT  8 BLACK (30)
-    61761: 'Other',  # SKIRT 14  WHITE (30)
-    61762: 'Other',  # SKIRT 14 BLACK (30)
-    61763: 'Other',  # SKIRT 14 IVORY (30)
-    61764: 'Other',  # SKIRT 21 WHITE (30)
-    62445: 'Other',  # SPANDEX LINEN  WHITE 30 X 42 (W/BLK F
-    62447: 'Other',  # SPANDEX LINEN BLACK 30x42 (COCKTAIL)
-    62449: 'Other',  # SPANDEX ICE TABLE SKIRT BLACK (SMALL)
-    62451: 'Other',  # SPANDEX ICE TABLE SKIRT WHITE (LARGE)
-    62452: 'Other',  # SPANDEX ICE TABLE SKIRT BLACK (LARGE)
-    62233: 'Other',  # SPANDEX TABLE LINEN  WHITE 6X30 BANQ
-    62234: 'Other',  # SPANDEX TABLE LINEN BLACK 6X30 BANQ
-    62284: 'Other',  # SPANDEX TABLE LINEN  WHITE 8X30 BANQ
-    62285: 'Other',  # SPANDEX TABLE LINEN BLACK 8X30 BANQ
-    67139: 'Other',  # SPANDEX LINEN  WHITE 36 X 42
-    67140: 'Other',  # SPANDEX LINEN  BLACK 36 X 42
-    99999: 'Other',  # HP 15x15 IKEs Bar
+    # Other
+    61749: 'Linens',  # BAG FOR SOILED LINEN
+    61750: 'Stage Skirts',  # SKIRT STAGE 24 X 13 BLACK BAN
+    61758: 'Stage Skirts',  # SKIRT STAGE 44 X 13 BLACK BAN
+    61759: 'Stage Skirts',  # SKIRT 8 WHITE (30)
+    61760: 'Stage Skirts',  # SKIRT 8 BLACK (30)
+    61761: 'Stage Skirts',  # SKIRT 14 WHITE (30)
+    61762: 'Stage Skirts',  # SKIRT 14 BLACK (30)
+    61763: 'Stage Skirts',  # SKIRT 14 IVORY (30)
+    61764: 'Stage Skirts',  # SKIRT 21 WHITE (30)
+    62445: 'Spandex Linens',  # SPANDEX LINEN WHITE 30 X 42 (W/BLK F
+    62447: 'Spandex Linens',  # SPANDEX LINEN BLACK 30x42 (COCKTAIL)
+    62449: 'Spandex Linens',  # SPANDEX ICE TABLE SKIRT BLACK (SMALL)
+    62451: 'Spandex Linens',  # SPANDEX ICE TABLE SKIRT WHITE (LARGE)
+    62452: 'Spandex Linens',  # SPANDEX ICE TABLE SKIRT BLACK (LARGE)
+    62233: 'Spandex Linens',  # SPANDEX TABLE LINEN WHITE 6X30 BANQ
+    62234: 'Spandex Linens',  # SPANDEX TABLE LINEN BLACK 6X30 BANQ
+    62284: 'Spandex Linens',  # SPANDEX TABLE LINEN WHITE 8X30 BANQ
+    62285: 'Spandex Linens',  # SPANDEX TABLE LINEN BLACK 8X30 BANQ
+    67139: 'Spandex Linens',  # SPANDEX LINEN WHITE 36 X 42
+    67140: 'Spandex Linens',  # SPANDEX LINEN BLACK 36 X 42
+    99999: 'Miscellaneous',  # HP 15x15 IKEs Bar
 
     # Resale
-
+    1: 'Test',  # test resale
     3168: 'Chocolate',  # CHOCOLATE BAG 2LB. DARK
     3169: 'Chocolate',  # CHOCOLATE BAG 2LB. MILK
     3903: 'Cheese',  # NACHO CHEESE 140oz BAG
-    64854: 'Cheese',  # NACHO CHEESE SAUCE #10 CAN
     64815: 'Fog and Bubbles',  # FOG SOLUTION (GROUND) 1 QUART
     64816: 'Fog and Bubbles',  # FOG SOLUTION (HAZE) 1 QUART
     64817: 'Fog and Bubbles',  # BUBBLE JUICE 1 QUART
+    64819: 'Fuel',  # FUEL STERNO 8 OZ -LASTS 2+HRS
+    64824: 'Fuel',  # FUEL BUTANE CARTRIDGE 8 OUNCE
     64840: 'Cotton Candy Supplies',  # COTTON CANDY SUGAR PINK VANILLA (52 OZ
     64841: 'Cotton Candy Supplies',  # COTTON CANDY SUGAR BLUE RASPBERRY-52oz
     64842: 'Cotton Candy Supplies',  # COTTON CANDY SUGAR CHERRY (52 OZ CARTON
@@ -1076,15 +1134,15 @@ SUBCATEGORY_MAP = {
     64847: 'Cotton Candy Supplies',  # COTTON CANDY BAGS & TIES 100 PER PKG
     64848: 'Cotton Candy Supplies',  # COTTON CANDY CONES 100 PER PKG.
     64849: 'Cotton Candy Supplies',  # COTTON CANDY SUGAR BUBBLE GUM (52 OZ CA
+    64852: 'Popcorn Supplies',  # POPCORN/SALT/OIL PRE-MEASURED KIT
+    64853: 'Popcorn Supplies',  # POPCORN BAGS 50/ PKG
+    64854: 'Cheese',  # NACHO CHEESE SAUCE #10 CAN
     64855: 'Sno Cone Supplies',  # SNOKONE SYRUP **LIME** 1 GALLON
     64856: 'Sno Cone Supplies',  # SNOKONE SYRUP **GRAPE** 1 GALLON
     64857: 'Sno Cone Supplies',  # SNOKONE SYRUP **CHERRY** 1 GALLON
     64858: 'Sno Cone Supplies',  # SNOKONE SYRUP **BLUE RASPBERRY 1 GALLON
     64860: 'Sno Cone Supplies',  # SNOKONE KONES 200 COUNT BOX
     64861: 'Sno Cone Supplies',  # SNOKONE SYRUP PUMP (1 GAL)
-    65808: 'Sno Cone Supplies',  # SNOKONE SYRUP **PINK LEMONADE** 1 GALLON
-    64852: 'Popcorn Supplies',  # POPCORN/SALT/OIL PRE-MEASURED KIT
-    64853: 'Popcorn Supplies',  # POPCORN BAGS 50/ PKG
     64864: 'Frozen Drink Frusheeze',  # FRUSHEEZE STRAWBERRY DAQ 1/2 GALLON
     64865: 'Frozen Drink Frusheeze',  # FRUSHEEZE FRUIT PUNCH 1/2 GALLON
     64866: 'Frozen Drink Frusheeze',  # FRUSHEEZE MARGARITA 1/2 GALLON
@@ -1092,6 +1150,7 @@ SUBCATEGORY_MAP = {
     64868: 'Frozen Drink Frusheeze',  # FRUSHEEZE PINA COLADA 1/2 GALLON
     64869: 'Frozen Drink Frusheeze',  # FRUSHEEZE CHERRY 1/2 GALLON
     64874: 'Frozen Drink Frusheeze',  # FRUSHEEZE LEMONADE GRANITA MIX 1 GAL (5
+    64876: 'Other Resale',  # GARBAGE CAN DISPOSABLE 35 GAL W/ LID
     64888: 'Kwik Covers 30 & 36 Round',  # KWIK COVER WHITE ROUND 30 PLASTIC
     64889: 'Kwik Covers 30 & 36 Round',  # KWIK COVER BLACK ROUND 30 PLASTIC
     64890: 'Kwik Covers 30 & 36 Round',  # KWIK COVER RED ROUND 30 PLASTIC
@@ -1166,47 +1225,13 @@ SUBCATEGORY_MAP = {
     64949: 'Kwik Covers 8 ft Banquet',  # KWIK COVER BLACK & WHITE CHECK 8 X 30
     65494: 'Kwik Covers 8 ft Banquet',  # KWIK COVER SILVER 8 x 30 BANQ
     65497: 'Kwik Covers 8 ft Banquet',  # KWIK COVER NAVY BLUE 8 x 30 BANQ
-    1: 'Other Resale',  # test resale
-    64819: 'Other Resale',  # FUEL STERNO 8 OZ -LASTS 2+HRS
-    64824: 'Other Resale',  # FUEL BUTANE CARTRIDGE 8 OUNCE
-    64876: 'Other Resale',  # GARBAGE CAN DISPOSABLE 35 GAL W/ LID
     65611: 'Kwik Covers 4 ft Banquet White',  # KWIK COVER WHITE 4 x 30 BANQ
+
+    # Resale (continued)
     66742: 'Donut Supplies',  # DONUT BAGS-MINI 70ct
     66743: 'Donut Supplies',  # DONUT SUGAR 5 LBS & DISPENSER
     66747: 'Donut Supplies',  # MINI DONUT -70 SERVINGS- SUPPLY PACKAGE
-    #Drapes
-    63295: '3 ft',  # "DRAPES, BLACK  3 X 48 BANJO"
-    63296: '3 ft',  # "DRAPES, SILVER 3 X 48 BANJO"
-    63297: '3 ft',  # "DRAPES, BLUE 3 X 48 BANJO"
-    63298: '8 ft',  # "DRAPES, WHITE -ARCTIC SNOW,  8X 4"
-    63299: '8 ft',  # "DRAPES, BLACK  8 X 58 VELOUR"
-    63300: '8 ft',  # "DRAPES, BLACK  8 X 48 BANJO"
-    63301: '8 ft',  # "DRAPES, SILVER 8 X 48 BANJO"
-    63302: '8 ft',  # "DRAPES, CHARCOAL, 8 X 48 BANJO"
-    63303: '8 ft',  # "DRAPES, IVORY, 8 X 48 BANJO"
-    63304: '8 ft',  # "DRAPES, GOLD, 8 X 48 BANJO"
-    63305: '8 ft',  # "DRAPES, ORANGE, 8 X 48 BANJO"
-    63306: '8 ft',  # "DRAPES, RED, 8 X 48 BANJO"
-    63307: '8 ft',  # "DRAPES, BURGUNDY 8 X 48 BANJO"
-    63308: '8 ft',  # "DRAPES, RASPBERRY, 8 X 48 BANJO"
-    63309: '8 ft',  # "DRAPES, PURPLE, 8 X 48 BANJO"
-    63310: '8 ft',  # "DRAPES, BLUE 8 X 48 BANJO"
-    63311: '8 ft',  # "DRAPES, WHITE -SHEER  8H X 118W"
-    63313: '8 ft',  # "DRAPES, NAVY BLUE, 8 X 48 BANJO"
-    63314: '8 ft',  # "DRAPES, FOREST GREEN 8 X 48 BANJO"
-    63315: '8 ft',  # "DRAPES, HUNTER GREEN 8 X 48 BANJO"
-    66688: '8 ft',  # "DRAPES, BLACK  8 X 48 POLY"
-    63278: '16 ft',  # "DRAPES, BLACK 16 X 48 (ADJ 10,12,16)"
-    63316: '16 ft',  # "DRAPES, BLACK 16 X 48 BANJO"
-    63317: '16 ft',  # "DRAPES, WHITE -SHEER 16H X 118W"
-    63327: 'Red Runner',  # "CARPET RUNNER, RED 4 X 25 (G1)"
-    63328: 'Red Runner',  # "CARPET RUNNER, RED 4 X 25 (G2)"
-    63329: 'Red Runner',  # "CARPET RUNNER, RED 4 X 50 (G1)"
-    63330: 'Red Runner',  # "CARPET RUNNER, RED 4 X 50 (G2)"
-    63331: 'Purple Runner',  # "CARPET RUNNER, PURPLE 4 X 25"
-    63332: 'Purple Runner',  # "CARPET RUNNER, PURPLE 4 X 50 (G1)"
-    64836: 'Resale Runners',  # AISLE CLOTH 75 WHITE
-    64837: 'Resale Runners',  # AISLE CLOTH 100 WHITE
+    65808: 'Sno Cone Supplies',  # SNOKONE SYRUP **PINK LEMONADE** 1 GALLON
 }
 
 def categorize_item(rental_class_id):
