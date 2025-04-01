@@ -1,8 +1,8 @@
 #!/bin/bash
 cd /home/tim/test_rfidpi
 cp config.py config.py.bak
-git pull origin dev_rollback
-mv config.py.bak config.py
+git pull origin newdev
+# mv config.py.bak config.py
 source venv/bin/activate
 pip install -r requirements.txt
-sudo systemctl restart rfid_dash_test
+sudo systemctl restart rfid_dash

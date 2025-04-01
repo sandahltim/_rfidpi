@@ -1,10 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 
-<p style="text-align: center;"><strong>Welcome to the BT&E RFID DASHBOARD. </strong></p>
-<p style="text-align: center;">Use the tabs above to view detailed information, or click "REFRESH DATA" to update data immediately.</p>
-<p style="text-align: center;">THIS SERVER WILL BE THE MOST STABLE.</p>
-<h3 style="padding-left: 240px;"><strong>Scanable Items- </strong></h3>
+<div id="loading-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; justify-content: center; align-items: center;">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<p style="text-align: center;"><strong>Welcome to the BT&E RFID TEST DASHBOARD.</strong></p>
+<p style="text-align: center;">Use the tabs above to view detailed information, or click "REFRESH" to update data immediately.</p>
+<p style="text-align: center;">THIS SERVER WILL BE THE MOST RECENT BUT MAY HAVE CRASHES.</p>
+<h3 style="padding-left: 240px;"><strong>Scanable Items-</strong></h3>
 <ul>
 <li style="list-style-type: none;">
 <ul>
@@ -22,22 +28,22 @@
 <h3><strong>All Linens(except Spandex, Napkins, Runners, and Sashes)</strong></h3>
 </li>
 <li>
-<h3><strong> All Resale</strong></h3>
+<h3><strong>All Resale</strong></h3>
 </li>
 <li>
-<h3><strong> All AV and Concession</strong></h3>
+<h3><strong>All AV and Concession</strong></h3>
 </li>
 <li>
-<h3><strong> All Tent Tops</strong></h3>
+<h3><strong>All Tent Tops</strong></h3>
 </li>
 <li>
-<h3><strong> Garden Chairs</strong></h3>
+<h3><strong>Garden Chairs</strong></h3>
 </li>
 <li>
-<h3><strong> Cocktail Tbl Tops &amp; Legs</strong></h3>
+<h3><strong>Cocktail Tbl Tops & Legs</strong></h3>
 </li>
 <li>
-<h3><strong> Carpet Runners</strong></h3>
+<h3><strong>Carpet Runners</strong></h3>
 </li>
 </ul>
 </li>
@@ -51,4 +57,35 @@
 </li>
 </ul>
 </li>
-</ul>{% endblock %}
+</ul>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM Content Loaded");
+
+    function checkReloadStatus() {
+        fetch('/status')
+            .then(response => response.json())
+            .then(data => {
+                console.log("Reload status:", data.is_reloading);
+                if (!data.is_reloading) {
+                    document.getElementById("loading-overlay").style.display = "none";
+                } else {
+                    setTimeout(checkReloadStatus, 1000); // Poll every 1 second
+                }
+            })
+            .catch(error => {
+                console.error('Error checking reload status:', error);
+                setTimeout(checkReloadStatus, 1000); // Retry on error
+            });
+    }
+
+    checkReloadStatus(); // Start polling
+});
+</script>
+
+<style>
+    body { margin: 0; padding: 0; }
+</style>
+
+{% endblock %}

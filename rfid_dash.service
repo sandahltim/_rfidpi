@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 User=tim
-WorkingDirectory=/home/tim/_rfidpi
-ExecStart=/home/tim/_rfidpi/start.sh
+WorkingDirectory=/home/tim/test_rfidpi
+ExecStart=/home/tim/test_rfidpi/start.sh
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/log/rfid_dash.log

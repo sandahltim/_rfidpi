@@ -3,16 +3,12 @@ import requests
 import sqlite3
 import time
 from datetime import datetime, timedelta
-from config import DB_FILE
-
-API_USERNAME = os.environ.get("API_USERNAME", "api")
-API_PASSWORD = os.environ.get("API_PASSWORD", "Broadway8101")
-LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"
-ITEM_MASTER_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169344381"
-TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
+from config import LOGIN_URL, DB_FILE, SEED_URL, ITEM_MASTER_URL, TRANSACTION_URL, API_PASSWORD, API_USERNAME
 
 TOKEN = None
 TOKEN_EXPIRY = None
+LAST_REFRESH = None
+IS_RELOADING = False
 
 def get_access_token():
     """Fetch and cache API access token."""
@@ -34,10 +30,12 @@ def get_access_token():
         print(f"Error fetching access token: {e}")
         return None
 
-def fetch_paginated_data(url, token):
-    """Fetch all data from the given API endpoint using pagination."""
+def fetch_paginated_data(url, token, since_date=None):
+    """Fetch data from API with optional date_last_scanned filter."""
     headers = {"Authorization": f"Bearer {token}"}
     params = {"limit": 200, "offset": 0}
+    if since_date:
+        params["filter[]"] = f"date_last_scanned>{since_date}"
     all_data = []
 
     while True:
@@ -57,7 +55,7 @@ def fetch_paginated_data(url, token):
     return all_data
 
 def update_item_master(data):
-    """Inserts or updates item master data in SQLite, using all columns."""
+    """Inserts or updates item master data in SQLite."""
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     cursor = conn.cursor()
 
@@ -121,7 +119,7 @@ def update_item_master(data):
         conn.close()
 
 def clear_transactions(conn):
-    """Clears all rows from id_transactions before a refresh."""
+    """Clears all rows from id_transactions before a full refresh."""
     cursor = conn.cursor()
     try:
         cursor.execute("DELETE FROM id_transactions")
@@ -132,7 +130,7 @@ def clear_transactions(conn):
         conn.rollback()
 
 def update_transactions(data):
-    """Inserts or updates transaction data in SQLite after clearing old data."""
+    """Inserts or updates transaction data in SQLite."""
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     cursor = conn.cursor()
 
@@ -225,22 +223,72 @@ def update_transactions(data):
     finally:
         conn.close()
 
-def refresh_data():
-    """Main function to refresh item master and transaction data from the API."""
+def update_seed_data(data):
+    """Inserts or updates SEED data in SQLite (full refresh only)."""
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+    cursor = conn.cursor()
+
+    try:
+        for item in data:
+            cursor.execute(
+                """
+                INSERT INTO seed_rental_classes (
+                    rental_class_id, common_name, bin_location
+                )
+                VALUES (?, ?, ?)
+                ON CONFLICT(rental_class_id) DO UPDATE SET
+                    common_name = excluded.common_name,
+                    bin_location = excluded.bin_location
+                """,
+                (
+                    item.get("rental_class_id"),
+                    item.get("common_name"),
+                    item.get("bin_location"),
+                ),
+            )
+        conn.commit()
+        print("SEED data updated.")
+    except sqlite3.Error as e:
+        print(f"Database error updating SEED data: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+def refresh_data(full_refresh=False):
+    """Refresh database: full on start, incremental after."""
+    global LAST_REFRESH, IS_RELOADING
+    IS_RELOADING = True  # Set reloading flag
     token = get_access_token()
     if not token:
         print(" No access token. Aborting refresh.")
+        IS_RELOADING = False
         return
 
-    item_master_data = fetch_paginated_data(ITEM_MASTER_URL, token)
-    transactions_data = fetch_paginated_data(TRANSACTION_URL, token)
+    since_date = None if full_refresh else LAST_REFRESH
+    if since_date:
+        since_date = since_date.strftime("%Y-%m-%d %H:%M:%S")
 
+    item_master_data = fetch_paginated_data(ITEM_MASTER_URL, token, since_date)
+    transactions_data = fetch_paginated_data(TRANSACTION_URL, token, since_date)
+    
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     try:
-        clear_transactions(conn)
+        if full_refresh:
+            clear_transactions(conn)
+            seed_data = fetch_paginated_data(SEED_URL, token)
+            update_seed_data(seed_data)
         update_transactions(transactions_data)
         update_item_master(item_master_data)
     finally:
         conn.close()
 
-    print("Waiting 10 minutes before next update...")
+    LAST_REFRESH = datetime.utcnow()
+    print(f"Database refreshed at {LAST_REFRESH}")
+    IS_RELOADING = False  # Clear reloading flag
+
+def background_refresh():
+    """Run full refresh once, then incremental every 60 seconds."""
+    refresh_data(full_refresh=True)  # Full refresh on start
+    while True:
+        time.sleep(60)  # 60 seconds
+        refresh_data(full_refresh=False)  # Incremental refresh

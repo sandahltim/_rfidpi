@@ -7,8 +7,7 @@ import os
 import logging
 
 tab5_bp = Blueprint("tab5_bp", __name__, url_prefix="/tab5")
-
-HAND_COUNTED_DB = "/home/tim/_rfidpi/tab5_hand_counted.db"
+HAND_COUNTED_DB = "/home/tim/test_rfidpi/tab5_hand_counted.db"
 logging.basicConfig(level=logging.DEBUG)
 
 def init_hand_counted_db():
@@ -80,35 +79,45 @@ def show_tab5():
         child_map = {}
         for contract, item_list in contract_map.items():
             logging.debug(f"Processing contract: {contract}")
-            common_name_map = defaultdict(list)
+            rental_class_map = defaultdict(list)
             for item in item_list:
-                common_name = item.get("common_name", "Unknown")
-                common_name_map[common_name].append(item)
+                rental_class_id = item.get("rental_class_id", "unknown")
+                rental_class_map[rental_class_id].append(item)
 
             child_data = {}
-            for common_name, items in common_name_map.items():
+            for rental_class_id, items in rental_class_map.items():
+                common_name = items[0]["common_name"]
                 rfid_items = [i for i in items if i.get("tag_id") is not None]
                 hand_items = [i for i in items if i.get("tag_id") is None]
                 total_rfid = len(rfid_items)
-                total_hand = sum(i.get("total_items", 0) for i in hand_items)
+                total_hand = sum(int(i.get("total_items", 0)) for i in hand_items)
                 total_items = total_rfid + total_hand
                 total_available = sum(1 for item in all_items if item["common_name"] == common_name and item["status"] == "Ready to Rent")
                 on_rent = sum(1 for item in all_items if item["common_name"] == common_name and 
                               item["status"] in ["On Rent", "Delivered"] and 
                               (item.get("last_contract_num", "") and not item["last_contract_num"].lower().startswith("l")))
-                service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
-                child_data[common_name] = {
+                service = total_rfid - sum(1 for item in rfid_items if item.get("status") == "Ready to Rent") - \
+                          sum(1 for item in rfid_items if item.get("status", "") in ["On Rent", "Delivered"]) if rfid_items else 0
+                child_data[rental_class_id] = {
+                    "common_name": common_name,
                     "total": total_items,
                     "available": total_available,
                     "on_rent": on_rent,
-                    "service": service
+                    "service": service,
+                    "items": rfid_items + hand_items
                 }
 
             rfid_total = len([i for i in item_list if i.get("tag_id") is not None])
-            hand_total = sum(i.get("total_items", 0) for i in item_list if i.get("tag_id") is None)
+            hand_total = sum(int(i.get("total_items", 0)) for i in item_list if i.get("tag_id") is None)
+            # Get client_name and scan_date from contracts or first RFID item
+            contract_info = next((c for c in contracts if c["last_contract_num"] == contract), None)
+            client_name = contract_info["client_name"] if contract_info else "N/A"
+            scan_date = contract_info["scan_date"] if contract_info else (item_list[0]["date_last_scanned"] if item_list and item_list[0].get("date_last_scanned") else "N/A")
             parent_data.append({
                 "contract": contract,
-                "total": rfid_total + hand_total
+                "total": rfid_total + hand_total,
+                "client_name": client_name,
+                "scan_date": scan_date
             })
             child_map[contract] = child_data
 
@@ -145,7 +154,7 @@ def save_hand_counted():
             """, (last_contract_num, common_name, total_items, date_last_scanned, last_scanned_by))
             conn.commit()
 
-        return redirect(url_for("tab5_bp.show_tab5"))
+        return redirect(url_for("tab5_bp.show_tab5", last_contract_num=request.args.get("last_contract_num", ""), common_name=request.args.get("common_name", "")))
     except Exception as e:
         logging.error(f"Error saving hand-counted entry: {e}")
         return "Internal Server Error", 500
@@ -167,7 +176,6 @@ def update_hand_counted():
         with sqlite3.connect(HAND_COUNTED_DB, timeout=10) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            # Find matching open L contract
             cursor.execute("""
                 SELECT id, total_items FROM hand_counted_items 
                 WHERE last_contract_num = ? AND common_name = ?
@@ -178,14 +186,13 @@ def update_hand_counted():
                 logging.error(f"No matching L contract found: {last_contract_num}, {common_name}")
                 return "No matching L contract found", 404
 
-            orig_id, orig_total = row["id"], row["total_items"]
+            orig_id, orig_total = row["id"], int(row["total_items"])
             new_total = orig_total - returned_qty
 
             if new_total < 0:
                 logging.error(f"Returned quantity {returned_qty} exceeds original {orig_total}")
                 return "Returned quantity exceeds original total", 400
 
-            # Update original L contract
             if new_total == 0:
                 cursor.execute("DELETE FROM hand_counted_items WHERE id = ?", (orig_id,))
             else:
@@ -194,7 +201,6 @@ def update_hand_counted():
                     WHERE id = ?
                 """, (new_total, orig_id))
 
-            # Add new C contract entry
             closed_contract = "C" + last_contract_num[1:]
             cursor.execute("""
                 INSERT INTO hand_counted_items (last_contract_num, common_name, total_items, tag_id, date_last_scanned, last_scanned_by)
@@ -203,7 +209,7 @@ def update_hand_counted():
 
             conn.commit()
 
-        return redirect(url_for("tab5_bp.show_tab5"))
+        return redirect(url_for("tab5_bp.show_tab5", last_contract_num=request.args.get("last_contract_num", ""), common_name=request.args.get("common_name", "")))
     except Exception as e:
         logging.error(f"Error updating hand-counted entry: {e}")
         return "Internal Server Error", 500
@@ -211,10 +217,14 @@ def update_hand_counted():
 @tab5_bp.route("/subcat_data", methods=["GET"])
 def subcat_data():
     logging.debug("Hit /tab5/subcat_data endpoint")
-    contract = request.args.get('contract')
-    common_name = request.args.get('common_name')
-    page = int(request.args.get('page', 1))
-    per_page = 20
+    try:
+        contract = request.args.get('contract')
+        common_name = request.args.get('common_name')
+        page = int(request.args.get('page', 1))
+        per_page = 20
+    except ValueError:
+        page = 1
+        per_page = 20
 
     with DatabaseConnection() as conn:
         items = get_active_rental_items(conn)
@@ -262,7 +272,9 @@ def subcat_data():
             "quality": item.get("quality", "N/A"),
             "last_contract_num": item["last_contract_num"],
             "date_last_scanned": item.get("date_last_scanned", "N/A"),
-            "last_scanned_by": item.get("last_scanned_by", "Unknown")
+            "last_scanned_by": item.get("last_scanned_by", "Unknown"),
+            "notes": item.get("notes", "N/A"),
+            "client_name": item.get("client_name", "N/A")
         } for item in paginated_items],
         "total_items": total_items,
         "total_pages": total_pages,
