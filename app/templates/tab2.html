@@ -366,6 +366,150 @@ function loadItemData(category, subcat, commonName, page, catKey) {
     });
 }
 
+function updateWithNewData(newData) {
+  console.log("Updating Tab 2 with new data:", newData);
+  const urlParams = new URLSearchParams(window.location.search);
+  const filters = {
+    common_name: urlParams.get('common_name')?.toLowerCase() || '',
+    tag_id: urlParams.get('tag_id')?.toLowerCase() || '',
+    bin_location: urlParams.get('bin_location')?.toLowerCase() || '',
+    last_contract_num: urlParams.get('last_contract_num')?.toLowerCase() || '',
+    status: urlParams.get('status')?.toLowerCase() || ''
+  };
+
+  // Update parent table
+  const parentRows = document.querySelectorAll('#parentTableBody tr.table-active');
+  const categoryTotals = {};
+  newData.items.forEach(item => {
+    const cat = categorize_item(item.rental_class_num);
+    if (!categoryTotals[cat]) categoryTotals[cat] = { total: 0, available: 0, on_rent: 0, service: 0 };
+    categoryTotals[cat].total++;
+    if (item.status === "Ready to Rent") categoryTotals[cat].available++;
+    else if (["On Rent", "Delivered"].includes(item.status)) categoryTotals[cat].on_rent++;
+    else categoryTotals[cat].service++;
+  });
+
+  parentRows.forEach(row => {
+    const category = row.cells[1].innerText;
+    if (categoryTotals[category]) {
+      const totals = categoryTotals[category];
+      row.cells[2].innerText = parseInt(row.cells[2].innerText) + totals.total; // Total
+      row.cells[3].innerText = parseInt(row.cells[3].innerText) + totals.available; // Available
+      row.cells[4].innerText = parseInt(row.cells[4].innerText) + totals.on_rent; // On Rent
+      row.cells[5].innerText = parseInt(row.cells[5].innerText) + totals.service; // Service
+    }
+  });
+
+  // Update open subcats and items
+  document.querySelectorAll('.collapse.show').forEach(collapse => {
+    if (collapse.classList.contains('child')) {
+      const category = collapse.getAttribute("data-category");
+      const catKey = category.toLowerCase().replace(/ /g, '_');
+      const select = collapse.querySelector(".subcategory-dropdown");
+      const subcat = select.value;
+      const filteredItems = newData.items.filter(item => 
+        categorize_item(item.rental_class_num) === category &&
+        subcategorize_item(category, item.rental_class_num) === subcat &&
+        (!filters.common_name || item.common_name.toLowerCase().includes(filters.common_name)) &&
+        (!filters.tag_id || item.tag_id.toLowerCase().includes(filters.tag_id)) &&
+        (!filters.bin_location || (item.bin_location || '').toLowerCase().includes(filters.bin_location)) &&
+        (!filters.last_contract_num || (item.last_contract_num || '').toLowerCase().includes(filters.last_contract_num)) &&
+        (!filters.status || (item.status || '').toLowerCase().includes(filters.status))
+      );
+
+      if (filteredItems.length > 0) {
+        const tbody = document.getElementById(`commonTbody-${catKey}`);
+        filteredItems.forEach(item => {
+          const commonName = item.common_name;
+          let row = Array.from(tbody.children).find(tr => tr.cells[1].innerText === commonName);
+          if (!row) {
+            row = document.createElement('tr');
+            row.innerHTML = `
+              <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#items-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}">+</span></td>
+              <td>${commonName}</td>
+              <td>0</td>
+              <td><button class="btn btn-sm btn-primary print-btn" data-level="common" data-category="${category}" data-subcat="${subcat}" data-common-name="${commonName}">Print</button></td>
+            `;
+            const itemRow = document.createElement('tr');
+            itemRow.innerHTML = `
+              <td colspan="4" class="p-0">
+                <div id="items-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}" class="collapse items" data-category="${category}" data-subcat="${subcat}" data-common-name="${commonName}">
+                  <div id="items-loading-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}" class="text-center my-2" style="display: none;">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                  </div>
+                  <nav aria-label="Item navigation" class="mb-2 mx-2" id="items-pagination-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}">
+                    <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
+                  </nav>
+                  <div class="item-table-container">
+                    <table class="table mb-0 item-table" id="itemTable-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}">
+                      <thead>
+                        <tr>
+                          <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                          <th class="sortable" data-col-name="common_name">Common Name</th>
+                          <th class="sortable" data-col-name="status">Status</th>
+                          <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                          <th class="sortable" data-col-name="quality">Quality</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="itemTbody-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            `;
+            tbody.appendChild(row);
+            tbody.appendChild(itemRow);
+            document.querySelector(`#commonTable-${catKey} .expand-toggle[data-bs-target="#items-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}"]`).addEventListener('click', () => {
+              const target = document.querySelector(`#items-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}`);
+              if (target.classList.contains('show')) {
+                target.previousElementSibling.textContent = '+';
+              } else {
+                target.previousElementSibling.textContent = '-';
+                loadItemData(category, subcat, commonName, 1, catKey);
+              }
+            });
+          }
+          const totalCell = row.cells[2];
+          totalCell.innerText = parseInt(totalCell.innerText) + 1;
+        });
+        sortTable(document.getElementById(`commonTable-${catKey}`), 'common_name', true);
+      }
+    } else if (collapse.classList.contains('items')) {
+      const category = collapse.getAttribute("data-category");
+      const subcat = collapse.getAttribute("data-subcat");
+      const commonName = collapse.getAttribute("data-common-name");
+      const catKey = category.toLowerCase().replace(/ /g, '_');
+      const filteredItems = newData.items.filter(item => 
+        categorize_item(item.rental_class_num) === category &&
+        subcategorize_item(category, item.rental_class_num) === subcat &&
+        item.common_name === commonName &&
+        (!filters.common_name || item.common_name.toLowerCase().includes(filters.common_name)) &&
+        (!filters.tag_id || item.tag_id.toLowerCase().includes(filters.tag_id)) &&
+        (!filters.bin_location || (item.bin_location || '').toLowerCase().includes(filters.bin_location)) &&
+        (!filters.last_contract_num || (item.last_contract_num || '').toLowerCase().includes(filters.last_contract_num)) &&
+        (!filters.status || (item.status || '').toLowerCase().includes(filters.status))
+      );
+
+      if (filteredItems.length > 0) {
+        const tbody = document.getElementById(`itemTbody-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        filteredItems.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.tag_id}</td>
+            <td>${item.common_name}</td>
+            <td>${item.status}</td>
+            <td>${item.bin_location || 'N/A'}</td>
+            <td>${item.quality || 'N/A'}</td>
+            <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-category="${category}" data-subcat="${subcat}" data-tag-id="${item.tag_id}" data-common-name="${commonName}">Print</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+  });
+}
+
 function printTable(level, category, subcat, tagId) {
   if (level === 'parent') {
     const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
@@ -724,6 +868,14 @@ function refreshTable() {
 }
 
 const childMap = {{ sub_map|tojson }};
+function categorize_item(rental_class_num) { return CATEGORY_MAP[parseInt(rental_class_num || 0)] || 'Other'; }
+function subcategorize_item(category, rental_class_num) {
+  const rid = parseInt(rental_class_num || 0);
+  if (['Tent Tops', 'Tables and Chairs', 'Round Linen', 'Rectangle Linen', 'Concession Equipment', 'AV Equipment', 'Runners and Drapes', 'Other', 'Resale'].includes(category)) {
+    return SUBCATEGORY_MAP[rid] || 'Unspecified Subcategory';
+  }
+  return 'Unspecified Subcategory';
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded");
@@ -781,21 +933,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.addEventListener('refresh', (e) => {
-    const collapse = e.target;
-    if (collapse.classList.contains('child')) {
-      const category = collapse.getAttribute("data-category");
-      const catKey = category.toLowerCase().replace(/ /g, '_');
-      const select = collapse.querySelector(".subcategory-dropdown");
-      const subcat = select.value;
-      loadSubcatData(category, subcat, 1, catKey);
-    } else if (collapse.classList.contains('items')) {
-      const category = collapse.getAttribute("data-category");
-      const subcat = collapse.getAttribute("data-subcat");
-      const commonName = collapse.getAttribute("data-common-name");
-      const catKey = category.toLowerCase().replace(/ /g, '_');
-      loadItemData(category, subcat, commonName, 1, catKey);
-    }
+  document.addEventListener('newData', (e) => {
+    updateWithNewData(e.detail);
   });
 
   let expandCat = "{{ expand_category | default('') }}";

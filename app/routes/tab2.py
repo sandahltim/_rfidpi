@@ -640,9 +640,9 @@ SUBCATEGORY_MAP = {
     62706: 'HP Tops',  # TOP HP 10 X 10 (G1)
     62707: 'HP Tops',  # TOP HP 10 X 20 (G2)
     62708: 'HP Tops',  # TOP HP 15X15 (G1)
-    62709: 'HP 20x Tops',  # TOP HP 20 X 20 (G2)
-    62711: 'HP 30x Tops',  # TOP HP 30 X 30 (G1)
-    62714: 'HP 30x Tops',  # TOP HP HEX 35 X 40 WHITE
+    62709: 'HP Tops',  # TOP HP 20 X 20 (G2)
+    62711: 'HP Tops',  # TOP HP 30 X 30 (G1)
+    62714: 'HP Tops',  # TOP HP HEX 35 X 40 WHITE
     62715: 'HP Sidewalls',  # SIDEWALL HP 15 x 8 (G1) WINDOW
     62719: 'HP Sidewalls',  # SIDEWALL HP 20 x 8 (G1) w/DOOR/WIND
     62723: 'HP Sidewalls',  # SIDEWALL HP 10 x 8 (G1) WINDOW
@@ -668,8 +668,8 @@ SUBCATEGORY_MAP = {
     62806: 'Pole Tops',  # MID 30 x 15 (G1) R AND W POLE CMATE
     62807: 'Pole Tops',  # END 30 x 15 LACE (G1) R AND W POLE
     62808: 'Navi Tops',  # TOP NAVI 30x15 HIP
-    62809: 'Pole 60x Tops',  # MID 60 x 20 ANCHOR POLE NC (G1)
-    62810: 'Pole 60x Tops',  # MID 60 x 30 (G1) ANCHOR POLE NC
+    62809: 'Pole 40x & 60x Tops',  # MID 60 x 20 ANCHOR POLE NC (G1)
+    62810: 'Pole 40x & 60x Tops',  # MID 60 x 30 (G1) ANCHOR POLE NC
     62853: 'STD Sidewalls',  # SIDEWALLMESH 7 H X 20 (G1) WH
     62857: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G1) WINDOW
     62858: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G2) WINDOW
@@ -690,20 +690,19 @@ SUBCATEGORY_MAP = {
     62894: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G1) WHITE
     62895: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G2) WHITE
     62896: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G3) WHITE
-    62797: 'Pole 40x Tops',  # MID 40 x 20 (G1) NCP
-    62798: 'Pole 40x Tops',  # END 40 x 20 LACE (G1) NCP
+    62797: 'Pole 40x & 60x Tops',  # MID 40 x 20 (G1) NCP
+    62798: 'Pole 40x & 60x Tops',  # END 40 x 20 LACE (G1) NCP
     62900: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G1) WHITE
     62901: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G2) WHITE
     62902: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G3) WHITE
     62904: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G1) WHITE
     62905: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G2) WHITE
     62906: 'Navi Sidewalls',  # SIDEWALL NAVI 8 X 30 (G3) WHITE
-    65035: 'Pole 40x Tops',  # END 40 x 20 GRMT (G1) ANCHOR POLE NC
-    65036: 'Pole 60x Tops',  # END 60 x 20 LACE (G1) ANCHOR POLE NC
-    65037: 'Pole 60x Tops',  # END 60 x 20 GRMT (G1) ANCHOR POLE NC
-    65039: 'Pole Tops',  # END 30 x 15 GRMT (G1) R AND W POLE
-    65367: 'HP 20x Tops',  # TOP HP 20 X 20 (G1)
-    65446: 'HP 30x Tops',  # TOP HP HEX 35 X 40 SKYLIGHT
+    65035: 'Pole 40x & 60x Tops',  # END 40 x 20 GRMT (G1) ANCHOR POLE NC
+    65036: 'Pole 40x & 60x Tops',  # END 60 x 20 LACE (G1) ANCHOR POLE NC
+    65037: 'Pole 40x & 60x Tops',  # END 30 x 15 GRMT (G1) R AND W POLE
+    65367: 'HP Tops',  # TOP HP 20 X 20 (G1)
+    65446: 'HP Tops',  # TOP HP HEX 35 X 40 SKYLIGHT
     65449: 'Navi Gable Tops',  # TOP NAVI 15 GABLE ENDCAP LACE
     65450: 'Navi Gable Tops',  # TOP NAVI 15 GABLE ENDCAP GRMT
     65467: 'Navi Gable Tops',  # TOP NAVI 20 GABLE ENDCAP GRMT
@@ -712,7 +711,7 @@ SUBCATEGORY_MAP = {
     66324: 'Navi Lite Tops',  # TOP NAVI LITE 30x15 MID G2
     66325: 'Navi Tops',  # TOP NAVI 30x15 MID (G2)
     66326: 'Navi Tops',  # TOPS NAVI 30x15 MID
-    67657: 'HP 20x Tops',  # TOP HP 20 X 30 (G1) WHITE DBL PEAK
+    67657: 'HP Tops',  # TOP HP 20 X 30 (G1) WHITE DBL PEAK
     65129: 'POPUP Tents',  # CANOPY 10X10 POPUP WHITE WEIGHTED
     66363: 'APC Tents',  # CANOPY AP 16X16 WHITE (R)(G1)
     72252: 'Navi Sidewalls',  # SIDEWALL KEDAR -G 8' x 5' PANEL
