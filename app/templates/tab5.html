@@ -534,6 +534,171 @@ function refreshTable() {
     .catch(error => console.error('Error refreshing table:', error));
 }
 
+function updateWithNewData(newData) {
+  console.log("Updating Tab 5 with new data:", newData);
+  const urlParams = new URLSearchParams(window.location.search);
+  const filters = {
+    common_name: urlParams.get('common_name')?.toLowerCase() || '',
+    last_contract_num: urlParams.get('last_contract_num')?.toLowerCase() || ''
+  };
+
+  const filteredItems = newData.items.filter(item => 
+    (!filters.common_name || item.common_name.toLowerCase().includes(filters.common_name)) &&
+    (!filters.last_contract_num || (item.last_contract_num || '').toLowerCase().includes(filters.last_contract_num))
+  );
+
+  const contractTotals = {};
+  filteredItems.forEach(item => {
+    const contract = item.last_contract_num;
+    if (!contractTotals[contract]) {
+      contractTotals[contract] = { total: 0, items: [], client_name: item.client_name, scan_date: item.date_last_scanned };
+    }
+    contractTotals[contract].total++;
+    contractTotals[contract].items.push(item);
+    if (new Date(item.date_last_scanned) > new Date(contractTotals[contract].scan_date || '1970-01-01')) {
+      contractTotals[contract].scan_date = item.date_last_scanned;
+    }
+  });
+
+  const tbody = document.getElementById('parentTableBody');
+  Object.entries(contractTotals).forEach(([contract, data]) => {
+    let parentRow = Array.from(tbody.querySelectorAll('tr.table-active'))
+      .find(row => row.cells[1].innerText === contract);
+    const contract_key = contract.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    if (!parentRow) {
+      parentRow = document.createElement('tr');
+      parentRow.className = 'table-active';
+      parentRow.setAttribute('data-client-name', data.client_name || 'N/A');
+      parentRow.setAttribute('data-scan-date', data.scan_date || 'N/A');
+      parentRow.innerHTML = `
+        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#child-${contract_key}">+</span></td>
+        <td>${contract}</td>
+        <td>${data.total}</td>
+        <td><button class="btn btn-sm btn-primary print-btn" data-level="parent" data-contract="${contract}">Print</button></td>
+      `;
+      const childRow = document.createElement('tr');
+      childRow.innerHTML = `
+        <td colspan="4" class="p-0">
+          <div id="child-${contract_key}" class="collapse" data-contract="${contract}">
+            <div class="child-table-container">
+              <table class="table table-striped table-bordered child-table" id="childTable-${contract_key}">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;"></th>
+                    <th class="sortable" data-col-name="common_name">Common Name</th>
+                    <th class="sortable" data-col-name="total">Total Items</th>
+                    <th class="sortable" data-col-name="available">Available</th>
+                    <th class="sortable" data-col-name="on_rent">On Rent</th>
+                    <th class="sortable" data-col-name="service">Service</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(parentRow);
+      tbody.appendChild(childRow);
+    } else {
+      const totalCell = parentRow.cells[2];
+      totalCell.innerText = parseInt(totalCell.innerText) + data.total;
+      if (new Date(data.scan_date) > new Date(parentRow.getAttribute('data-scan-date'))) {
+        parentRow.setAttribute('data-scan-date', data.scan_date);
+      }
+    }
+
+    const childTbody = document.getElementById(`childTable-${contract_key}`).querySelector('tbody');
+    const commonTotals = {};
+    data.items.forEach(item => {
+      const common = item.common_name;
+      if (!commonTotals[common]) {
+        commonTotals[common] = { total: 0, available: 0, on_rent: 0, service: 0, items: [] };
+      }
+      commonTotals[common].total++;
+      if (item.status === "Ready to Rent") commonTotals[common].available++;
+      else if (["On Rent", "Delivered"].includes(item.status)) commonTotals[common].on_rent++;
+      else commonTotals[common].service++;
+      commonTotals[common].items.push(item);
+    });
+
+    Object.entries(commonTotals).forEach(([common, totals]) => {
+      const child_key = `${contract_key}_${Object.keys(childMap[contract] || {}).find(id => childMap[contract][id]?.common_name === common) || common.replace(/[^a-z0-9]/g, '_')}`;
+      let childRow = Array.from(childTbody.querySelectorAll('.child-row'))
+        .find(row => row.cells[1].innerText === common);
+      if (!childRow) {
+        childRow = document.createElement('tr');
+        childRow.className = 'child-row';
+        childRow.innerHTML = `
+          <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#grandchild-${child_key}">+</span></td>
+          <td>${common}</td>
+          <td>${totals.total}</td>
+          <td>${totals.available}</td>
+          <td>${totals.on_rent}</td>
+          <td>${totals.service}</td>
+          <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-contract="${contract}" data-common-name="${common}">Print</button></td>
+        `;
+        const grandRow = document.createElement('tr');
+        grandRow.innerHTML = `
+          <td colspan="7" class="p-0">
+            <div id="grandchild-${child_key}" class="collapse" data-contract="${contract}" data-common-name="${common}">
+              <div id="loading-${child_key}" class="text-center my-2" style="display: none;">
+                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+              </div>
+              <nav aria-label="Item navigation" class="mb-2 mx-2" id="pagination-${child_key}">
+                <ul class="pagination pagination-sm justify-content-center flex-wrap"></ul>
+              </nav>
+              <div class="grandchild-table-container">
+                <table class="table mb-0 grandchild-table" id="grandchildTable-${child_key}">
+                  <thead>
+                    <tr>
+                      <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                      <th class="sortable" data-col-name="common_name">Common Name</th>
+                      <th class="sortable" data-col-name="status">Status</th>
+                      <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                      <th class="sortable" data-col-name="quality">Quality</th>
+                      <th class="sortable" data-col-name="last_contract_num">Last Contract Num</th>
+                      <th class="sortable" data-col-name="date_last_scanned">Date Last Scanned</th>
+                      <th class="sortable" data-col-name="last_scanned_by">Last Scanned By</th>
+                    </tr>
+                  </thead>
+                  <tbody id="grandchildTbody-${child_key}"></tbody>
+                </table>
+              </div>
+            </div>
+          </td>
+        `;
+        childTbody.appendChild(childRow);
+        childTbody.appendChild(grandRow);
+      } else {
+        childRow.cells[2].innerText = parseInt(childRow.cells[2].innerText) + totals.total;
+        childRow.cells[3].innerText = parseInt(childRow.cells[3].innerText) + totals.available;
+        childRow.cells[4].innerText = parseInt(childRow.cells[4].innerText) + totals.on_rent;
+        childRow.cells[5].innerText = parseInt(childRow.cells[5].innerText) + totals.service;
+      }
+
+      const grandTbody = document.getElementById(`grandchildTbody-${child_key}`);
+      if (grandTbody && grandTbody.closest('.collapse').classList.contains('show')) {
+        totals.items.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.tag_id || 'N/A'}</td>
+            <td>${item.common_name || 'N/A'}</td>
+            <td>${item.status || 'N/A'}</td>
+            <td>${item.bin_location || 'N/A'}</td>
+            <td>${item.quality || 'N/A'}</td>
+            <td>${item.last_contract_num || 'N/A'}</td>
+            <td>${item.date_last_scanned || 'N/A'}</td>
+            <td>${item.last_scanned_by || 'N/A'}</td>
+          `;
+          grandTbody.appendChild(tr);
+        });
+      }
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded");
 
@@ -587,8 +752,6 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           console.error(`Missing contract or common_name on collapse element: ${targetId}`);
         }
-      } else {
-        console.log(`Collapse element ${targetId} already showing or not found`);
       }
     }
   });
@@ -599,7 +762,11 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("input", debouncedSubmit);
   });
 
-  setInterval(refreshTable, 60000); // Auto-refresh every 60 seconds
+  document.addEventListener('newData', (e) => {
+    updateWithNewData(e.detail);
+  });
+
+  setInterval(refreshTable, 60000);
 });
 
 function confirmSave() {
