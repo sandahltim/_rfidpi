@@ -635,11 +635,11 @@ SUBCATEGORY_MAP = {
     4808: 'HP Sidewalls',  # SIDEWALL HP 15 x 9 WHITE (G1)
     60526: 'Navi Sidewalls',  # SIDEWALL KEDARNAVI 15x8 (G1) WINDOW
     60528: 'Navi Sidewalls',  # SIDEWALL KEDAR NAVI 15x8 (G1) WHITE
-    65119: 'HP 10x20 Tops', #G1
+    65119: 'HP Tops', #G1
 
-    62706: 'HP 10x10 Tops',  # TOP HP 10 X 10 (G1)
-    62707: 'HP 10x20 Tops',  # TOP HP 10 X 20 (G2)
-    62708: 'HP 15x15 Tops',  # TOP HP 15X15 (G1)
+    62706: 'HP Tops',  # TOP HP 10 X 10 (G1)
+    62707: 'HP Tops',  # TOP HP 10 X 20 (G2)
+    62708: 'HP Tops',  # TOP HP 15X15 (G1)
     62709: 'HP 20x Tops',  # TOP HP 20 X 20 (G2)
     62711: 'HP 30x Tops',  # TOP HP 30 X 30 (G1)
     62714: 'HP 30x Tops',  # TOP HP HEX 35 X 40 WHITE
@@ -690,8 +690,8 @@ SUBCATEGORY_MAP = {
     62894: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G1) WHITE
     62895: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G2) WHITE
     62896: 'STD Sidewalls',  # SIDEWALL STD 7 X 20 (G3) WHITE
-    62797: 'Navi 40x Tops',  # MID 40 x 20 (G1) NCP
-    62798: 'Navi 40x Tops',  # END 40 x 20 LACE (G1) NCP
+    62797: 'Pole 40x Tops',  # MID 40 x 20 (G1) NCP
+    62798: 'Pole 40x Tops',  # END 40 x 20 LACE (G1) NCP
     62900: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G1) WHITE
     62901: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G2) WHITE
     62902: 'STD Sidewalls',  # SIDEWALL STD 8 X 20 (G3) WHITE
@@ -770,7 +770,7 @@ SUBCATEGORY_MAP = {
     61824: '90 Round',  # 90 ROUND SNOW WHITE LINEN (SEAML
     61825: '90 Round',  # 90 ROUND WHITE LINEN
     61883: '90 Round', # APPLE GREEN NOVA SOLID
-    61882: '90 ROUND', # BERMUDA BLUE NOVA SOLID
+    61882: '90 Round', # BERMUDA BLUE NOVA SOLID
 
     61826: '90 Round',  # 90 ROUND BLACK LINEN
     61827: '90 Round',  # 90 ROUND GREY LINEN
