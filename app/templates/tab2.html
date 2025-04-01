@@ -51,7 +51,7 @@
       </tr>
       <tr>
         <td colspan="7" class="p-0">
-          <div id="child-{{ cat_key }}" class="collapse" data-category="{{ parent.category }}" {% if expand_category == parent.category %}data-auto-expand="true"{% endif %}>
+          <div id="child-{{ cat_key }}" class="collapse child" data-category="{{ parent.category }}" {% if expand_category == parent.category %}data-auto-expand="true"{% endif %}>
             <div class="mb-2 mx-2">
               <select class="form-select subcategory-dropdown" data-category="{{ parent.category }}">
                 {% for subcat in sub_map[parent.category].subcategories.keys() %}
@@ -191,7 +191,7 @@ function loadSubcatData(category, subcat, page, catKey) {
         const itemRow = document.createElement('tr');
         itemRow.innerHTML = `
           <td colspan="4" class="p-0">
-            <div id="items-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}" class="collapse" data-category="${category}" data-subcat="${subcat}" data-common-name="${cn.common_name}">
+            <div id="items-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}" class="collapse items" data-category="${category}" data-subcat="${subcat}" data-common-name="${cn.common_name}">
               <div id="items-loading-${catKey}-${cn.common_name.replace(/[^a-zA-Z0-9]/g, '_')}" class="text-center my-2" style="display: none;">
                 <div class="spinner-border text-primary" role="status">
                   <span class="visually-hidden">Loading...</span>
@@ -317,7 +317,7 @@ function loadItemData(category, subcat, commonName, page, catKey) {
           <td>${item.status}</td>
           <td>${item.bin_location}</td>
           <td>${item.quality}</td>
-          <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-category="${category}" data-subcat="${subcat}" data-tag-id="${item.tag_id}">Print</button></td>
+          <td><button class="btn btn-sm btn-primary print-btn" data-level="child" data-category="${category}" data-subcat="${subcat}" data-tag-id="${item.tag_id}" data-common-name="${commonName}">Print</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -362,11 +362,313 @@ function loadItemData(category, subcat, commonName, page, catKey) {
 }
 
 function printTable(level, category, subcat, tagId) {
-  // [Unchanged from your doc]
+  if (level === 'parent') {
+    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
+      .find(row => row.cells[1].innerText === category);
+    if (!parentRow) {
+      console.error(`Parent row not found for category: ${category}`);
+      return;
+    }
+    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
+    const firstScanDate = parentRow.getAttribute('data-scan-date') || 'N/A';
+    let html = `
+      <html>
+      <head>
+        <title>Category ${category} Print</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .title { font-size: 18px; }
+          .company { font-size: 14px; text-align: right; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid black; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .signature { margin-top: 40px; }
+          .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Category: ${category}<br>Client Name: ${clientName}<br>Last Scan Date: ${firstScanDate}</div>
+          <div class="company">Broadway Tent and Event</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Subcategory</th>
+              <th>Total Items</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    const subcategories = Object.keys(childMap[category].subcategories);
+    subcategories.forEach(subcat => {
+      const total = Object.values(childMap[category].subcategories[subcat].common_names).reduce((sum, cn) => sum + cn.total, 0);
+      html += `
+        <tr>
+          <td>${subcat}</td>
+          <td>${total}</td>
+        </tr>
+      `;
+    });
+    html += `
+          </tbody>
+        </table>
+        <div class="signature">
+          <div class="signature-line"></div>
+          <p>Signature</p>
+          <div class="signature-line"></div>
+          <p>Date</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  } else if (level === 'common') {
+    const commonName = event.target.getAttribute('data-common-name');
+    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
+      .find(row => row.cells[1].innerText === category);
+    if (!parentRow) {
+      console.error(`Parent row not found for category: ${category}`);
+      return;
+    }
+    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
+    const catKey = category.toLowerCase().replace(/ /g, '_');
+    const urlParams = new URLSearchParams(window.location.search);
+    const params = {
+      category: category,
+      subcat: subcat,
+      common_name: commonName,
+      page: 1,
+      tag_id: urlParams.get('tag_id') || '',
+      bin_location: urlParams.get('bin_location') || '',
+      last_contract_num: urlParams.get('last_contract_num') || '',
+      status: urlParams.get('status') || ''
+    };
+    const url = `/tab2/item_data?${new URLSearchParams(params).toString()}`;
+    fetch(url)
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Print Item Data:', data);
+        let html = `
+          <html>
+          <head>
+            <title>${category} - ${subcat} - ${commonName} Print</title>
+            <style>
+              @page { size: A4; margin: 20mm; }
+              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+              .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+              .title { font-size: 18px; }
+              .company { font-size: 14px; text-align: right; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+              th, td { border: 1px solid black; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              .signature { margin-top: 40px; }
+              .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="title">Category: ${category}<br>Subcategory: ${subcat}<br>Common Name: ${commonName}<br>Client Name: ${clientName}</div>
+              <div class="company">Broadway Tent and Event</div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Tag ID</th>
+                  <th>Common Name</th>
+                  <th>Status</th>
+                  <th>Bin Location</th>
+                  <th>Quality</th>
+                  <th>Last Contract Num</th>
+                  <th>Date Last Scanned</th>
+                  <th>Last Scanned By</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        data.items.forEach(item => {
+          html += `
+            <tr>
+              <td>${item.tag_id}</td>
+              <td>${item.common_name}</td>
+              <td>${item.status}</td>
+              <td>${item.bin_location}</td>
+              <td>${item.quality}</td>
+              <td>${item.last_contract_num}</td>
+              <td>${item.date_last_scanned}</td>
+              <td>${item.last_scanned_by}</td>
+              <td>${item.notes}</td>
+            </tr>
+          `;
+        });
+        html += `
+              </tbody>
+            </table>
+            <div class="signature">
+              <div class="signature-line"></div>
+              <p>Signature</p>
+              <div class="signature-line"></div>
+              <p>Date</p>
+            </div>
+          </body>
+          </html>
+        `;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+      })
+      .catch(error => console.error('Error fetching print data:', error));
+  } else if (level === 'child') {
+    const commonName = event.target.getAttribute('data-common-name');
+    const parentRow = Array.from(document.querySelectorAll('#parentTable tbody tr.table-active'))
+      .find(row => row.cells[1].innerText === category);
+    if (!parentRow) {
+      console.error(`Parent row not found for category: ${category}`);
+      return;
+    }
+    const clientName = parentRow.getAttribute('data-client-name') || 'N/A';
+    const catKey = category.toLowerCase().replace(/ /g, '_');
+    const tbodyId = `itemTbody-${catKey}-${commonName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const tbody = document.getElementById(tbodyId);
+    let items = [];
+
+    if (!tbody || tbody.children.length === 0 || (tagId && !Array.from(tbody.children).some(row => row.cells[0].innerText === tagId))) {
+      console.warn(`No item data for ${tbodyId} or tag ${tagId}, fetching synchronously...`);
+      const urlParams = new URLSearchParams(window.location.search);
+      const params = {
+        category: category,
+        subcat: subcat,
+        common_name: commonName,
+        page: 1,
+        tag_id: urlParams.get('tag_id') || '',
+        bin_location: urlParams.get('bin_location') || '',
+        last_contract_num: urlParams.get('last_contract_num') || '',
+        status: urlParams.get('status') || ''
+      };
+      const url = `/tab2/item_data?${new URLSearchParams(params).toString()}`;
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Child print data:', data);
+          items = data.items.map(item => ({
+            tag_id: item.tag_id,
+            common_name: item.common_name,
+            status: item.status,
+            bin_location: item.bin_location,
+            quality: item.quality,
+            last_contract_num: item.last_contract_num,
+            date_last_scanned: item.date_last_scanned,
+            last_scanned_by: item.last_scanned_by,
+            notes: item.notes
+          }));
+          if (tagId) items = items.filter(item => item.tag_id === tagId);
+          printChildItems(category, subcat, clientName, items);
+        })
+        .catch(error => console.error('Error fetching child data for print:', error));
+    } else {
+      items = Array.from(tbody.children).map(row => ({
+        tag_id: row.cells[0].innerText,
+        common_name: row.cells[1].innerText,
+        status: row.cells[2].innerText,
+        bin_location: row.cells[3].innerText,
+        quality: row.cells[4].innerText,
+        last_contract_num: 'N/A',
+        date_last_scanned: 'N/A',
+        last_scanned_by: 'N/A',
+        notes: 'N/A'
+      }));
+      if (tagId) items = items.filter(item => item.tag_id === tagId);
+      printChildItems(category, subcat, clientName, items);
+    }
+  }
 }
 
 function printChildItems(category, subcat, clientName, items) {
-  // [Unchanged from your doc]
+  let html = `
+    <html>
+    <head>
+      <title>${category} - ${subcat} Items</title>
+      <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .title { font-size: 18px; }
+        .company { font-size: 14px; text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .signature { margin-top: 40px; }
+        .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="title">Category: ${category}<br>Subcategory: ${subcat}<br>Client Name: ${clientName}</div>
+        <div class="company">Broadway Tent and Event</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tag ID</th>
+            <th>Common Name</th>
+            <th>Status</th>
+            <th>Bin Location</th>
+            <th>Quality</th>
+            <th>Last Contract Num</th>
+            <th>Date Last Scanned</th>
+            <th>Last Scanned By</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  items.forEach(item => {
+    html += `
+      <tr>
+        <td>${item.tag_id}</td>
+        <td>${item.common_name}</td>
+        <td>${item.status}</td>
+        <td>${item.bin_location}</td>
+        <td>${item.quality}</td>
+        <td>${item.last_contract_num}</td>
+        <td>${item.date_last_scanned}</td>
+        <td>${item.last_scanned_by}</td>
+        <td>${item.notes}</td>
+      </tr>
+    `;
+  });
+  html += `
+        </tbody>
+      </table>
+      <div class="signature">
+        <div class="signature-line"></div>
+        <p>Signature</p>
+        <div class="signature-line"></div>
+        <p>Date</p>
+      </div>
+    </body>
+    </html>
+  `;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
 }
 
 function refreshTable() {
@@ -431,7 +733,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const catKey = category.toLowerCase().replace(/ /g, '_');
         const select = target.querySelector(".subcategory-dropdown");
         const subcat = select.value;
-        loadSubcatData(category, subcat, 1, catKey);
+        const subcatCount = select.options.length;
+        if (subcatCount === 1) {
+          loadSubcatData(category, subcat, 1, catKey);  // Auto-load if only one subcat
+        }
       }
     });
     target.addEventListener("hide.bs.collapse", () => {
@@ -463,10 +768,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const tagId = target.getAttribute("data-tag-id");
       if (level === "parent") {
         printTable("parent", category);
+      } else if (level === "common") {
+        printTable("common", category, subcat);
       } else if (level === "child") {
-        const select = document.querySelector(`#child-${category.toLowerCase().replace(/ /g, '_')} .subcategory-dropdown`);
-        const selectedSubcat = subcat || select.value;
-        printTable("child", category, selectedSubcat, tagId);
+        printTable("child", category, subcat, tagId);
       }
     }
   });
@@ -482,8 +787,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const catKey = category.toLowerCase().replace(/ /g, '_');
       const select = collapse.querySelector(".subcategory-dropdown");
       const subcat = select.value;
+      const subcatCount = select.options.length;
       console.log(`Initial expand: ${category} -> ${subcat}`);
-      loadSubcatData(category, subcat, 1, catKey);
+      if (subcatCount === 1) {
+        loadSubcatData(category, subcat, 1, catKey);  // Auto-load if only one subcat
+      }
     }
   }
 
