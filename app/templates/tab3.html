@@ -19,7 +19,7 @@
     <tbody id="crewTableBody">
       {% if items_found %}
       {% for crew_entry in crew_data %}
-      {% set crew_key = crew_entry.crew|lower|replace(' ', '_') %}
+      {% set crew_key = crew_entry.crew|lower|replace('/[^a-z0-9]/gi', '_') %}
       <tr class="table-active crew-row">
         <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#status-{{ crew_key }}">+</span></td>
         <td>{{ crew_entry.crew }}</td>
@@ -42,7 +42,7 @@
               </thead>
               <tbody>
                 {% for status, cat_dict in crew_map[crew_entry.crew].items() %}
-                {% set status_key = status|lower|replace(' ', '_') %}
+                {% set status_key = status|lower|replace('/[^a-z0-9]/gi', '_') %}
                 <tr class="table-info status-row">
                   <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#category-{{ crew_key }}-{{ status_key }}">+</span></td>
                   <td>{{ status }}</td>
@@ -62,7 +62,7 @@
                         </thead>
                         <tbody>
                           {% for category, sub_dict in cat_dict.items() %}
-                          {% set cat_key = category|lower|replace(' ', '_') %}
+                          {% set cat_key = category|lower|replace('/[^a-z0-9]/gi', '_') %}
                           <tr class="table-success category-row">
                             <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#subcategory-{{ crew_key }}-{{ status_key }}-{{ cat_key }}">+</span></td>
                             <td>{{ category }}</td>
@@ -82,7 +82,7 @@
                                   </thead>
                                   <tbody>
                                     {% for subcategory, items in sub_dict.subcategories.items() %}
-                                    {% set sub_key = subcategory|lower|replace(' ', '_') %}
+                                    {% set sub_key = subcategory|lower|replace('/[^a-z0-9]/gi', '_') %}
                                     <tr class="table-warning subcategory-row">
                                       <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#items-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}">+</span></td>
                                       <td>{{ subcategory }}</td>
@@ -217,10 +217,10 @@ function refreshTable() {
     .then(data => {
       console.log("Refresh data received:", data);
       const tbody = document.getElementById('crewTableBody');
-      tbody.innerHTML = ''; // Clear existing content
-      if (data.items_found) {
+      tbody.innerHTML = '';
+      if (data && data.items_found && data.crew_data) {
         data.crew_data.forEach(crewEntry => {
-          const crew_key = crewEntry.crew.toLowerCase().replace(/ /g, '_');
+          const crew_key = crewEntry.crew.toLowerCase().replace(/[^a-z0-9]/gi, '_');
           const crewRow = document.createElement('tr');
           crewRow.className = 'table-active crew-row';
           crewRow.innerHTML = `
@@ -254,7 +254,7 @@ function refreshTable() {
 
           const statusTbody = document.getElementById(`statusTable-${crew_key}`).querySelector('tbody');
           Object.entries(data.crew_map[crewEntry.crew]).forEach(([status, catDict]) => {
-            const status_key = status.toLowerCase().replace(/ /g, '_');
+            const status_key = status.toLowerCase().replace(/[^a-z0-9]/gi, '_');
             const statusRow = document.createElement('tr');
             statusRow.className = 'table-info status-row';
             statusRow.innerHTML = `
@@ -285,7 +285,7 @@ function refreshTable() {
 
             const catTbody = document.getElementById(`categoryTable-${crew_key}-${status_key}`).querySelector('tbody');
             Object.entries(catDict).forEach(([category, subDict]) => {
-              const cat_key = category.toLowerCase().replace(/ /g, '_');
+              const cat_key = category.toLowerCase().replace(/[^a-z0-9]/gi, '_');
               const catRow = document.createElement('tr');
               catRow.className = 'table-success category-row';
               catRow.innerHTML = `
@@ -316,7 +316,7 @@ function refreshTable() {
 
               const subTbody = document.getElementById(`subcategoryTable-${crew_key}-${status_key}-${cat_key}`).querySelector('tbody');
               Object.entries(subDict.subcategories).forEach(([subcategory, items]) => {
-                const sub_key = subcategory.toLowerCase().replace(/ /g, '_');
+                const sub_key = subcategory.toLowerCase().replace(/[^a-z0-9]/gi, '_');
                 const subRow = document.createElement('tr');
                 subRow.className = 'table-warning subcategory-row';
                 subRow.innerHTML = `
@@ -415,7 +415,7 @@ function updateWithNewData(newData) {
   Object.entries(crewTotals).forEach(([crew, data]) => {
     let crewRow = Array.from(tbody.querySelectorAll('.crew-row'))
       .find(row => row.cells[1].innerText === crew);
-    const crew_key = crew.toLowerCase().replace(/ /g, '_');
+    const crew_key = crew.toLowerCase().replace(/[^a-z0-9]/gi, '_');
     if (!crewRow) {
       crewRow = document.createElement('tr');
       crewRow.className = 'table-active crew-row';
@@ -459,7 +459,7 @@ function updateWithNewData(newData) {
     Object.entries(data.statusCounts).forEach(([status, count]) => {
       let statusRow = Array.from(statusTbody.querySelectorAll('.status-row'))
         .find(row => row.cells[1].innerText.toLowerCase() === status);
-      const status_key = status.replace(/ /g, '_');
+      const status_key = status.replace(/[^a-z0-9]/gi, '_');
       if (!statusRow) {
         statusRow = document.createElement('tr');
         statusRow.className = 'table-info status-row';
@@ -496,7 +496,7 @@ function updateWithNewData(newData) {
       Object.entries(data.categories).forEach(([category, catData]) => {
         let catRow = Array.from(catTbody.querySelectorAll('.category-row'))
           .find(row => row.cells[1].innerText === category);
-        const cat_key = category.toLowerCase().replace(/ /g, '_');
+        const cat_key = category.toLowerCase().replace(/[^a-z0-9]/gi, '_');
         if (!catRow) {
           catRow = document.createElement('tr');
           catRow.className = 'table-success category-row';
@@ -534,7 +534,7 @@ function updateWithNewData(newData) {
         Object.entries(catData.subcategories).forEach(([subcategory, items]) => {
           let subRow = Array.from(subTbody.querySelectorAll('.subcategory-row'))
             .find(row => row.cells[1].innerText === subcategory);
-          const sub_key = subcategory.toLowerCase().replace(/ /g, '_');
+          const sub_key = subcategory.toLowerCase().replace(/[^a-z0-9]/gi, '_');
           if (!subRow) {
             subRow = document.createElement('tr');
             subRow.className = 'table-warning subcategory-row';
@@ -592,7 +592,7 @@ function assignCrew(item) {
   const tokens = item.common_name.toLowerCase().split(/\W+/);
   if (tokens.some(word => ['tent', 'canopy', 'pole', 'hp', 'mid', 'end', 'navi'].includes(word))) return 'Tent Crew';
   if (tokens.some(word => ['132', '120', '90', '108', '90x90', '90x132', '60x120', '90x156', '54'].includes(word))) return 'Linen Crew';
-  return 'Fabrication/Maintenance';
+  return 'Fabrication_Maintenance';
 }
 
 function categorizeItem(item) {
@@ -658,7 +658,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateWithNewData(e.detail);
   });
 
-  setInterval(refreshTable, 60000); // Refresh every 60 seconds
+  setInterval(refreshTable, 60000);
 });
 </script>
 
