@@ -2,6 +2,7 @@ from flask import Flask, request, url_for, jsonify
 from refresh_logic import IS_RELOADING, LAST_REFRESH, trigger_refresh
 from db_connection import DatabaseConnection
 import threading
+from datetime import timedelta
 
 def create_app():
     app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -31,8 +32,9 @@ def create_app():
         if not LAST_REFRESH:
             return jsonify({"items": [], "transactions": [], "since": None}), 200
 
-        since_date = LAST_REFRESH.strftime("%Y-%m-%d %H:%M:%S")
-        trigger_refresh(full=False)  # Trigger incremental refresh and reset timer
+        # Go back 5 minutes from LAST_REFRESH
+        since_date = (LAST_REFRESH - timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+        trigger_refresh(full=False)  # Trigger incremental refresh and reset 180s timer
         with DatabaseConnection() as conn:
             items_query = """
                 SELECT * FROM id_item_master 
