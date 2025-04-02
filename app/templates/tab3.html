@@ -3,12 +3,11 @@
 
 <h1>Service Department View</h1>
 
-<!-- Top-Level Table: Crews -->
 <div class="table-responsive">
   <table class="table table-striped table-bordered" id="crewTable">
     <thead>
       <tr>
-        <th style="width: 50px;"></th> <!-- Toggle column -->
+        <th style="width: 50px;"></th>
         <th class="sortable" data-col-name="crew">Crew</th>
         <th class="sortable" data-col-name="total">Total Items</th>
         <th>Repair</th>
@@ -30,15 +29,13 @@
         <td>{{ crew_entry.status_counts['Wet'] | default(0) }}</td>
         <td>{{ crew_entry.status_counts['Needs to be Inspected'] | default(0) }}</td>
       </tr>
-
-      <!-- Status Level -->
       <tr>
         <td colspan="7" class="p-0">
           <div id="status-{{ crew_key }}" class="collapse" data-crew="{{ crew_entry.crew }}">
             <table class="table mb-0 status-table" id="statusTable-{{ crew_key }}">
               <thead>
                 <tr>
-                  <th style="width: 50px;"></th> <!-- Toggle column -->
+                  <th style="width: 50px;"></th>
                   <th class="sortable" data-col-name="status">Status</th>
                   <th class="sortable" data-col-name="total">Total Items</th>
                 </tr>
@@ -51,15 +48,13 @@
                   <td>{{ status }}</td>
                   <td>{{ crew_entry.status_counts[status] }}</td>
                 </tr>
-
-                <!-- Category Level -->
                 <tr>
                   <td colspan="3" class="p-0">
                     <div id="category-{{ crew_key }}-{{ status_key }}" class="collapse" data-status="{{ status }}">
                       <table class="table mb-0 category-table" id="categoryTable-{{ crew_key }}-{{ status_key }}">
                         <thead>
                           <tr>
-                            <th style="width: 50px;"></th> <!-- Toggle column -->
+                            <th style="width: 50px;"></th>
                             <th class="sortable" data-col-name="category">Category</th>
                             <th class="sortable" data-col-name="total">Total Items</th>
                             <th class="sortable" data-col-name="service">Service</th>
@@ -74,15 +69,13 @@
                             <td>{{ sub_dict.total }}</td>
                             <td>{{ sub_dict.service }}</td>
                           </tr>
-
-                          <!-- Subcategory Level -->
                           <tr>
                             <td colspan="4" class="p-0">
                               <div id="subcategory-{{ crew_key }}-{{ status_key }}-{{ cat_key }}" class="collapse" data-category="{{ category }}">
                                 <table class="table mb-0 subcategory-table" id="subcategoryTable-{{ crew_key }}-{{ status_key }}-{{ cat_key }}">
                                   <thead>
                                     <tr>
-                                      <th style="width: 50px;"></th> <!-- Toggle column -->
+                                      <th style="width: 50px;"></th>
                                       <th class="sortable" data-col-name="subcategory">Subcategory</th>
                                       <th class="sortable" data-col-name="total">Total Items</th>
                                     </tr>
@@ -95,8 +88,6 @@
                                       <td>{{ subcategory }}</td>
                                       <td>{{ items|length }}</td>
                                     </tr>
-
-                                    <!-- Items Level -->
                                     <tr>
                                       <td colspan="3" class="p-0">
                                         <div id="items-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}" class="collapse" data-subcategory="{{ subcategory }}">
@@ -159,7 +150,6 @@
   </table>
 </div>
 
-<!-- Inline JS for sorting, refresh, and updates -->
 <script>
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
@@ -219,17 +209,164 @@ function refreshTable() {
   console.log("Refreshing Tab 3 at " + new Date().toLocaleTimeString());
   const expandedIds = Array.from(document.querySelectorAll('.collapse.show')).map(el => el.id);
 
-  fetch('/tab3/')
+  fetch('/tab3/data')
     .then(response => {
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      return response.text();
+      return response.json();
     })
-    .then(html => {
-      console.log("Refresh data received");
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      const newTbody = doc.querySelector('#crewTableBody');
-      if (newTbody) document.getElementById('crewTableBody').innerHTML = newTbody.innerHTML;
+    .then(data => {
+      console.log("Refresh data received:", data);
+      const tbody = document.getElementById('crewTableBody');
+      tbody.innerHTML = ''; // Clear existing content
+      if (data.items_found) {
+        data.crew_data.forEach(crewEntry => {
+          const crew_key = crewEntry.crew.toLowerCase().replace(/ /g, '_');
+          const crewRow = document.createElement('tr');
+          crewRow.className = 'table-active crew-row';
+          crewRow.innerHTML = `
+            <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#status-${crew_key}">+</span></td>
+            <td>${crewEntry.crew}</td>
+            <td>${crewEntry.total}</td>
+            <td>${crewEntry.status_counts['Repair'] || 0}</td>
+            <td>${crewEntry.status_counts['Wash'] || 0}</td>
+            <td>${crewEntry.status_counts['Wet'] || 0}</td>
+            <td>${crewEntry.status_counts['Needs to be Inspected'] || 0}</td>
+          `;
+          const statusRow = document.createElement('tr');
+          statusRow.innerHTML = `
+            <td colspan="7" class="p-0">
+              <div id="status-${crew_key}" class="collapse" data-crew="${crewEntry.crew}">
+                <table class="table mb-0 status-table" id="statusTable-${crew_key}">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;"></th>
+                      <th class="sortable" data-col-name="status">Status</th>
+                      <th class="sortable" data-col-name="total">Total Items</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(crewRow);
+          tbody.appendChild(statusRow);
+
+          const statusTbody = document.getElementById(`statusTable-${crew_key}`).querySelector('tbody');
+          Object.entries(data.crew_map[crewEntry.crew]).forEach(([status, catDict]) => {
+            const status_key = status.toLowerCase().replace(/ /g, '_');
+            const statusRow = document.createElement('tr');
+            statusRow.className = 'table-info status-row';
+            statusRow.innerHTML = `
+              <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#category-${crew_key}-${status_key}">+</span></td>
+              <td>${status}</td>
+              <td>${crewEntry.status_counts[status]}</td>
+            `;
+            const catRow = document.createElement('tr');
+            catRow.innerHTML = `
+              <td colspan="3" class="p-0">
+                <div id="category-${crew_key}-${status_key}" class="collapse" data-status="${status}">
+                  <table class="table mb-0 category-table" id="categoryTable-${crew_key}-${status_key}">
+                    <thead>
+                      <tr>
+                        <th style="width: 50px;"></th>
+                        <th class="sortable" data-col-name="category">Category</th>
+                        <th class="sortable" data-col-name="total">Total Items</th>
+                        <th class="sortable" data-col-name="service">Service</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </td>
+            `;
+            statusTbody.appendChild(statusRow);
+            statusTbody.appendChild(catRow);
+
+            const catTbody = document.getElementById(`categoryTable-${crew_key}-${status_key}`).querySelector('tbody');
+            Object.entries(catDict).forEach(([category, subDict]) => {
+              const cat_key = category.toLowerCase().replace(/ /g, '_');
+              const catRow = document.createElement('tr');
+              catRow.className = 'table-success category-row';
+              catRow.innerHTML = `
+                <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#subcategory-${crew_key}-${status_key}-${cat_key}">+</span></td>
+                <td>${category}</td>
+                <td>${subDict.total}</td>
+                <td>${subDict.service}</td>
+              `;
+              const subRow = document.createElement('tr');
+              subRow.innerHTML = `
+                <td colspan="4" class="p-0">
+                  <div id="subcategory-${crew_key}-${status_key}-${cat_key}" class="collapse" data-category="${category}">
+                    <table class="table mb-0 subcategory-table" id="subcategoryTable-${crew_key}-${status_key}-${cat_key}">
+                      <thead>
+                        <tr>
+                          <th style="width: 50px;"></th>
+                          <th class="sortable" data-col-name="subcategory">Subcategory</th>
+                          <th class="sortable" data-col-name="total">Total Items</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                </td>
+              `;
+              catTbody.appendChild(catRow);
+              catTbody.appendChild(subRow);
+
+              const subTbody = document.getElementById(`subcategoryTable-${crew_key}-${status_key}-${cat_key}`).querySelector('tbody');
+              Object.entries(subDict.subcategories).forEach(([subcategory, items]) => {
+                const sub_key = subcategory.toLowerCase().replace(/ /g, '_');
+                const subRow = document.createElement('tr');
+                subRow.className = 'table-warning subcategory-row';
+                subRow.innerHTML = `
+                  <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#items-${crew_key}-${status_key}-${cat_key}-${sub_key}">+</span></td>
+                  <td>${subcategory}</td>
+                  <td>${items.length}</td>
+                `;
+                const itemRow = document.createElement('tr');
+                itemRow.innerHTML = `
+                  <td colspan="3" class="p-0">
+                    <div id="items-${crew_key}-${status_key}-${cat_key}-${sub_key}" class="collapse" data-subcategory="${subcategory}">
+                      <table class="table mb-0 items-table" id="itemsTable-${crew_key}-${status_key}-${cat_key}-${sub_key}">
+                        <thead>
+                          <tr>
+                            <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                            <th class="sortable" data-col-name="common_name">Common Name</th>
+                            <th class="sortable" data-col-name="status">Status</th>
+                            <th class="sortable" data-col-name="quality">Quality</th>
+                            <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                          </tr>
+                        </thead>
+                        <tbody></tbody>
+                      </table>
+                    </div>
+                  </td>
+                `;
+                subTbody.appendChild(subRow);
+                subTbody.appendChild(itemRow);
+
+                const itemTbody = document.getElementById(`itemsTable-${crew_key}-${status_key}-${cat_key}-${sub_key}`).querySelector('tbody');
+                if (expandedIds.includes(`items-${crew_key}-${status_key}-${cat_key}-${sub_key}`)) {
+                  items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                      <td>${item.tag_id}</td>
+                      <td>${item.common_name}</td>
+                      <td>${item.status}</td>
+                      <td>${item.quality || 'N/A'}</td>
+                      <td>${item.bin_location || 'N/A'}</td>
+                    `;
+                    itemTbody.appendChild(tr);
+                  });
+                }
+              });
+            });
+          });
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No items needing service found.</td></tr>';
+      }
 
       expandedIds.forEach(id => {
         const element = document.getElementById(id);
