@@ -1,6 +1,7 @@
 from flask import Flask, request, url_for, jsonify
-from refresh_logic import IS_RELOADING, LAST_REFRESH
+from refresh_logic import IS_RELOADING, LAST_REFRESH, trigger_refresh
 from db_connection import DatabaseConnection
+import threading
 
 def create_app():
     app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -25,27 +26,26 @@ def create_app():
     def status():
         return jsonify({"is_reloading": IS_RELOADING}), 200
 
-    @app.route('/new_items', methods=['GET'])
-    def new_items():
+    @app.route('/trigger_incremental', methods=['GET'])
+    def trigger_incremental():
         if not LAST_REFRESH:
-            return jsonify({"items": [], "transactions": []}), 200
+            return jsonify({"items": [], "transactions": [], "since": None}), 200
 
         since_date = LAST_REFRESH.strftime("%Y-%m-%d %H:%M:%S")
+        trigger_refresh(full=False)  # Trigger incremental refresh and reset timer
         with DatabaseConnection() as conn:
-            # New items from id_item_master
             items_query = """
                 SELECT * FROM id_item_master 
-                WHERE date_updated >= ? OR date_last_scanned >= ?
+                WHERE date_last_scanned >= ?
             """
-            new_items = conn.execute(items_query, (since_date, since_date)).fetchall()
+            new_items = conn.execute(items_query, (since_date,)).fetchall()
             new_items = [dict(row) for row in new_items]
 
-            # New transactions from id_transactions
             trans_query = """
                 SELECT * FROM id_transactions 
-                WHERE date_updated >= ? OR scan_date >= ?
+                WHERE scan_date >= ?
             """
-            new_trans = conn.execute(trans_query, (since_date, since_date)).fetchall()
+            new_trans = conn.execute(trans_query, (since_date,)).fetchall()
             new_trans = [dict(row) for row in new_trans]
 
         return jsonify({
@@ -54,6 +54,11 @@ def create_app():
             "since": since_date
         }), 200
 
+    @app.route('/full_refresh', methods=['POST'])
+    def full_refresh():
+        trigger_refresh(full=True)  # Trigger full refresh and reset timer
+        return jsonify({"message": "Full refresh triggered", "is_reloading": IS_RELOADING}), 202
+
     @app.context_processor
     def utility_processor():
         def update_url_param(key, value):
@@ -61,5 +66,11 @@ def create_app():
             args[key] = value
             return url_for(request.endpoint, **args)
         return dict(update_url_param=update_url_param)
+
+    # Start background refresh thread
+    from refresh_logic import background_refresh
+    stop_event = threading.Event()
+    refresher_thread = threading.Thread(target=background_refresh, args=(stop_event,), daemon=True)
+    refresher_thread.start()
 
     return app
