@@ -17,7 +17,7 @@
         <th>Needs to be Inspected</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="crewTableBody">
       {% if items_found %}
       {% for crew_entry in crew_data %}
       {% set crew_key = crew_entry.crew|lower|replace(' ', '_') %}
@@ -159,7 +159,7 @@
   </table>
 </div>
 
-<!-- Inline JS for sorting and toggle -->
+<!-- Inline JS for sorting, refresh, and updates -->
 <script>
 function sortTable(tableEl, colName) {
   let tbody = tableEl.querySelector("tbody");
@@ -181,9 +181,7 @@ function sortTable(tableEl, colName) {
       let cellB = b.cells[colIndex]?.innerText.trim() || "";
       let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
       let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
+      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
       return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
     });
     tbody.innerHTML = "";
@@ -206,9 +204,7 @@ function sortTable(tableEl, colName) {
       let cellB = b.parent.cells[colIndex]?.innerText.trim() || "";
       let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
       let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
-      if (!isNaN(numA) && !isNaN(numB)) {
-        return asc ? numA - numB : numB - numA;
-      }
+      if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
       return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
     });
     tbody.innerHTML = "";
@@ -219,64 +215,313 @@ function sortTable(tableEl, colName) {
   }
 }
 
+function refreshTable() {
+  console.log("Refreshing Tab 3 at " + new Date().toLocaleTimeString());
+  const expandedIds = Array.from(document.querySelectorAll('.collapse.show')).map(el => el.id);
+
+  fetch('/tab3/')
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.text();
+    })
+    .then(html => {
+      console.log("Refresh data received");
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const newTbody = doc.querySelector('#crewTableBody');
+      if (newTbody) document.getElementById('crewTableBody').innerHTML = newTbody.innerHTML;
+
+      expandedIds.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          console.log(`Restoring expanded state for: ${id}`);
+          new bootstrap.Collapse(element, { toggle: false }).show();
+          const toggle = document.querySelector(`[data-bs-target="#${id}"]`);
+          if (toggle) toggle.textContent = '-';
+        }
+      });
+    })
+    .catch(error => console.error('Error refreshing table:', error));
+}
+
+function updateWithNewData(newData) {
+  console.log("Updating Tab 3 with new data:", newData);
+  const serviceStatuses = ["repair", "wash", "wet", "needs to be inspected"];
+  const filteredItems = newData.items.filter(item => 
+    serviceStatuses.includes(item.status.toLowerCase())
+  );
+
+  if (filteredItems.length === 0) return;
+
+  const tbody = document.getElementById('crewTableBody');
+  const crewTotals = {};
+  filteredItems.forEach(item => {
+    const crew = assignCrew(item);
+    if (!crewTotals[crew]) {
+      crewTotals[crew] = { total: 0, statusCounts: {}, categories: {} };
+    }
+    crewTotals[crew].total++;
+    const status = item.status.toLowerCase();
+    crewTotals[crew].statusCounts[status] = (crewTotals[crew].statusCounts[status] || 0) + 1;
+    const category = categorizeItem(item);
+    if (!crewTotals[crew].categories[category]) {
+      crewTotals[crew].categories[category] = { total: 0, subcategories: {} };
+    }
+    crewTotals[crew].categories[category].total++;
+    const subcategory = subcategorizeItem(category, item);
+    if (!crewTotals[crew].categories[category].subcategories[subcategory]) {
+      crewTotals[crew].categories[category].subcategories[subcategory] = [];
+    }
+    crewTotals[crew].categories[category].subcategories[subcategory].push(item);
+  });
+
+  Object.entries(crewTotals).forEach(([crew, data]) => {
+    let crewRow = Array.from(tbody.querySelectorAll('.crew-row'))
+      .find(row => row.cells[1].innerText === crew);
+    const crew_key = crew.toLowerCase().replace(/ /g, '_');
+    if (!crewRow) {
+      crewRow = document.createElement('tr');
+      crewRow.className = 'table-active crew-row';
+      crewRow.innerHTML = `
+        <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#status-${crew_key}">+</span></td>
+        <td>${crew}</td>
+        <td>${data.total}</td>
+        <td>${data.statusCounts['repair'] || 0}</td>
+        <td>${data.statusCounts['wash'] || 0}</td>
+        <td>${data.statusCounts['wet'] || 0}</td>
+        <td>${data.statusCounts['needs to be inspected'] || 0}</td>
+      `;
+      const statusRow = document.createElement('tr');
+      statusRow.innerHTML = `
+        <td colspan="7" class="p-0">
+          <div id="status-${crew_key}" class="collapse" data-crew="${crew}">
+            <table class="table mb-0 status-table" id="statusTable-${crew_key}">
+              <thead>
+                <tr>
+                  <th style="width: 50px;"></th>
+                  <th class="sortable" data-col-name="status">Status</th>
+                  <th class="sortable" data-col-name="total">Total Items</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(crewRow);
+      tbody.appendChild(statusRow);
+    } else {
+      crewRow.cells[2].innerText = parseInt(crewRow.cells[2].innerText) + data.total;
+      crewRow.cells[3].innerText = parseInt(crewRow.cells[3].innerText) + (data.statusCounts['repair'] || 0);
+      crewRow.cells[4].innerText = parseInt(crewRow.cells[4].innerText) + (data.statusCounts['wash'] || 0);
+      crewRow.cells[5].innerText = parseInt(crewRow.cells[5].innerText) + (data.statusCounts['wet'] || 0);
+      crewRow.cells[6].innerText = parseInt(crewRow.cells[6].innerText) + (data.statusCounts['needs to be inspected'] || 0);
+    }
+
+    const statusTbody = document.getElementById(`statusTable-${crew_key}`).querySelector('tbody');
+    Object.entries(data.statusCounts).forEach(([status, count]) => {
+      let statusRow = Array.from(statusTbody.querySelectorAll('.status-row'))
+        .find(row => row.cells[1].innerText.toLowerCase() === status);
+      const status_key = status.replace(/ /g, '_');
+      if (!statusRow) {
+        statusRow = document.createElement('tr');
+        statusRow.className = 'table-info status-row';
+        statusRow.innerHTML = `
+          <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#category-${crew_key}-${status_key}">+</span></td>
+          <td>${status.charAt(0).toUpperCase() + status.slice(1)}</td>
+          <td>${count}</td>
+        `;
+        const catRow = document.createElement('tr');
+        catRow.innerHTML = `
+          <td colspan="3" class="p-0">
+            <div id="category-${crew_key}-${status_key}" class="collapse" data-status="${status}">
+              <table class="table mb-0 category-table" id="categoryTable-${crew_key}-${status_key}">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;"></th>
+                    <th class="sortable" data-col-name="category">Category</th>
+                    <th class="sortable" data-col-name="total">Total Items</th>
+                    <th class="sortable" data-col-name="service">Service</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </td>
+        `;
+        statusTbody.appendChild(statusRow);
+        statusTbody.appendChild(catRow);
+      } else {
+        statusRow.cells[2].innerText = parseInt(statusRow.cells[2].innerText) + count;
+      }
+
+      const catTbody = document.getElementById(`categoryTable-${crew_key}-${status_key}`).querySelector('tbody');
+      Object.entries(data.categories).forEach(([category, catData]) => {
+        let catRow = Array.from(catTbody.querySelectorAll('.category-row'))
+          .find(row => row.cells[1].innerText === category);
+        const cat_key = category.toLowerCase().replace(/ /g, '_');
+        if (!catRow) {
+          catRow = document.createElement('tr');
+          catRow.className = 'table-success category-row';
+          catRow.innerHTML = `
+            <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#subcategory-${crew_key}-${status_key}-${cat_key}">+</span></td>
+            <td>${category}</td>
+            <td>${catData.total}</td>
+            <td>${catData.total}</td>
+          `;
+          const subRow = document.createElement('tr');
+          subRow.innerHTML = `
+            <td colspan="4" class="p-0">
+              <div id="subcategory-${crew_key}-${status_key}-${cat_key}" class="collapse" data-category="${category}">
+                <table class="table mb-0 subcategory-table" id="subcategoryTable-${crew_key}-${status_key}-${cat_key}">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;"></th>
+                      <th class="sortable" data-col-name="subcategory">Subcategory</th>
+                      <th class="sortable" data-col-name="total">Total Items</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </td>
+          `;
+          catTbody.appendChild(catRow);
+          catTbody.appendChild(subRow);
+        } else {
+          catRow.cells[2].innerText = parseInt(catRow.cells[2].innerText) + catData.total;
+          catRow.cells[3].innerText = parseInt(catRow.cells[3].innerText) + catData.total;
+        }
+
+        const subTbody = document.getElementById(`subcategoryTable-${crew_key}-${status_key}-${cat_key}`).querySelector('tbody');
+        Object.entries(catData.subcategories).forEach(([subcategory, items]) => {
+          let subRow = Array.from(subTbody.querySelectorAll('.subcategory-row'))
+            .find(row => row.cells[1].innerText === subcategory);
+          const sub_key = subcategory.toLowerCase().replace(/ /g, '_');
+          if (!subRow) {
+            subRow = document.createElement('tr');
+            subRow.className = 'table-warning subcategory-row';
+            subRow.innerHTML = `
+              <td><span class="expand-toggle" data-bs-toggle="collapse" data-bs-target="#items-${crew_key}-${status_key}-${cat_key}-${sub_key}">+</span></td>
+              <td>${subcategory}</td>
+              <td>${items.length}</td>
+            `;
+            const itemRow = document.createElement('tr');
+            itemRow.innerHTML = `
+              <td colspan="3" class="p-0">
+                <div id="items-${crew_key}-${status_key}-${cat_key}-${sub_key}" class="collapse" data-subcategory="${subcategory}">
+                  <table class="table mb-0 items-table" id="itemsTable-${crew_key}-${status_key}-${cat_key}-${sub_key}">
+                    <thead>
+                      <tr>
+                        <th class="sortable" data-col-name="tag_id">Tag ID</th>
+                        <th class="sortable" data-col-name="common_name">Common Name</th>
+                        <th class="sortable" data-col-name="status">Status</th>
+                        <th class="sortable" data-col-name="quality">Quality</th>
+                        <th class="sortable" data-col-name="bin_location">Bin Location</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </td>
+            `;
+            subTbody.appendChild(subRow);
+            subTbody.appendChild(itemRow);
+          } else {
+            subRow.cells[2].innerText = parseInt(subRow.cells[2].innerText) + items.length;
+          }
+
+          const itemTbody = document.getElementById(`itemsTable-${crew_key}-${status_key}-${cat_key}-${sub_key}`).querySelector('tbody');
+          if (itemTbody.closest('.collapse').classList.contains('show')) {
+            items.forEach(item => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td>${item.tag_id}</td>
+                <td>${item.common_name}</td>
+                <td>${item.status}</td>
+                <td>${item.quality || 'N/A'}</td>
+                <td>${item.bin_location || 'N/A'}</td>
+              `;
+              itemTbody.appendChild(tr);
+            });
+          }
+        });
+      });
+    });
+  });
+}
+
+function assignCrew(item) {
+  const tokens = item.common_name.toLowerCase().split(/\W+/);
+  if (tokens.some(word => ['tent', 'canopy', 'pole', 'hp', 'mid', 'end', 'navi'].includes(word))) return 'Tent Crew';
+  if (tokens.some(word => ['132', '120', '90', '108', '90x90', '90x132', '60x120', '90x156', '54'].includes(word))) return 'Linen Crew';
+  return 'Fabrication/Maintenance';
+}
+
+function categorizeItem(item) {
+  const tokens = item.common_name.toLowerCase().split(/\W+/);
+  if (tokens.some(word => ['tent', 'canopy', 'pole', 'hp', 'mid', 'end', 'navi'].includes(word))) return 'Tent Tops';
+  if (tokens.some(word => ['table', 'chair', 'plywood', 'prong'].includes(word))) return 'Tables and Chairs';
+  if (tokens.some(word => ['132', '120', '90', '108'].includes(word))) return 'Round Linen';
+  if (tokens.some(word => ['90x90', '90x132', '60x120', '90x156', '54'].includes(word))) return 'Rectangle Linen';
+  if (tokens.some(word => ['otc', 'machine', 'hotdog', 'nacho'].includes(word))) return 'Concession';
+  return 'Other';
+}
+
+function subcategorizeItem(category, item) {
+  const tokens = item.common_name.toLowerCase().split(/\W+/);
+  if (category === 'Tent Tops') {
+    if (tokens.includes('hp')) return 'HP Tents';
+    if (tokens.some(word => ['ncp', 'nc', 'end', 'pole'].includes(word))) return 'Pole Tents';
+    if (tokens.includes('navi')) return 'Navi Tents';
+    if (tokens.includes('canopy')) return 'AP Tents';
+    return 'Other Tents';
+  } else if (category === 'Tables and Chairs') {
+    if (tokens.includes('table')) return 'Tables';
+    if (tokens.includes('chair')) return 'Chairs';
+    return 'Other T&C';
+  } else if (category === 'Round Linen') {
+    if (tokens.includes('90')) return '90-inch Round';
+    if (tokens.includes('108')) return '108-inch Round';
+    if (tokens.includes('120')) return '120-inch Round';
+    if (tokens.includes('132')) return '132-inch Round';
+    return 'Other Round Linen';
+  } else if (category === 'Rectangle Linen') {
+    if (tokens.includes('90x90')) return '90 Square';
+    if (tokens.includes('54')) return '54 Square';
+    if (tokens.includes('90x132')) return '90x132';
+    if (tokens.includes('90x156')) return '90x156';
+    if (tokens.includes('60x120')) return '60x120';
+    return 'Other Rectangle Linen';
+  } else if (category === 'Concession') {
+    if (tokens.includes('frozen')) return 'Frozen Drink Machines';
+    if (tokens.includes('cotton')) return 'Cotton Candy Machines';
+    if (tokens.includes('sno')) return 'SnoKone Machines';
+    if (tokens.includes('hotdog')) return 'Hotdog Machines';
+    if (tokens.includes('cheese')) return 'Warmers';
+    if (tokens.includes('popcorn')) return 'Popcorn Machines';
+    return 'Other Concessions';
+  }
+  return 'Unspecified Subcategory';
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  let crewTable = document.getElementById("crewTable");
-  crewTable.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      let colName = th.getAttribute("data-col-name");
-      sortTable(crewTable, colName);
-    });
+  console.log("DOM Content Loaded - Tab 3");
+
+  document.getElementById("crewTable").addEventListener("click", function(event) {
+    const target = event.target;
+    if (target.classList.contains("sortable")) {
+      const table = target.closest("table");
+      const colName = target.getAttribute("data-col-name");
+      sortTable(table, colName);
+    }
   });
 
-  document.querySelectorAll(".status-table").forEach(statusTbl => {
-    statusTbl.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(statusTbl, colName);
-      });
-    });
+  document.addEventListener('newData', (e) => {
+    updateWithNewData(e.detail);
   });
 
-  document.querySelectorAll(".category-table").forEach(catTbl => {
-    catTbl.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(catTbl, colName);
-      });
-    });
-  });
-
-  document.querySelectorAll(".subcategory-table").forEach(subTbl => {
-    subTbl.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(subTbl, colName);
-      });
-    });
-  });
-
-  document.querySelectorAll(".items-table").forEach(itemTbl => {
-    itemTbl.querySelectorAll("th.sortable").forEach(th => {
-      th.addEventListener("click", () => {
-        let colName = th.getAttribute("data-col-name");
-        sortTable(itemTbl, colName);
-      });
-    });
-  });
-
-  document.querySelectorAll(".expand-toggle").forEach(toggle => {
-    let target = document.querySelector(toggle.getAttribute("data-bs-target"));
-    target.addEventListener("show.bs.collapse", () => {
-      toggle.textContent = "-";
-    });
-    target.addEventListener("hide.bs.collapse", () => {
-      toggle.textContent = "+";
-    });
-  });
-
-  document.querySelectorAll(".collapse").forEach(collapse => {
-    collapse.classList.remove("show");
-  });
+  setInterval(refreshTable, 60000); // Refresh every 60 seconds
 });
 </script>
 

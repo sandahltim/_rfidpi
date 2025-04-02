@@ -15,5 +15,5 @@ TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
 SEED_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169215907"
 
 # Refresh configuration: data is refreshed every 10 minutes (600 seconds)
-REFRESH_INTERVAL = 600
+#REFRESH_INTERVAL = 600
 
