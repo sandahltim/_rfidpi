@@ -37,10 +37,10 @@
         </ul>
     </nav>
     <div class="mt-2">
-        <form action="/full_refresh" method="POST" style="display: inline;">
+        <form action="/manual_refresh" method="POST" style="display: inline;">
             <button type="submit" class="btn btn-primary" id="refresh-data-btn">Refresh Data</button>
         </form>
-        <form action="/full_refresh" method="POST" style="display: inline; margin-left: 10px;">
+        <form action="/manual_refresh_dev" method="POST" style="display: inline; margin-left: 10px;">
             <button type="submit" class="btn btn-secondary" id="refresh-test-btn">Refresh Test App</button>
         </form>
         <button class="btn btn-success" id="filtered-refresh-btn" style="margin-left: 10px;">Filtered Refresh</button>
@@ -63,9 +63,7 @@
             .then(response => response.json())
             .then(data => {
                 console.log("Reload status:", data.is_reloading);
-                if (data.is_reloading) {
-                    refreshModal.show();
-                } else {
+                if (!data.is_reloading) {
                     refreshModal.hide();
                 }
             })
@@ -88,14 +86,14 @@
             .catch(error => console.error('Error fetching new items:', error));
     });
 
-    document.querySelectorAll('form[action="/full_refresh"]').forEach(form => {
+    document.querySelectorAll('form[action="/manual_refresh"], form[action="/manual_refresh_dev"]').forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
+            refreshModal.show(); // Show modal immediately
             fetch('/full_refresh', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data.message);
-                    checkReloadStatus();
                     const interval = setInterval(() => {
                         fetch('/status')
                             .then(res => res.json())
@@ -103,18 +101,21 @@
                                 if (!status.is_reloading) {
                                     clearInterval(interval);
                                     refreshModal.hide();
-                                    window.location.reload(); // Refresh page after full reload
+                                    window.location.reload();
                                 }
                             });
-                    }, 1000);
+                    }, 1000); // Poll every 1s
                 })
-                .catch(error => console.error('Error triggering full refresh:', error));
+                .catch(error => {
+                    console.error('Error triggering full refresh:', error);
+                    refreshModal.hide();
+                });
         });
     });
 
     document.addEventListener("DOMContentLoaded", () => {
-        checkReloadStatus(); // Check status on load
-        setInterval(checkReloadStatus, 5000); // Poll every 5s
+        checkReloadStatus();
+        setInterval(checkReloadStatus, 2000); // Poll every 2s
     });
 </script>
 </body>
