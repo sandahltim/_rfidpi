@@ -202,6 +202,7 @@ CATEGORY_MAP = {
     61888: 'Round Linen',  # 108 ROUND PEWTER LINEN
     61889: 'Round Linen',  # 108 ROUND IVORY LINEN
     61890: 'Round Linen',  # 108 ROUND BEIGE LINEN
+    72595: 'Round Linen',  # 108 byz
     61891: 'Round Linen',  # 108 ROUND CHOCOLATE LINEN
     61893: 'Round Linen',  # 108 ROUND MAIZE LINEN
     61895: 'Round Linen',  # 108 ROUND POPPY LINEN
@@ -419,6 +420,7 @@ CATEGORY_MAP = {
     62401: 'Rectangle Linen',  # 90X90 GREY LINEN
     62403: 'Rectangle Linen',  # 90X90 IVORY LINEN
     62426: 'Rectangle Linen',  # 90X90 PLUM LINEN
+    62429: 'Rectangle Linen', #90x90ameth
     65545: 'Rectangle Linen',  # LINEN RUNNER 12 X 120 RED CHECK
     # Concession
     2857: 'Concession Equipment',  # "FOUNTAIN, CHOCOLATE"
@@ -820,6 +822,7 @@ SUBCATEGORY_MAP = {
     61888: '108 Round',  # 108 ROUND PEWTER LINEN
     61889: '108 Round',  # 108 ROUND IVORY LINEN
     61890: '108 Round',  # 108 ROUND BEIGE LINEN
+    72595: '108 Round',  # 108 byz
     61891: '108 Round',  # 108 ROUND CHOCOLATE LINEN
     61893: '108 Round',  # 108 ROUND MAIZE LINEN
     61895: '108 Round',  # 108 ROUND POPPY LINEN
