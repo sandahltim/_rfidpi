@@ -202,6 +202,7 @@ CATEGORY_MAP = {
     61888: 'Round Linen',  # 108 ROUND PEWTER LINEN
     61889: 'Round Linen',  # 108 ROUND IVORY LINEN
     61890: 'Round Linen',  # 108 ROUND BEIGE LINEN
+    72595: 'Round Linen',  # 108 byz
     61891: 'Round Linen',  # 108 ROUND CHOCOLATE LINEN
     61893: 'Round Linen',  # 108 ROUND MAIZE LINEN
     61895: 'Round Linen',  # 108 ROUND POPPY LINEN
@@ -820,6 +821,7 @@ SUBCATEGORY_MAP = {
     61888: '108 Round',  # 108 ROUND PEWTER LINEN
     61889: '108 Round',  # 108 ROUND IVORY LINEN
     61890: '108 Round',  # 108 ROUND BEIGE LINEN
+    72595: '108 Round',  #108 byz
     61891: '108 Round',  # 108 ROUND CHOCOLATE LINEN
     61893: '108 Round',  # 108 ROUND MAIZE LINEN
     61895: '108 Round',  # 108 ROUND POPPY LINEN
