@@ -129,7 +129,7 @@ function sortTable(tableEl, colName) {
       let numA = parseFloat(cellA.replace(/[^0-9.\-]/g, ""));
       let numB = parseFloat(cellB.replace(/[^0-9.\-]/g, ""));
       if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
-      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellB);
+      return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
     });
     tbody.innerHTML = "";
     pairs.forEach(pair => {
@@ -753,11 +753,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (target.classList.contains("expand-toggle")) {
       const targetId = target.getAttribute("data-bs-target").substring(1);
       const collapseEl = document.getElementById(targetId);
-      if (collapseEl && !collapseEl.classList.contains("show") && targetId.startsWith("grandchild-")) {
-        const contract = collapseEl.getAttribute("data-contract");
-        const common_name = collapseEl.getAttribute("data-common-name");
-        const childKey = targetId.replace('grandchild-', '');
-        loadSubcatData(contract, common_name, 1, childKey);
+      if (collapseEl) {
+        collapseEl.addEventListener("show.bs.collapse", () => target.textContent = "-");
+        collapseEl.addEventListener("hide.bs.collapse", () => target.textContent = "+");
+        if (!collapseEl.classList.contains("show") && targetId.startsWith("grandchild-")) {
+          const contract = collapseEl.getAttribute("data-contract");
+          const common_name = collapseEl.getAttribute("data-common-name");
+          const childKey = targetId.replace('grandchild-', '');
+          if (contract && common_name) {
+            loadSubcatData(contract, common_name, 1, childKey);
+          } else {
+            console.error(`Missing contract or common_name on collapse element: ${targetId}`);
+          }
+        }
       }
     }
   });
