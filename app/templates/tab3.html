@@ -14,6 +14,7 @@
         <th>Wash</th>
         <th>Wet</th>
         <th>Needs to be Inspected</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody id="crewTableBody">
@@ -28,9 +29,10 @@
         <td>{{ crew_entry.status_counts['Wash'] | default(0) }}</td>
         <td>{{ crew_entry.status_counts['Wet'] | default(0) }}</td>
         <td>{{ crew_entry.status_counts['Needs to be Inspected'] | default(0) }}</td>
+        <td><button class="btn btn-sm btn-primary print-btn" data-level="parent" data-crew="{{ crew_entry.crew }}">Print</button></td>
       </tr>
       <tr>
-        <td colspan="7" class="p-0">
+        <td colspan="8" class="p-0">
           <div id="status-{{ crew_key }}" class="collapse" data-crew="{{ crew_entry.crew }}">
             <table class="table mb-0 status-table" id="statusTable-{{ crew_key }}">
               <thead>
@@ -91,6 +93,9 @@
                                     <tr>
                                       <td colspan="3" class="p-0">
                                         <div id="items-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}" class="collapse" data-subcategory="{{ subcategory }}">
+                                          <div style="margin: 10px;">
+                                            <button class="btn btn-sm btn-primary print-btn" data-level="items" data-crew="{{ crew_entry.crew }}" data-status="{{ status }}" data-category="{{ category }}" data-subcategory="{{ subcategory }}">Print</button>
+                                          </div>
                                           <table class="table mb-0 items-table" id="itemsTable-{{ crew_key }}-{{ status_key }}-{{ cat_key }}-{{ sub_key }}">
                                             <thead>
                                               <tr>
@@ -143,7 +148,7 @@
       {% endfor %}
       {% else %}
       <tr>
-        <td colspan="7" class="text-center">No items needing service found.</td>
+        <td colspan="8" class="text-center">No items needing service found.</td>
       </tr>
       {% endif %}
     </tbody>
@@ -231,10 +236,11 @@ function refreshTable() {
             <td>${crewEntry.status_counts['Wash'] || 0}</td>
             <td>${crewEntry.status_counts['Wet'] || 0}</td>
             <td>${crewEntry.status_counts['Needs to be Inspected'] || 0}</td>
+            <td><button class="btn btn-sm btn-primary print-btn" data-level="parent" data-crew="${crewEntry.crew}">Print</button></td>
           `;
           const statusRow = document.createElement('tr');
           statusRow.innerHTML = `
-            <td colspan="7" class="p-0">
+            <td colspan="8" class="p-0">
               <div id="status-${crew_key}" class="collapse" data-crew="${crewEntry.crew}">
                 <table class="table mb-0 status-table" id="statusTable-${crew_key}">
                   <thead>
@@ -328,6 +334,9 @@ function refreshTable() {
                 itemRow.innerHTML = `
                   <td colspan="3" class="p-0">
                     <div id="items-${crew_key}-${status_key}-${cat_key}-${sub_key}" class="collapse" data-subcategory="${subcategory}">
+                      <div style="margin: 10px;">
+                        <button class="btn btn-sm btn-primary print-btn" data-level="items" data-crew="${crewEntry.crew}" data-status="${status}" data-category="${category}" data-subcategory="${subcategory}">Print</button>
+                      </div>
                       <table class="table mb-0 items-table" id="itemsTable-${crew_key}-${status_key}-${cat_key}-${sub_key}">
                         <thead>
                           <tr>
@@ -365,7 +374,7 @@ function refreshTable() {
           });
         });
       } else {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No items needing service found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No items needing service found.</td></tr>';
       }
 
       expandedIds.forEach(id => {
@@ -427,10 +436,11 @@ function updateWithNewData(newData) {
         <td>${data.statusCounts['wash'] || 0}</td>
         <td>${data.statusCounts['wet'] || 0}</td>
         <td>${data.statusCounts['needs to be inspected'] || 0}</td>
+        <td><button class="btn btn-sm btn-primary print-btn" data-level="parent" data-crew="${crew}">Print</button></td>
       `;
       const statusRow = document.createElement('tr');
       statusRow.innerHTML = `
-        <td colspan="7" class="p-0">
+        <td colspan="8" class="p-0">
           <div id="status-${crew_key}" class="collapse" data-crew="${crew}">
             <table class="table mb-0 status-table" id="statusTable-${crew_key}">
               <thead>
@@ -547,6 +557,9 @@ function updateWithNewData(newData) {
             itemRow.innerHTML = `
               <td colspan="3" class="p-0">
                 <div id="items-${crew_key}-${status_key}-${cat_key}-${sub_key}" class="collapse" data-subcategory="${subcategory}">
+                  <div style="margin: 10px;">
+                    <button class="btn btn-sm btn-primary print-btn" data-level="items" data-crew="${crew}" data-status="${status}" data-category="${category}" data-subcategory="${subcategory}">Print</button>
+                  </div>
                   <table class="table mb-0 items-table" id="itemsTable-${crew_key}-${status_key}-${cat_key}-${sub_key}">
                     <thead>
                       <tr>
@@ -642,6 +655,156 @@ function subcategorizeItem(category, item) {
   return 'Unspecified Subcategory';
 }
 
+function printTable(level, crew, status = null, category = null, subcategory = null) {
+  if (level === 'parent') {
+    const crewRow = Array.from(document.querySelectorAll('#crewTable tbody tr.table-active'))
+      .find(row => row.cells[1].innerText === crew);
+    if (!crewRow) {
+      console.error(`Crew row not found for crew: ${crew}`);
+      return;
+    }
+    const crewName = crewRow.cells[1].innerText;
+    const totalItems = crewRow.cells[2].innerText;
+    const repairCount = crewRow.cells[3].innerText;
+    const washCount = crewRow.cells[4].innerText;
+    const wetCount = crewRow.cells[5].innerText;
+    const inspectCount = crewRow.cells[6].innerText;
+    let html = `
+      <html>
+      <head>
+        <title>${crewName} Service Print</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .title { font-size: 18px; }
+          .company { font-size: 14px; text-align: right; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid black; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .signature { margin-top: 40px; }
+          .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Crew: ${crewName}<br>Total Items: ${totalItems}</div>
+          <div class="company">Broadway Tent and Event</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Total Items</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Repair</td><td>${repairCount}</td></tr>
+            <tr><td>Wash</td><td>${washCount}</td></tr>
+            <tr><td>Wet</td><td>${wetCount}</td></tr>
+            <tr><td>Needs to be Inspected</td><td>${inspectCount}</td></tr>
+          </tbody>
+        </table>
+        <div class="signature">
+          <div class="signature-line"></div>
+          <p>Signature</p>
+          <div class="signature-line"></div>
+          <p>Date</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  } else if (level === 'items') {
+    const tableId = `itemsTable-${crew.toLowerCase().replace(/[^a-z0-9]/gi, '_')}-${status.toLowerCase().replace(/[^a-z0-9]/gi, '_')}-${category.toLowerCase().replace(/[^a-z0-9]/gi, '_')}-${subcategory.toLowerCase().replace(/[^a-z0-9]/gi, '_')}`;
+    const itemTable = document.getElementById(tableId);
+    if (!itemTable) {
+      console.error(`Items table not found: ${tableId}`);
+      return;
+    }
+    const tbody = itemTable.querySelector('tbody');
+    let items = [];
+    if (tbody.children.length > 0 && tbody.children[0].cells[0].innerText !== "No items in this subcategory.") {
+      items = Array.from(tbody.children).map(row => ({
+        tag_id: row.cells[0].innerText,
+        common_name: row.cells[1].innerText,
+        status: row.cells[2].innerText,
+        quality: row.cells[3].innerText,
+        bin_location: row.cells[4].innerText
+      }));
+    } else {
+      console.warn(`No items in ${tableId}, skipping print`);
+      return;
+    }
+    let html = `
+      <html>
+      <head>
+        <title>${crew} - ${subcategory} Items Print</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .title { font-size: 18px; }
+          .company { font-size: 14px; text-align: right; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid black; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .signature { margin-top: 40px; }
+          .signature-line { width: 300px; border-bottom: 1px solid black; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Crew: ${crew}<br>Status: ${status}<br>Category: ${category}<br>Subcategory: ${subcategory}</div>
+          <div class="company">Broadway Tent and Event</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Tag ID</th>
+              <th>Common Name</th>
+              <th>Status</th>
+              <th>Quality</th>
+              <th>Bin Location</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    items.forEach(item => {
+      html += `
+        <tr>
+          <td>${item.tag_id}</td>
+          <td>${item.common_name}</td>
+          <td>${item.status}</td>
+          <td>${item.quality}</td>
+          <td>${item.bin_location}</td>
+        </tr>
+      `;
+    });
+    html += `
+          </tbody>
+        </table>
+        <div class="signature">
+          <div class="signature-line"></div>
+          <p>Signature</p>
+          <div class="signature-line"></div>
+          <p>Date</p>
+        </div>
+      </body>
+      </html>
+    `;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM Content Loaded - Tab 3");
 
@@ -651,6 +814,26 @@ document.addEventListener("DOMContentLoaded", () => {
       const table = target.closest("table");
       const colName = target.getAttribute("data-col-name");
       sortTable(table, colName);
+    }
+    if (target.classList.contains("print-btn")) {
+      const level = target.getAttribute("data-level");
+      const crew = target.getAttribute("data-crew");
+      if (level === "parent") {
+        printTable("parent", crew);
+      } else if (level === "items") {
+        const status = target.getAttribute("data-status");
+        const category = target.getAttribute("data-category");
+        const subcategory = target.getAttribute("data-subcategory");
+        printTable("items", crew, status, category, subcategory);
+      }
+    }
+    if (target.classList.contains("expand-toggle")) {
+      const targetId = target.getAttribute("data-bs-target");
+      const collapseEl = document.querySelector(targetId);
+      if (collapseEl) {
+        collapseEl.addEventListener("show.bs.collapse", () => target.textContent = "-");
+        collapseEl.addEventListener("hide.bs.collapse", () => target.textContent = "+");
+      }
     }
   });
 
