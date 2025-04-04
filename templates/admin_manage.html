@@ -40,6 +40,12 @@
     <div class="mb-3">
         <label for="reason" class="form-label">Reason:</label>
         <input type="text" class="form-control" id="reason" name="reason" required>
+        <small>Select a rule or enter a custom reason:</small>
+        <ul>
+            {% for rule in rules %}
+            <li><a href="#" class="rule-link" data-points="{{ rule.points }}" data-reason="{{ rule.description }}">{{ rule.description }} ({{ rule.points }})</a></li>
+            {% endfor %}
+        </ul>
     </div>
     <button type="submit" class="btn btn-primary">Adjust Points</button>
 </form>
@@ -115,6 +121,14 @@ document.getElementById("adjustPointsForm").addEventListener("submit", (e) => {
         if (data.success) window.location.reload();
     })
     .catch(error => console.error("Error adjusting points:", error));
+});
+
+document.querySelectorAll(".rule-link").forEach(link => {
+    link.addEventListener("click", (e) => {
+        e.preventDefault();
+        document.getElementById("points").value = link.getAttribute("data-points");
+        document.getElementById("reason").value = link.getAttribute("data-reason");
+    });
 });
 
 document.getElementById("addRuleForm").addEventListener("submit", (e) => {

@@ -20,7 +20,7 @@
                 <td>{{ emp.initials }}</td>
                 <td>{{ emp.role }}</td>
                 <td>{{ emp.score }}</td>
-                <td>${{ "%.2f"|format(emp.score * pot_info.point_value * (pot_info.driver_percent if emp.role == 'driver' else pot_info.laborer_percent) / 100) }}</td>
+                <td>${{ "%.2f"|format(emp.score * (pot_info.driver_point_value if emp.role == 'driver' else pot_info.laborer_point_value)) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -39,9 +39,8 @@
     <p>Sales Dollars: ${{ "%.2f"|format(pot_info.sales_dollars) }}</p>
     <p>Bonus %: {{ pot_info.bonus_percent }}%</p>
     <p>Total Pot: ${{ "%.2f"|format(pot_info.sales_dollars * pot_info.bonus_percent / 100) }}</p>
-    <p>Drivers ({{ pot_info.driver_percent }}%): ${{ "%.2f"|format(pot_info.sales_dollars * pot_info.bonus_percent * pot_info.driver_percent / 10000) }}</p>
-    <p>Laborers ({{ pot_info.laborer_percent }}%): ${{ "%.2f"|format(pot_info.sales_dollars * pot_info.bonus_percent * pot_info.laborer_percent / 10000) }}</p>
-    <p>Value per Point: ${{ "%.2f"|format(pot_info.point_value) }}</p>
+    <p>Drivers ({{ pot_info.driver_percent }}%): ${{ "%.2f"|format(pot_info.driver_pot) }}, Point Value: ${{ "%.2f"|format(pot_info.driver_point_value) }}</p>
+    <p>Laborers ({{ pot_info.laborer_percent }}%): ${{ "%.2f"|format(pot_info.laborer_pot) }}, Point Value: ${{ "%.2f"|format(pot_info.laborer_point_value) }}</p>
 </div>
 
 {% if session.admin_id %}
@@ -143,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     tr.className = emp.score >= 90 ? "table-success" : 
                                    emp.score <= 10 ? "table-danger" : 
                                    emp.score >= 75 || emp.score <= 25 ? "table-warning" : "";
-                    const potShare = emp.score * data.pot_info.point_value * (emp.role === "driver" ? data.pot_info.driver_percent : data.pot_info.laborer_percent) / 100;
+                    const potShare = emp.score * (emp.role === "driver" ? data.pot_info.driver_point_value : data.pot_info.laborer_point_value);
                     tr.innerHTML = `<td>${emp.name}</td><td>${emp.initials}</td><td>${emp.role}</td><td>${emp.score}</td><td>$${potShare.toFixed(2)}</td>`;
                     tbody.appendChild(tr);
                 });
@@ -155,9 +154,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p>Sales Dollars: $${data.pot_info.sales_dollars.toFixed(2)}</p>
                     <p>Bonus %: ${data.pot_info.bonus_percent}%</p>
                     <p>Total Pot: $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent / 100).toFixed(2)}</p>
-                    <p>Drivers (${data.pot_info.driver_percent}%): $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent * data.pot_info.driver_percent / 10000).toFixed(2)}</p>
-                    <p>Laborers (${data.pot_info.laborer_percent}%): $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent * data.pot_info.laborer_percent / 10000).toFixed(2)}</p>
-                    <p>Value per Point: $${data.pot_info.point_value.toFixed(2)}</p>
+                    <p>Drivers (${data.pot_info.driver_percent}%): $${data.pot_info.driver_pot.toFixed(2)}, Point Value: $${data.pot_info.driver_point_value.toFixed(2)}</p>
+                    <p>Laborers (${data.pot_info.laborer_percent}%): $${data.pot_info.laborer_pot.toFixed(2)}, Point Value: $${data.pot_info.laborer_point_value.toFixed(2)}</p>
                 `;
             });
     }
