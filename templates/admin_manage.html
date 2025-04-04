@@ -86,6 +86,11 @@
 <h2>Reset Scores</h2>
 <button class="btn btn-danger" id="resetScoresBtn">Reset All Scores to 50</button>
 
+<h2>Logout</h2>
+<form id="logoutForm" method="POST" action="/admin/logout">
+    <button type="submit" class="btn btn-warning">Logout</button>
+</form>
+
 <script>
 document.getElementById("addEmployeeForm").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -152,6 +157,15 @@ document.getElementById("resetScoresBtn").addEventListener("click", () => {
         })
         .catch(error => console.error("Error resetting scores:", error));
     }
+});
+
+document.getElementById("logoutForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("/admin/logout", {
+        method: "POST",
+    })
+    .then(() => window.location.href = "/")
+    .catch(error => console.error("Error logging out:", error));
 });
 </script>
 {% endblock %}

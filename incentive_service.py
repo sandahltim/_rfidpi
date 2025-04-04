@@ -18,10 +18,10 @@ class DatabaseConnection:
 def get_scoreboard(conn):
     return conn.execute("SELECT employee_id, name, initials, score, role FROM employees ORDER BY score DESC").fetchall()
 
-def start_voting_session(conn, admin_id, code):
+def start_voting_session(conn, admin_id, code, is_master=False):
     from config import VOTE_CODE
     now = datetime.now()
-    if now.weekday() != 2 or now.strftime("%Y-%m-%d") not in VOTING_DAYS_2025:
+    if not is_master and (now.weekday() != 2 or now.strftime("%Y-%m-%d") not in VOTING_DAYS_2025):
         return False, "Voting only allowed on designated Wednesdays"
     if code != VOTE_CODE:
         return False, "Invalid voting code"
@@ -41,8 +41,6 @@ def start_voting_session(conn, admin_id, code):
 
 def is_voting_active(conn):
     now = datetime.now()
-    if now.weekday() != 2 or now.strftime("%Y-%m-%d") not in VOTING_DAYS_2025:
-        return False
     session = conn.execute(
         "SELECT * FROM voting_sessions WHERE start_time <= ? AND end_time >= ?",
         (now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m-%d %H:%M:%S"))

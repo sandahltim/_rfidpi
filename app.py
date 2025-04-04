@@ -30,7 +30,7 @@ def start_voting():
         return render_template("start_voting.html")
     code = request.form.get("vote_code")
     with DatabaseConnection() as conn:
-        success, message = start_voting_session(conn, session["admin_id"], code)
+        success, message = start_voting_session(conn, session["admin_id"], code, is_master=session.get("admin_id") == "master")
     return jsonify({"success": success, "message": message})
 
 @app.route("/vote", methods=["POST"])
@@ -59,6 +59,11 @@ def admin():
         rules = get_rules(conn)
         pot_info = get_pot_info(conn)
     return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info)
+
+@app.route("/admin/logout", methods=["POST"])
+def admin_logout():
+    session.pop("admin_id", None)
+    return redirect(url_for("show_incentive"))
 
 @app.route("/admin/add", methods=["POST"])
 def admin_add():

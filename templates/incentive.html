@@ -10,6 +10,7 @@
                 <th class="sortable" data-col-name="initials">Initials</th>
                 <th class="sortable" data-col-name="role">Role</th>
                 <th class="sortable" data-col-name="score">Score</th>
+                <th>Pot Share</th>
             </tr>
         </thead>
         <tbody id="scoreboardBody">
@@ -19,6 +20,7 @@
                 <td>{{ emp.initials }}</td>
                 <td>{{ emp.role }}</td>
                 <td>{{ emp.score }}</td>
+                <td>${{ "%.2f"|format(emp.score * pot_info.point_value * (pot_info.driver_percent if emp.role == 'driver' else pot_info.laborer_percent) / 100) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -141,7 +143,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     tr.className = emp.score >= 90 ? "table-success" : 
                                    emp.score <= 10 ? "table-danger" : 
                                    emp.score >= 75 || emp.score <= 25 ? "table-warning" : "";
-                    tr.innerHTML = `<td>${emp.name}</td><td>${emp.initials}</td><td>${emp.role}</td><td>${emp.score}</td>`;
+                    const potShare = emp.score * data.pot_info.point_value * (emp.role === "driver" ? data.pot_info.driver_percent : data.pot_info.laborer_percent) / 100;
+                    tr.innerHTML = `<td>${emp.name}</td><td>${emp.initials}</td><td>${emp.role}</td><td>${emp.score}</td><td>$${potShare.toFixed(2)}</td>`;
                     tbody.appendChild(tr);
                 });
                 if (data.voting_active && !document.getElementById("voteForm")) {

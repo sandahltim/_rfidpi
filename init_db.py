@@ -48,7 +48,8 @@ def initialize_incentive_db():
     admins = [
         ("admin1", "admin1", generate_password_hash("Broadway8101")),
         ("admin2", "admin2", generate_password_hash("Broadway8101")),
-        ("admin3", "admin3", generate_password_hash("Broadway8101"))
+        ("admin3", "admin3", generate_password_hash("Broadway8101")),
+        ("master", "master", generate_password_hash("Master8101"))  # Master admin
     ]
     cursor.executemany("INSERT OR IGNORE INTO admins (admin_id, username, password) VALUES (?, ?, ?)", admins)
 
