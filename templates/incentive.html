@@ -15,7 +15,7 @@
         </thead>
         <tbody id="scoreboardBody">
             {% for emp in scoreboard %}
-            <tr class="{% if emp.score >= 90 %}table-success{% elif emp.score <= 10 %}table-danger{% elif emp.score >= 75 %}table-warning{% elif emp.score <= 25 %}table-warning{% endif %}">
+            <tr class="{% if emp.score < 30 %}score-low-{{ (emp.score // 5) * 5 }}{% elif emp.score <= 65 %}score-mid-{{ (emp.score // 5) * 5 }}{% else %}score-high-{{ (emp.score // 5) * 5 }}{% endif %}">
                 <td>{{ emp.name }}</td>
                 <td>{{ emp.initials }}</td>
                 <td>{{ emp.role }}</td>
@@ -139,9 +139,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 tbody.innerHTML = "";
                 data.scoreboard.forEach(emp => {
                     const tr = document.createElement("tr");
-                    tr.className = emp.score >= 90 ? "table-success" : 
-                                   emp.score <= 10 ? "table-danger" : 
-                                   emp.score >= 75 || emp.score <= 25 ? "table-warning" : "";
+                    const scoreClass = emp.score < 30 ? `score-low-${Math.floor(emp.score / 5) * 5}` :
+                                      emp.score <= 65 ? `score-mid-${Math.floor(emp.score / 5) * 5}` :
+                                      `score-high-${Math.floor(emp.score / 5) * 5}`;
+                    tr.className = scoreClass;
                     const potShare = emp.score * (emp.role === "driver" ? data.pot_info.driver_point_value : data.pot_info.laborer_point_value);
                     tr.innerHTML = `<td>${emp.name}</td><td>${emp.initials}</td><td>${emp.role}</td><td>${emp.score}</td><td>$${potShare.toFixed(2)}</td>`;
                     tbody.appendChild(tr);

@@ -7,8 +7,33 @@ body {
 .table th, .table td {
     vertical-align: middle;
 }
-.table-success { background-color: #d4edda; } /* Green for 90-100 */
-.table-danger { background-color: #f8d7da; } /* Red for 0-10 */
-.table-warning { background-color: #fff3cd; } /* Yellow for 75-89 or 11-25 */
 .text-success { color: #28a745; }
 .text-danger { color: #dc3545; }
+
+/* Low Scores (0-29): Shades of Red */
+.score-low-0 { background-color: #ff0000; color: white; font-style: italic; font-weight: 300; }
+.score-low-5 { background-color: #ff3333; color: white; font-style: italic; font-weight: 300; }
+.score-low-10 { background-color: #ff6666; color: white; font-style: italic; font-weight: 350; }
+.score-low-15 { background-color: #ff9999; color: black; font-style: italic; font-weight: 350; }
+.score-low-20 { background-color: #ffcccc; color: black; font-style: italic; font-weight: 400; }
+.score-low-25 { background-color: #ffe6e6; color: black; font-style: italic; font-weight: 400; }
+
+/* Mid Scores (30-65): Shades of Blue */
+.score-mid-30 { background-color: #cce5ff; color: black; font-weight: 400; }
+.score-mid-35 { background-color: #b3d9ff; color: black; font-weight: 450; }
+.score-mid-40 { background-color: #99ccff; color: black; font-weight: 450; }
+.score-mid-45 { background-color: #80bfff; color: black; font-weight: 500; }
+.score-mid-50 { background-color: #66b3ff; color: black; font-weight: 500; }
+.score-mid-55 { background-color: #4da6ff; color: black; font-weight: 550; }
+.score-mid-60 { background-color: #3399ff; color: white; font-weight: 550; }
+.score-mid-65 { background-color: #1a8cff; color: white; font-weight: 600; }
+
+/* High Scores (66-100): Shades of Green */
+.score-high-65 { background-color: #e6ffe6; color: black; font-weight: 600; }
+.score-high-70 { background-color: #ccffcc; color: black; font-weight: 650; }
+.score-high-75 { background-color: #b3ffb3; color: black; font-weight: 650; }
+.score-high-80 { background-color: #99ff99; color: black; font-weight: 700; }
+.score-high-85 { background-color: #80ff80; color: black; font-weight: 700; }
+.score-high-90 { background-color: #66ff66; color: black; font-weight: 750; text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
+.score-high-95 { background-color: #4dff4d; color: black; font-weight: 750; text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
+.score-high-100 { background-color: #33ff33; color: black; font-weight: 800; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
