@@ -68,7 +68,7 @@ def cast_votes(conn, voter_initials, votes):
         employee = conn.execute("SELECT score FROM employees WHERE employee_id = ?", (recipient_id,)).fetchone()
         if not employee:
             continue
-        new_score = min(100, max(0, employee["score"] + vote_value)))
+        new_score = min(100, max(0, employee["score"] + vote_value))  # Fixed: removed extra )
         conn.execute(
             "UPDATE employees SET score = ? WHERE employee_id = ?",
             (new_score, recipient_id)
