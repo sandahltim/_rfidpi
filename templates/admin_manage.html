@@ -69,7 +69,7 @@
 </ul>
 
 <h2>Incentive Pot</h2>
-<p>Total Bonus Payout: ${{ "%.2f"|format((employees | selectattr('role', 'equalto', 'driver') | map(attribute='score') | sum * pot_info['driver_point_value']) + (employees | selectattr('role', 'equalto', 'laborer') | map(attribute='score') | sum * pot_info['laborer_point_value']) + (employees | selectattr('role', 'equalto', 'supervisor') | map(attribute='score') | sum * pot_info['supervisor_point_value'])) }}</p>
+<p>Total Bonus Payout: ${{ "%.2f"|format((employees | selectattr('role', 'equalto', 'driver') | map(attribute='score') | sum * pot_info['driver_point_value']) + (employees | selectattr('role', 'equalto', 'laborer') | map(attribute='score') | sum * pot_info['laborer_point_value']) + (employees | selectattr('role', 'equalto', 'supervisor') | map(attribute='score') | sum * (pot_info.get('supervisor_point_value', 0)))) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
         <label for="sales_dollars" class="form-label">Sales Dollars:</label>

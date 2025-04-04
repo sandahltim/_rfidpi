@@ -63,7 +63,7 @@ def vote():
         return jsonify({"success": success, "message": message})
     except Exception as e:
         logging.error(f"Error in vote: {str(e)}")
-        return "Internal Server Error", 500
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
@@ -78,11 +78,15 @@ def admin():
         return render_template("admin_login.html", error="Invalid credentials", import_time=int(time.time()))
     if "admin_id" not in session:
         return render_template("admin_login.html", import_time=int(time.time()))
-    with DatabaseConnection() as conn:
-        employees = conn.execute("SELECT employee_id, name, initials, score, role FROM employees").fetchall()
-        rules = get_rules(conn)
-        pot_info = get_pot_info(conn)
-    return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, is_admin=True, import_time=int(time.time()))
+    try:
+        with DatabaseConnection() as conn:
+            employees = conn.execute("SELECT employee_id, name, initials, score, role FROM employees").fetchall()
+            rules = get_rules(conn)
+            pot_info = get_pot_info(conn)
+        return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, is_admin=True, import_time=int(time.time()))
+    except Exception as e:
+        logging.error(f"Error in admin: {str(e)}")
+        return "Internal Server Error", 500
 
 @app.route("/admin/logout", methods=["POST"])
 def admin_logout():
