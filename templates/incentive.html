@@ -20,7 +20,7 @@
                 <td>{{ emp.initials }}</td>
                 <td>{{ emp.role }}</td>
                 <td>{{ emp.score }}</td>
-                <td>${{ "%.2f"|format(emp.score * (pot_info.driver_point_value if emp.role == 'driver' else pot_info.laborer_point_value)) }}</td>
+                <td>${{ "%.2f"|format(emp.score * (pot_info['driver_point_value'] if emp.role == 'driver' else pot_info['laborer_point_value'])) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -36,11 +36,11 @@
 
 <h2>Incentive Pot</h2>
 <div id="potInfo">
-    <p>Sales Dollars: ${{ "%.2f"|format(pot_info.sales_dollars) }}</p>
-    <p>Bonus %: {{ pot_info.bonus_percent }}%</p>
-    <p>Total Pot: ${{ "%.2f"|format(pot_info.sales_dollars * pot_info.bonus_percent / 100) }}</p>
-    <p>Drivers ({{ pot_info.driver_percent }}%): ${{ "%.2f"|format(pot_info.driver_pot) }}, Point Value: ${{ "%.2f"|format(pot_info.driver_point_value) }}</p>
-    <p>Laborers ({{ pot_info.laborer_percent }}%): ${{ "%.2f"|format(pot_info.laborer_pot) }}, Point Value: ${{ "%.2f"|format(pot_info.laborer_point_value) }}</p>
+    <p>Sales Dollars: ${{ "%.2f"|format(pot_info['sales_dollars']) }}</p>
+    <p>Bonus %: {{ pot_info['bonus_percent'] }}%</p>
+    <p>Total Pot: ${{ "%.2f"|format(pot_info['sales_dollars'] * pot_info['bonus_percent'] / 100) }}</p>
+    <p>Drivers ({{ pot_info['driver_percent'] }}%): ${{ "%.2f"|format(pot_info['driver_pot']) }}, Point Value: ${{ "%.2f"|format(pot_info['driver_point_value']) }}</p>
+    <p>Laborers ({{ pot_info['laborer_percent'] }}%): ${{ "%.2f"|format(pot_info['laborer_pot']) }}, Point Value: ${{ "%.2f"|format(pot_info['laborer_point_value']) }}</p>
 </div>
 
 {% if session.admin_id %}

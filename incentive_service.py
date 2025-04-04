@@ -139,11 +139,26 @@ def add_rule(conn, description, points):
 def get_pot_info(conn):
     pot = conn.execute("SELECT * FROM incentive_pot WHERE id = 1").fetchone()
     if not pot:
-        return {"sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0, "point_value": 0.0}
-    total_points = conn.execute("SELECT SUM(score) as total FROM employees WHERE role IN ('driver', 'laborer')").fetchone()["total"] or 1
+        return {
+            "sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0,
+            "driver_pot": 0.0, "laborer_pot": 0.0, "driver_point_value": 0.0, "laborer_point_value": 0.0
+        }
     total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
-    point_value = total_pot / total_points if total_points > 0 else 0
-    return {"sales_dollars": pot["sales_dollars"], "bonus_percent": pot["bonus_percent"], "driver_percent": pot["driver_percent"], "laborer_percent": pot["laborer_percent"], "point_value": point_value}
+    driver_pot = total_pot * pot["driver_percent"] / 100
+    laborer_pot = total_pot * pot["laborer_percent"] / 100
+    driver_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'driver'").fetchone()["count"] or 1
+    laborer_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'laborer'").fetchone()["count"] or 1
+    max_points_per_employee = 100
+    driver_max_points = driver_count * max_points_per_employee
+    laborer_max_points = laborer_count * max_points_per_employee
+    driver_point_value = driver_pot / driver_max_points if driver_max_points > 0 else 0
+    laborer_point_value = laborer_pot / laborer_max_points if laborer_max_points > 0 else 0
+    return {
+        "sales_dollars": pot["sales_dollars"], "bonus_percent": pot["bonus_percent"],
+        "driver_percent": pot["driver_percent"], "laborer_percent": pot["laborer_percent"],
+        "driver_pot": driver_pot, "laborer_pot": laborer_pot,
+        "driver_point_value": driver_point_value, "laborer_point_value": laborer_point_value
+    }
 
 def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent):
     if driver_percent + laborer_percent != 100:
