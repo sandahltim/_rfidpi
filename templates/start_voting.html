@@ -6,6 +6,11 @@
         <label for="vote_code" class="form-label">Enter Voting Code:</label>
         <input type="text" class="form-control" id="vote_code" name="vote_code" required>
     </div>
+    {% if is_master %}
+    <p class="text-info">As master admin, you can start voting any day.</p>
+    {% else %}
+    <p class="text-muted">Voting is only allowed on designated Wednesdays.</p>
+    {% endif %}
     <button type="submit" class="btn btn-primary">Start Voting</button>
 </form>
 

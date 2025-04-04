@@ -21,8 +21,9 @@ def get_scoreboard(conn):
 def start_voting_session(conn, admin_id, code, is_master=False):
     from config import VOTE_CODE
     now = datetime.now()
-    if not is_master and (now.weekday() != 2 or now.strftime("%Y-%m-%d") not in VOTING_DAYS_2025):
-        return False, "Voting only allowed on designated Wednesdays"
+    if not is_master:  # Only check date if not master
+        if now.weekday() != 2 or now.strftime("%Y-%m-%d") not in VOTING_DAYS_2025:
+            return False, "Voting only allowed on designated Wednesdays"
     if code != VOTE_CODE:
         return False, "Invalid voting code"
     active_session = conn.execute(

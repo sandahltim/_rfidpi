@@ -105,6 +105,10 @@ function sortTable(tableEl, colName) {
 
 document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM Content Loaded - Incentive Program");
+    fetch("/static/style.css")
+        .then(response => response.text())
+        .then(css => console.log("CSS Loaded:", css.substring(0, 50) + "..."))
+        .catch(error => console.error("CSS Load Failed:", error));
     document.querySelectorAll(".sortable").forEach(th => {
         th.addEventListener("click", () => sortTable(document.getElementById("scoreboardTable"), th.getAttribute("data-col-name")));
     });

@@ -28,11 +28,12 @@ def incentive_data():
 def start_voting():
     if "admin_id" not in session:
         return redirect(url_for("admin"))
+    is_master = session.get("admin_id") == "master"
     if request.method == "GET":
-        return render_template("start_voting.html")
+        return render_template("start_voting.html", is_master=is_master)
     code = request.form.get("vote_code")
     with DatabaseConnection() as conn:
-        success, message = start_voting_session(conn, session["admin_id"], code, is_master=session.get("admin_id") == "master")
+        success, message = start_voting_session(conn, session["admin_id"], code, is_master=is_master)
     return jsonify({"success": success, "message": message})
 
 @app.route("/vote", methods=["POST"])
