@@ -14,13 +14,17 @@ from incentive_service import reset_scores, DatabaseConnection as IncentiveDBCon
 
 app = create_app()
 
-# Ensure directory is writable and initialize inventory.db
-db_path = os.path.join(os.path.dirname(__file__), "inventory.db")
+# Ensure directory and database are writable for inventory.db
+db_dir = os.path.dirname(os.path.abspath(__file__))
+db_path = DB_FILE
 print("Forcing full database reload on restart...")
 if os.path.exists(db_path):
     os.remove(db_path)
     print(f"Removed existing database: {db_path}")
-os.chmod(os.path.dirname(db_path), 0o775)  # Ensure directory is writable
+os.chmod(db_dir, 0o775)  # Ensure directory is writable
+open(db_path, 'a').close()  # Create empty file
+os.chmod(db_path, 0o664)  # Ensure file is writable
+time.sleep(1)  # Brief delay to avoid race condition
 initialize_db()  # Create fresh schema
 refresh_data(full_refresh=True)
 
