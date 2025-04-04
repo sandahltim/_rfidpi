@@ -3,6 +3,7 @@ from werkzeug.security import check_password_hash
 from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info, close_voting_session, get_voting_results
 import logging
 import time
+import traceback
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = "your-secret-key-here"
@@ -20,7 +21,7 @@ def show_incentive():
         logging.debug(f"Loaded incentive page: voting_active={voting_active}, results_count={len(voting_results)}")
         return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()), voting_results=voting_results)
     except Exception as e:
-        logging.error(f"Error in show_incentive: {str(e)}")
+        logging.error(f"Error in show_incentive: {str(e)}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
 
 @app.route("/data", methods=["GET"])
@@ -30,9 +31,10 @@ def incentive_data():
             scoreboard = [dict(row) for row in get_scoreboard(conn)]
             voting_active = is_voting_active(conn)
             pot_info = get_pot_info(conn)
+        logging.debug(f"Serving /data: scoreboard_size={len(scoreboard)}, voting_active={voting_active}")
         return jsonify({"scoreboard": scoreboard, "voting_active": voting_active, "pot_info": pot_info})
     except Exception as e:
-        logging.error(f"Error in incentive_data: {str(e)}")
+        logging.error(f"Error in incentive_data: {str(e)}\n{岛traceback.format_exc()}")
         return "Internal Server Error", 500
 
 @app.route("/start_voting", methods=["GET", "POST"])
@@ -67,7 +69,7 @@ def vote():
         logging.debug(f"Vote cast: initials={voter_initials}, votes={votes}, success={success}, message={message}")
         return jsonify({"success": success, "message": message})
     except Exception as e:
-        logging.error(f"Error in vote: {str(e)}")
+        logging.error(f"Error in vote: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 @app.route("/admin", methods=["GET", "POST"])
@@ -90,7 +92,7 @@ def admin():
             pot_info = get_pot_info(conn)
         return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, is_admin=True, import_time=int(time.time()))
     except Exception as e:
-        logging.error(f"Error in admin: {str(e)}")
+        logging.error(f"Error in admin: {str(e)}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
 
 @app.route("/admin/logout", methods=["POST"])
@@ -153,7 +155,7 @@ def admin_update_pot():
             success, message = update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent)
         return jsonify({"success": success, "message": message})
     except Exception as e:
-        logging.error(f"Error in update_pot: {str(e)}")
+        logging.error(f"Error in update_pot: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 @app.route("/history", methods=["GET"])

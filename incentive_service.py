@@ -100,6 +100,7 @@ def close_voting_session(conn, admin_id):
             points -= 5
         elif minus_percent >= 25:
             points -= 3
+        logging.debug(f"Employee {emp_id} ({employees[emp_id]['name']}): plus={counts['plus']} ({plus_percent}%), minus={counts['minus']} ({minus_percent}%), points={points}")
         if points != 0:
             old_score = employees[emp_id]["score"]
             new_score = min(100, max(0, old_score + points))
@@ -111,7 +112,7 @@ def close_voting_session(conn, admin_id):
                 "INSERT INTO score_history (employee_id, changed_by, points, reason, date, month_year) VALUES (?, ?, ?, ?, ?, ?)",
                 (emp_id, admin_id, points, f"Weekly vote result: {counts['plus']} +1, {counts['minus']} -1", now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m"))
             )
-            logging.debug(f"Updated score: emp_id={emp_id}, name={employees[emp_id]['name']}, old_score={old_score}, new_score={new_score}, points={points}, plus={plus_percent}%, minus={minus_percent}%")
+            logging.debug(f"Updated score: emp_id={emp_id}, name={employees[emp_id]['name']}, old_score={old_score}, new_score={new_score}, points={points}")
 
     conn.execute("UPDATE voting_sessions SET end_time = ? WHERE session_id = ?", (end_time, active_session["session_id"]))
     logging.debug(f"Voting session closed: total_votes={total_votes}")
@@ -245,9 +246,14 @@ def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_
 
 def get_voting_results(conn):
     now = datetime.now()
-    start_of_week = now - timedelta(days=now.weekday() + 3)  # Wednesday of current week
-    start_date = start_of_week.strftime("%Y-%m-%d 00:00:00")
-    end_date = (start_of_week + timedelta(days=2)).strftime("%Y-%m-%d 23:59:59")  # Friday
+    last_session = conn.execute(
+        "SELECT start_time, end_time FROM voting_sessions ORDER BY end_time DESC LIMIT 1"
+    ).fetchone()
+    if not last_session:
+        logging.debug("No voting sessions found")
+        return []
+    start_date = last_session["start_time"]
+    end_date = last_session["end_time"]
     results = conn.execute("""
         SELECT v.voter_initials, e.name AS recipient_name, v.vote_value, v.vote_date, sh.points
         FROM votes v
