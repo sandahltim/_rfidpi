@@ -33,7 +33,6 @@ def start_voting_session(conn, admin_id, code, is_master=False):
     if active_session:
         return False, "Voting session already active"
     start_time = now.strftime("%Y-%m-%d %H:%M:%S")
-    # Set end time to Friday 11:59 PM of current week
     days_to_friday = (4 - now.weekday()) % 7
     end_time = (now + timedelta(days=days_to_friday)).replace(hour=23, minute=59, second=59).strftime("%Y-%m-%d %H:%M:%S")
     conn.execute(
@@ -129,7 +128,7 @@ def cast_votes(conn, voter_initials, votes):
         return False, "You have already voted this week"
     
     for recipient_id, vote_value in votes.items():
-        if recipient_id not in conn.execute("SELECT employee_id FROM employees").fetchall():
+        if not conn.execute("SELECT 1 FROM employees WHERE employee_id = ?", (recipient_id,)).fetchone():
             continue
         conn.execute(
             "INSERT INTO votes (voter_initials, recipient_id, vote_value, vote_date) VALUES (?, ?, ?, ?)",
@@ -196,31 +195,35 @@ def get_pot_info(conn):
     pot = conn.execute("SELECT * FROM incentive_pot WHERE id = 1").fetchone()
     if not pot:
         return {
-            "sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0,
-            "driver_pot": 0.0, "laborer_pot": 0.0, "driver_point_value": 0.0, "laborer_point_value": 0.0
+            "sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0, "supervisor_percent": 0.0,
+            "driver_pot": 0.0, "laborer_pot": 0.0, "supervisor_pot": 0.0, "driver_point_value": 0.0, "laborer_point_value": 0.0, "supervisor_point_value": 0.0
         }
     total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
     driver_pot = total_pot * pot["driver_percent"] / 100
     laborer_pot = total_pot * pot["laborer_percent"] / 100
+    supervisor_pot = total_pot * pot["supervisor_percent"] / 100
     driver_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'driver'").fetchone()["count"] or 1
     laborer_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'laborer'").fetchone()["count"] or 1
+    supervisor_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'supervisor'").fetchone()["count"] or 1
     max_points_per_employee = 100
     driver_max_points = driver_count * max_points_per_employee
     laborer_max_points = laborer_count * max_points_per_employee
+    supervisor_max_points = supervisor_count * max_points_per_employee
     driver_point_value = driver_pot / driver_max_points if driver_max_points > 0 else 0
     laborer_point_value = laborer_pot / laborer_max_points if laborer_max_points > 0 else 0
+    supervisor_point_value = supervisor_pot / supervisor_max_points if supervisor_max_points > 0 else 0
     return {
         "sales_dollars": pot["sales_dollars"], "bonus_percent": pot["bonus_percent"],
-        "driver_percent": pot["driver_percent"], "laborer_percent": pot["laborer_percent"],
-        "driver_pot": driver_pot, "laborer_pot": laborer_pot,
-        "driver_point_value": driver_point_value, "laborer_point_value": laborer_point_value
+        "driver_percent": pot["driver_percent"], "laborer_percent": pot["laborer_percent"], "supervisor_percent": pot["supervisor_percent"],
+        "driver_pot": driver_pot, "laborer_pot": laborer_pot, "supervisor_pot": supervisor_pot,
+        "driver_point_value": driver_point_value, "laborer_point_value": laborer_point_value, "supervisor_point_value": supervisor_point_value
     }
 
-def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent):
-    if driver_percent + laborer_percent != 100:
-        return False, "Driver and Laborer percentages must sum to 100%"
+def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent):
+    if driver_percent + laborer_percent + supervisor_percent != 100:
+        return False, "Driver, Laborer, and Supervisor percentages must sum to 100%"
     conn.execute(
-        "INSERT OR REPLACE INTO incentive_pot (id, sales_dollars, bonus_percent, driver_percent, laborer_percent) VALUES (1, ?, ?, ?, ?)",
-        (sales_dollars, bonus_percent, driver_percent, laborer_percent)
+        "INSERT OR REPLACE INTO incentive_pot (id, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent) VALUES (1, ?, ?, ?, ?, ?)",
+        (sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent)
     )
     return True, "Pot info updated"
