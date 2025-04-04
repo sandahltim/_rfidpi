@@ -14,7 +14,7 @@ def create_app():
     from app.routes.tab4 import tab4_bp
     from app.routes.tab5 import tab5_bp
     from app.routes.tab6 import tab6_bp
-    from app.routes.tab7 import tab7_bp  # New Tab 7
+    from app.routes.tab7 import tab7_bp  # Added Tab 7 import
 
     app.register_blueprint(root_bp)
     app.register_blueprint(tab1_bp, url_prefix="/tab1")
@@ -23,7 +23,7 @@ def create_app():
     app.register_blueprint(tab4_bp, url_prefix="/tab4")
     app.register_blueprint(tab5_bp, url_prefix="/tab5")
     app.register_blueprint(tab6_bp, url_prefix="/tab6")
-    app.register_blueprint(tab7_bp, url_prefix="/tab7")  # Register Tab 7
+    app.register_blueprint(tab7_bp, url_prefix="/tab7")  # Added Tab 7 registration
 
     @app.route('/status', methods=['GET'])
     def status():
@@ -33,20 +33,34 @@ def create_app():
     def trigger_incremental():
         if not LAST_REFRESH:
             return jsonify({"items": [], "transactions": [], "since": None}), 200
+
+        # Go back 5 minutes from LAST_REFRESH
         since_date = (LAST_REFRESH - timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
-        trigger_refresh(full=False)
+        trigger_refresh(full=False)  # Trigger incremental refresh and reset 180s timer
         with DatabaseConnection() as conn:
-            items_query = "SELECT * FROM id_item_master WHERE date_last_scanned >= ?"
+            items_query = """
+                SELECT * FROM id_item_master 
+                WHERE date_last_scanned >= ?
+            """
             new_items = conn.execute(items_query, (since_date,)).fetchall()
             new_items = [dict(row) for row in new_items]
-            trans_query = "SELECT * FROM id_transactions WHERE scan_date >= ?"
+
+            trans_query = """
+                SELECT * FROM id_transactions 
+                WHERE scan_date >= ?
+            """
             new_trans = conn.execute(trans_query, (since_date,)).fetchall()
             new_trans = [dict(row) for row in new_trans]
-        return jsonify({"items": new_items, "transactions": new_trans, "since": since_date}), 200
+
+        return jsonify({
+            "items": new_items,
+            "transactions": new_trans,
+            "since": since_date
+        }), 200
 
     @app.route('/full_refresh', methods=['POST'])
     def full_refresh():
-        trigger_refresh(full=True)
+        trigger_refresh(full=True)  # Trigger full refresh and reset timer
         return jsonify({"message": "Full refresh triggered", "is_reloading": IS_RELOADING}), 202
 
     @app.context_processor
@@ -57,5 +71,10 @@ def create_app():
             return url_for(request.endpoint, **args)
         return dict(update_url_param=update_url_param)
 
-    # Background refresh thread already started in run.py
+    # Start background refresh thread (moved to run.py, commented out here)
+    # from refresh_logic import background_refresh
+    # stop_event = threading.Event()
+    # refresher_thread = threading.Thread(target=background_refresh, args=(stop_event,), daemon=True)
+    # refresher_thread.start()
+
     return app
