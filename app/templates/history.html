@@ -4,7 +4,7 @@
 
 <div class="mb-3">
     <label for="monthFilter" class="form-label">Filter by Month:</label>
-    <select class="form-control" id="monthFilter" onchange="window.location.href='{{ url_for('tab7.history') }}?month_year=' + this.value">
+    <select class="form-control" id="monthFilter" onchange="window.location.href='/history?month_year=' + this.value">
         <option value="">All</option>
         {% for month in months %}
             <option value="{{ month }}" {% if month == month_year %}selected{% endif %}>{{ month }}</option>

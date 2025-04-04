@@ -12,14 +12,14 @@
 <script>
 document.getElementById("startVotingForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    fetch("{{ url_for('tab7.start_voting') }}", {
+    fetch("/start_voting", {
         method: "POST",
         body: new FormData(e.target),
     })
     .then(response => response.json())
     .then(data => {
         alert(data.message);
-        if (data.success) window.location.href = "{{ url_for('tab7.show_tab7') }}";
+        if (data.success) window.location.href = "/";
     })
     .catch(error => console.error("Error starting voting:", error));
 });

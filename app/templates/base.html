@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>RFID Inventory Dashboard</title>
+    <title>RFID Incentive Program</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
@@ -11,114 +11,17 @@
     <header class="mb-4">
         <nav>
             <ul class="nav nav-tabs">
-                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab1/">Active Rentals</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab2/">Categories</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab3/">Service Items</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab4/">Full Inventory</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab5/">Laundry Contracts</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab6/">Resale Items</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tab7/">Incentive Program</a></li>
+                <li class="nav-item"><a class="nav-link" href="/">Incentive Program</a></li>
+                <li class="nav-item"><a class="nav-link" href="/history">History</a></li>
+                {% if session.admin_id %}
+                <li class="nav-item"><a class="nav-link" href="/admin">Admin</a></li>
+                {% endif %}
             </ul>
         </nav>
-        <div class="mt-2">
-            <form action="/manual_refresh" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-primary">Refresh Main Server</button>
-            </form>
-            <form action="/manual_refresh_dev" method="POST" style="display: inline; margin-left: 10px;">
-                <button type="submit" class="btn btn-secondary">Refresh Dev Server</button>
-            </form>
-            <button class="btn btn-success" id="filtered-refresh-btn" style="margin-left: 10px;">Data Quick Refresh</button>
-        </div>
     </header>
     {% block content %}{% endblock %}
-    <div class="modal fade" id="refreshModal" tabindex="-1" aria-labelledby="refreshModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-body text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Refreshing...</span>
-                    </div>
-                    <p class="mt-2">Refreshing data, please wait...</p>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Only init refreshModal if it exists
-    const refreshModalEl = document.getElementById('refreshModal');
-    if (refreshModalEl) {
-        const refreshModal = new bootstrap.Modal(refreshModalEl, { backdrop: 'static', keyboard: false });
-        document.querySelectorAll('form[action="/manual_refresh"], form[action="/manual_refresh_dev"]').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                refreshModal.show();
-                fetch('/full_refresh', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(data.message);
-                        const interval = setInterval(() => {
-                            fetch('/status')
-                                .then(res => res.json())
-                                .then(status => {
-                                    if (!status.is_reloading) {
-                                        clearInterval(interval);
-                                        refreshModal.hide();
-                                        window.location.reload();
-                                    }
-                                });
-                        }, 1000);
-                    })
-                    .catch(error => {
-                        console.error('Error triggering full refresh:', error);
-                        refreshModal.hide();
-                    });
-            });
-        });
-    }
-});
-</script>
-<script>
-    let lastRefreshTime = new Date().toISOString();
-
-    function checkReloadStatus() {
-        fetch('/status')
-            .then(response => response.json())
-            .then(data => {
-                console.log("Reload status:", data.is_reloading);
-                if (!data.is_reloading) {
-                    document.getElementById("loading-overlay").style.display = "none";
-                }
-            })
-            .catch(error => console.error('Error checking reload status:', error));
-    }
-
-    document.getElementById('filtered-refresh-btn').addEventListener('click', function() {
-        console.log("Filtered Refresh clicked at " + new Date().toLocaleTimeString());
-        fetch('/trigger_incremental')
-            .then(response => {
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                return response.json();
-            })
-            .then(data => {
-                console.log('New items since ' + data.since + ':', data);
-                lastRefreshTime = new Date().toISOString();
-                const event = new CustomEvent('newData', { detail: data });
-                document.dispatchEvent(event);
-            })
-            .catch(error => console.error('Error fetching new items:', error));
-    });
-
-    document.addEventListener("DOMContentLoaded", () => {
-        checkReloadStatus();
-        setInterval(checkReloadStatus, 2000); // Poll every 2s
-    });
-</script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'92b267dabb506789',t:'MTc0Mzc4NjQ4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>

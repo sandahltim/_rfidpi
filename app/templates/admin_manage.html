@@ -28,7 +28,7 @@
 <script>
 document.getElementById("addEmployeeForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    fetch("{{ url_for('tab7.admin_add') }}", {
+    fetch("/admin/add", {
         method: "POST",
         body: new FormData(e.target),
     })
@@ -39,13 +39,13 @@ document.getElementById("addEmployeeForm").addEventListener("submit", (e) => {
 
 document.getElementById("resetScoresBtn").addEventListener("click", () => {
     if (confirm("Reset all scores to 50?")) {
-        fetch("{{ url_for('tab7.admin_reset') }}", {
+        fetch("/admin/reset", {
             method: "POST",
         })
         .then(response => response.json())
         .then(data => {
             alert(data.message);
-            window.location.href = "{{ url_for('tab7.show_tab7') }}";
+            window.location.href = "/";
         })
         .catch(error => console.error("Error resetting scores:", error));
     }

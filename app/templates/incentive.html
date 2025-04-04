@@ -25,9 +25,9 @@
 
 {% if session.admin_id %}
     <button class="btn btn-primary" id="startVotingBtn">Start Voting</button>
-    <a href="{{ url_for('tab7.admin') }}" class="btn btn-secondary">Manage Employees</a>
+    <a href="/admin" class="btn btn-secondary">Manage Employees</a>
 {% endif %}
-<a href="{{ url_for('tab7.history') }}" class="btn btn-info">View History</a>
+<a href="/history" class="btn btn-info">View History</a>
 
 {% if voting_active %}
     <h2>Cast Your Votes</h2>
@@ -84,31 +84,35 @@ function sortTable(tableEl, colName) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM Content Loaded - Incentive Program");
     document.querySelectorAll(".sortable").forEach(th => {
         th.addEventListener("click", () => sortTable(document.getElementById("scoreboardTable"), th.getAttribute("data-col-name")));
     });
 
     if (document.getElementById("startVotingBtn")) {
         document.getElementById("startVotingBtn").addEventListener("click", () => {
-            window.location.href = "{{ url_for('tab7.start_voting') }}";
+            window.location.href = "/start_voting";
         });
     }
 
     if (document.getElementById("voteForm")) {
         document.getElementById("voteForm").addEventListener("submit", (e) => {
             e.preventDefault();
-            fetch("{{ url_for('tab7.vote') }}", {
+            fetch("/vote", {
                 method: "POST",
                 body: new FormData(e.target),
             })
             .then(response => response.json())
-            .then(data => alert(data.message))
+            .then(data => {
+                alert(data.message);
+                if (data.success) refreshScoreboard();
+            })
             .catch(error => console.error("Error submitting votes:", error));
         });
     }
 
     function refreshScoreboard() {
-        fetch("{{ url_for('tab7.tab7_data') }}")
+        fetch("/data")
             .then(response => response.json())
             .then(data => {
                 const tbody = document.getElementById("scoreboardBody");
@@ -119,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     tbody.appendChild(tr);
                 });
                 if (data.voting_active && !document.getElementById("voteForm")) {
-                    window.location.reload(); // Refresh to show voting form
+                    window.location.reload();
                 }
             });
     }

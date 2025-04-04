@@ -1,3 +1,3 @@
 #!/bin/bash
 source venv/bin/activate
-gunicorn --workers 2 --bind 0.0.0.0:8102 run:app
+gunicorn -w 2 -b 0.0.0.0:6800 app:app

@@ -1,5 +1,4 @@
 *.pyc
-config.py
 __pycache__/
 *.db
 venv/
