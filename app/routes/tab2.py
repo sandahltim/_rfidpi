@@ -1307,8 +1307,9 @@ def show_tab2():
                 subcat: {
                     "common_names": {cn: {"total": len(items)} for cn, items in subcat_items.items()}
                 } for subcat, subcat_items in temp_sub_map.items()
-            }
+            } if temp_sub_map else {}
         }
+        
 
         parent_data.append({
             "category": category,

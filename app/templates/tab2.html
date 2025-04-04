@@ -314,10 +314,14 @@ function updateWithNewData(newData) {
         <td colspan="6" class="p-0">
           <div id="child-${cat_key}" class="collapse" data-category="${category}">
             <div class="mb-2 mx-2">
-              <select class="form-select subcategory-dropdown" data-category="${category}">
-                {% for subcat in sub_map[category].subcategories.keys() %}
-                <option value="{{ subcat }}">{{ subcat }}</option>
-                {% endfor %}
+              <select class="form-select subcategory-dropdown" data-category="{{ parent.category }}">
+                {% if category in sub_map and sub_map[category].subcategories %}
+                  {% for subcat in sub_map[category].subcategories.keys() %}
+                  <option value="{{ subcat }}">{{ subcat }}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="">No subcategories available</option>
+                {% endif %}
               </select>
             </div>
             <div id="loading-${cat_key}" class="text-center my-2" style="display: none;">
