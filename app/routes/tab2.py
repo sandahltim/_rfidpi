@@ -1309,7 +1309,6 @@ def show_tab2():
                 } for subcat, subcat_items in temp_sub_map.items()
             } if temp_sub_map else {}
         }
-        
 
         parent_data.append({
             "category": category,
