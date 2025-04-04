@@ -315,7 +315,7 @@ function updateWithNewData(newData) {
           <div id="child-${cat_key}" class="collapse" data-category="${category}">
             <div class="mb-2 mx-2">
               <select class="form-select subcategory-dropdown" data-category="${category}">
-                {% for subcat in sub_map[category].subcategories %}
+                {% for subcat in sub_map[category].subcategories.keys() %}
                 <option value="{{ subcat }}">{{ subcat }}</option>
                 {% endfor %}
               </select>

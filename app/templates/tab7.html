@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function refreshScoreboard() {
-        fetch("{{ url_for('tab7.data') }}")
+        fetch("{{ url_for('tab7.tab7_data') }}")
             .then(response => response.json())
             .then(data => {
                 const tbody = document.getElementById("scoreboardBody");
