@@ -5,25 +5,33 @@ import logging
 import time
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = "your-secret-key-here"  # Replace with a secure key
-logging.basicConfig(level=logging.DEBUG)
+app.secret_key = "your-secret-key-here"
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s')
 
 @app.route("/", methods=["GET"])
 def show_incentive():
-    with DatabaseConnection() as conn:
-        scoreboard = get_scoreboard(conn)
-        voting_active = is_voting_active(conn)
-        rules = get_rules(conn)
-        pot_info = get_pot_info(conn)
-    return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()))
+    try:
+        with DatabaseConnection() as conn:
+            scoreboard = get_scoreboard(conn)
+            voting_active = is_voting_active(conn)
+            rules = get_rules(conn)
+            pot_info = get_pot_info(conn)
+        return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()))
+    except Exception as e:
+        logging.error(f"Error in show_incentive: {str(e)}")
+        return "Internal Server Error", 500
 
 @app.route("/data", methods=["GET"])
 def incentive_data():
-    with DatabaseConnection() as conn:
-        scoreboard = [dict(row) for row in get_scoreboard(conn)]
-        voting_active = is_voting_active(conn)
-        pot_info = get_pot_info(conn)
-    return jsonify({"scoreboard": scoreboard, "voting_active": voting_active, "pot_info": pot_info})
+    try:
+        with DatabaseConnection() as conn:
+            scoreboard = [dict(row) for row in get_scoreboard(conn)]
+            voting_active = is_voting_active(conn)
+            pot_info = get_pot_info(conn)
+        return jsonify({"scoreboard": scoreboard, "voting_active": voting_active, "pot_info": pot_info})
+    except Exception as e:
+        logging.error(f"Error in incentive_data: {str(e)}")
+        return "Internal Server Error", 500
 
 @app.route("/start_voting", methods=["GET", "POST"])
 def start_voting():
@@ -47,11 +55,15 @@ def close_voting():
 
 @app.route("/vote", methods=["POST"])
 def vote():
-    voter_initials = request.form.get("initials")
-    votes = {key.split("_")[1]: int(value) for key, value in request.form.items() if key.startswith("vote_")}
-    with DatabaseConnection() as conn:
-        success, message = cast_votes(conn, voter_initials, votes)
-    return jsonify({"success": success, "message": message})
+    try:
+        voter_initials = request.form.get("initials")
+        votes = {key.split("_")[1]: int(value) for key, value in request.form.items() if key.startswith("vote_")}
+        with DatabaseConnection() as conn:
+            success, message = cast_votes(conn, voter_initials, votes)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in vote: {str(e)}")
+        return "Internal Server Error", 500
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
@@ -126,9 +138,10 @@ def admin_update_pot():
         bonus_percent = float(request.form["bonus_percent"])
         driver_percent = float(request.form["driver_percent"])
         laborer_percent = float(request.form["laborer_percent"])
-        logging.debug(f"Received pot update: sales_dollars={sales_dollars}, bonus_percent={bonus_percent}, driver_percent={driver_percent}, laborer_percent={laborer_percent}")
+        supervisor_percent = float(request.form.get("supervisor_percent", 0))
+        logging.debug(f"Received pot update: sales_dollars={sales_dollars}, bonus_percent={bonus_percent}, driver_percent={driver_percent}, laborer_percent={laborer_percent}, supervisor_percent={supervisor_percent}")
         with DatabaseConnection() as conn:
-            success, message = update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent)
+            success, message = update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent)
         return jsonify({"success": success, "message": message})
     except Exception as e:
         logging.error(f"Error in update_pot: {str(e)}")

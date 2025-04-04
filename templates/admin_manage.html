@@ -69,7 +69,7 @@
 </ul>
 
 <h2>Incentive Pot</h2>
-<p>Total Bonus Payout: ${{ "%.2f"|format((employees | selectattr('role', 'equalto', 'driver') | map(attribute='score') | sum * pot_info['driver_point_value']) + (employees | selectattr('role', 'equalto', 'laborer') | map(attribute='score') | sum * pot_info['laborer_point_value'])) }}</p>
+<p>Total Bonus Payout: ${{ "%.2f"|format((employees | selectattr('role', 'equalto', 'driver') | map(attribute='score') | sum * pot_info['driver_point_value']) + (employees | selectattr('role', 'equalto', 'laborer') | map(attribute='score') | sum * pot_info['laborer_point_value']) + (employees | selectattr('role', 'equalto', 'supervisor') | map(attribute='score') | sum * pot_info['supervisor_point_value'])) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
         <label for="sales_dollars" class="form-label">Sales Dollars:</label>
@@ -86,6 +86,10 @@
     <div class="mb-3">
         <label for="laborer_percent" class="form-label">Laborer % of Pot:</label>
         <input type="number" step="0.1" class="form-control" id="laborer_percent" name="laborer_percent" value="{{ pot_info.laborer_percent }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="supervisor_percent" class="form-label">Supervisor % of Pot:</label>
+        <input type="number" step="0.1" class="form-control" id="supervisor_percent" name="supervisor_percent" value="{{ pot_info.supervisor_percent }}" required>
     </div>
     <button type="submit" class="btn btn-primary">Update Pot</button>
 </form>

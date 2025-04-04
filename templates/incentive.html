@@ -6,8 +6,23 @@
 <div id="css-debug" style="height: 20px; width: 20px; background-color: #ff0000;"></div>
 <p id="css-status">CSS Load Status: Checking...</p>
 
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+</style>
+
 <div class="table-container">
-    <table class="table table-bordered" id="scoreboardTable">
+    <table id="scoreboardTable">
         <thead>
             <tr>
                 <th class="sortable" data-col-name="name">Name</th>
@@ -28,7 +43,7 @@
                 {% endif %}
                 <td>{{ emp.role }}</td>
                 <td>{{ emp.score }}</td>
-                <td>${{ "%.2f"|format(emp.score * (pot_info['driver_point_value'] if emp.role == 'driver' else pot_info['laborer_point_value'])) }}</td>
+                <td>${{ "%.2f"|format(emp.score * (pot_info['driver_point_value'] if emp.role == 'driver' else pot_info['laborer_point_value'] if emp.role == 'laborer' else pot_info['supervisor_point_value'])) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -49,6 +64,7 @@
     <p>Total Pot: ${{ "%.2f"|format(pot_info['sales_dollars'] * pot_info['bonus_percent'] / 100) }}</p>
     <p>Drivers ({{ pot_info['driver_percent'] }}%): ${{ "%.2f"|format(pot_info['driver_pot']) }}, Point Value: ${{ "%.2f"|format(pot_info['driver_point_value']) }}</p>
     <p>Laborers ({{ pot_info['laborer_percent'] }}%): ${{ "%.2f"|format(pot_info['laborer_pot']) }}, Point Value: ${{ "%.2f"|format(pot_info['laborer_point_value']) }}</p>
+    <p>Supervisors ({{ pot_info['supervisor_percent'] }}%): ${{ "%.2f"|format(pot_info['supervisor_pot']) }}, Point Value: ${{ "%.2f"|format(pot_info['supervisor_point_value']) }}</p>
 </div>
 
 {% if session.admin_id %}
@@ -61,13 +77,17 @@
 <a href="/history" class="btn btn-info">View History</a>
 
 {% if voting_active %}
-    <h2>Cast Your Votes</h2>
-    <form id="voteForm">
+    <h2>Cast Your Vote</h2>
+    <div id="voteInitialsForm">
         <div class="mb-3">
-            <label for="initials" class="form-label">Your Initials:</label>
-            <input type="text" class="form-control" id="initials" name="initials" required>
+            <label for="voterInitials" class="form-label">Your Initials:</label>
+            <input type="text" class="form-control" id="voterInitials" name="initials" required>
         </div>
-        <table class="table">
+        <button type="button" class="btn btn-primary" id="checkInitialsBtn">OK</button>
+    </div>
+    <form id="voteForm" style="display: none;">
+        <input type="hidden" id="hiddenInitials" name="initials">
+        <table>
             <thead>
                 <tr>
                     <th>Name</th>
@@ -80,7 +100,7 @@
                     <th>-1</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="voteTableBody">
                 {% for emp in scoreboard %}
                 <tr>
                     <td>{{ emp.name }}</td>
@@ -165,6 +185,29 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    if (document.getElementById("checkInitialsBtn")) {
+        document.getElementById("checkInitialsBtn").addEventListener("click", () => {
+            const initials = document.getElementById("voterInitials").value.trim();
+            if (initials) {
+                fetch("/data")
+                    .then(response => response.json())
+                    .then(data => {
+                        const valid = data.scoreboard.some(emp => emp.initials === initials);
+                        if (valid) {
+                            document.getElementById("hiddenInitials").value = initials;
+                            document.getElementById("voteInitialsForm").style.display = "none";
+                            document.getElementById("voteForm").style.display = "block";
+                        } else {
+                            alert("Invalid initials");
+                        }
+                    })
+                    .catch(error => console.error("Error checking initials:", error));
+            } else {
+                alert("Please enter your initials");
+            }
+        });
+    }
+
     if (document.getElementById("voteForm")) {
         document.getElementById("voteForm").addEventListener("submit", (e) => {
             e.preventDefault();
@@ -175,7 +218,13 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(response => response.json())
             .then(data => {
                 alert(data.message);
-                if (data.success) refreshScoreboard();
+                if (data.success) {
+                    document.getElementById("voteForm").reset();
+                    document.getElementById("voteForm").style.display = "none";
+                    document.getElementById("voteInitialsForm").style.display = "block";
+                    document.getElementById("voterInitials").value = "";
+                    refreshScoreboard();
+                }
             })
             .catch(error => console.error("Error submitting votes:", error));
         });
@@ -200,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     tr.className = scoreClass;
                     console.log(`Employee: ${emp.name}, Score: ${emp.score}, Class: ${scoreClass}`);
-                    const potShare = emp.score * (emp.role === "driver" ? data.pot_info.driver_point_value : data.pot_info.laborer_point_value);
+                    const potShare = emp.score * (emp.role === "driver" ? data.pot_info.driver_point_value : emp.role === "laborer" ? data.pot_info.laborer_point_value : data.pot_info.supervisor_point_value);
                     tr.innerHTML = `
                         <td>${emp.name}</td>
                         {% if is_admin %}<td>${emp.initials}</td>{% endif %}
@@ -210,8 +259,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                     tbody.appendChild(tr);
                 });
-                if (data.voting_active && !document.getElementById("voteForm")) {
-                    window.location.reload();
+                if (data.voting_active && !document.getElementById("voteForm").style.display === "block") {
+                    document.getElementById("voteInitialsForm").style.display = "block";
                 }
                 const potInfo = document.getElementById("potInfo");
                 potInfo.innerHTML = `
@@ -220,6 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p>Total Pot: $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent / 100).toFixed(2)}</p>
                     <p>Drivers (${data.pot_info.driver_percent}%): $${data.pot_info.driver_pot.toFixed(2)}, Point Value: $${data.pot_info.driver_point_value.toFixed(2)}</p>
                     <p>Laborers (${data.pot_info.laborer_percent}%): $${data.pot_info.laborer_pot.toFixed(2)}, Point Value: $${data.pot_info.laborer_point_value.toFixed(2)}</p>
+                    <p>Supervisors (${data.pot_info.supervisor_percent}%): $${data.pot_info.supervisor_pot.toFixed(2)}, Point Value: $${data.pot_info.supervisor_point_value.toFixed(2)}</p>
                 `;
             })
             .catch(error => console.error("Error fetching data:", error));

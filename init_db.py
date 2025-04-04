@@ -49,7 +49,7 @@ def initialize_incentive_db():
         ("admin1", "admin1", generate_password_hash("Broadway8101")),
         ("admin2", "admin2", generate_password_hash("Broadway8101")),
         ("admin3", "admin3", generate_password_hash("Broadway8101")),
-        ("master", "master", generate_password_hash("Master8101"))  # Master admin
+        ("master", "master", generate_password_hash("Master8101"))
     ]
     cursor.executemany("INSERT OR IGNORE INTO admins (admin_id, username, password) VALUES (?, ?, ?)", admins)
 
@@ -80,10 +80,11 @@ def initialize_incentive_db():
             sales_dollars REAL DEFAULT 0.0,
             bonus_percent REAL DEFAULT 0.0,
             driver_percent REAL DEFAULT 50.0,
-            laborer_percent REAL DEFAULT 50.0
+            laborer_percent REAL DEFAULT 50.0,
+            supervisor_percent REAL DEFAULT 0.0
         )
     """)
-    cursor.execute("INSERT OR IGNORE INTO incentive_pot (id, sales_dollars, bonus_percent, driver_percent, laborer_percent) VALUES (1, 0.0, 0.0, 50.0, 50.0)")
+    cursor.execute("INSERT OR IGNORE INTO incentive_pot (id, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent) VALUES (1, 0.0, 0.0, 50.0, 50.0, 0.0)")
 
     conn.commit()
     conn.close()
