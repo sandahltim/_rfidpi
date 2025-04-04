@@ -17,6 +17,7 @@ def show_incentive():
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
             voting_results = get_voting_results(conn) if session.get("admin_id") else []
+        logging.debug(f"Loaded incentive page: voting_active={voting_active}, results_count={len(voting_results)}")
         return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()), voting_results=voting_results)
     except Exception as e:
         logging.error(f"Error in show_incentive: {str(e)}")
@@ -44,6 +45,7 @@ def start_voting():
     code = request.form.get("vote_code")
     with DatabaseConnection() as conn:
         success, message = start_voting_session(conn, session["admin_id"], code, is_master=is_master)
+    logging.debug(f"Start voting: success={success}, message={message}")
     return jsonify({"success": success, "message": message})
 
 @app.route("/close_voting", methods=["POST"])
@@ -52,6 +54,7 @@ def close_voting():
         return jsonify({"success": False, "message": "Admin login required"}), 403
     with DatabaseConnection() as conn:
         success, message = close_voting_session(conn, session["admin_id"])
+    logging.debug(f"Close voting: success={success}, message={message}")
     return jsonify({"success": success, "message": message})
 
 @app.route("/vote", methods=["POST"])
@@ -61,6 +64,7 @@ def vote():
         votes = {key.split("_")[1]: int(value) for key, value in request.form.items() if key.startswith("vote_")}
         with DatabaseConnection() as conn:
             success, message = cast_votes(conn, voter_initials, votes)
+        logging.debug(f"Vote cast: initials={voter_initials}, votes={votes}, success={success}, message={message}")
         return jsonify({"success": success, "message": message})
     except Exception as e:
         logging.error(f"Error in vote: {str(e)}")

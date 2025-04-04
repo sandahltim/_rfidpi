@@ -1,6 +1,9 @@
 import sqlite3
 from datetime import datetime, timedelta
 from config import INCENTIVE_DB_FILE, VOTING_DAYS_2025
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s')
 
 class DatabaseConnection:
     def __enter__(self):
@@ -11,6 +14,7 @@ class DatabaseConnection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
             self.conn.rollback()
+            logging.error(f"DB rollback due to {exc_type}: {exc_val}")
         else:
             self.conn.commit()
         self.conn.close()
@@ -22,7 +26,7 @@ def start_voting_session(conn, admin_id, code, is_master=False):
     from config import VOTE_CODE
     now = datetime.now()
     if not is_master:
-        if now.weekday() not in [2, 3, 4]:  # Wed (2), Thu (3), Fri (4)
+        if now.weekday() not in [2, 3, 4]:
             return False, "Voting only allowed Wednesday through Friday"
     if code != VOTE_CODE:
         return False, "Invalid voting code"
@@ -39,6 +43,7 @@ def start_voting_session(conn, admin_id, code, is_master=False):
         "INSERT INTO voting_sessions (vote_code, admin_id, start_time, end_time) VALUES (?, ?, ?, ?)",
         (code, admin_id, start_time, end_time)
     )
+    logging.debug(f"Voting session started: admin_id={admin_id}, start={start_time}, end={end_time}")
     return True, "Voting session started until Friday 11:59 PM"
 
 def close_voting_session(conn, admin_id):
@@ -54,6 +59,7 @@ def close_voting_session(conn, admin_id):
         "SELECT voter_initials, recipient_id, vote_value FROM votes WHERE vote_date >= ? AND vote_date <= ?",
         (active_session["start_time"], active_session["end_time"])
     ).fetchall()
+    logging.debug(f"Closing session: {len(votes)} votes found")
     employees = {e["employee_id"]: dict(e) for e in conn.execute("SELECT employee_id, name, role, score FROM employees").fetchall()}
     vote_counts = {}
     total_votes = 0
@@ -100,8 +106,10 @@ def close_voting_session(conn, admin_id):
                 "INSERT INTO score_history (employee_id, changed_by, points, reason, date, month_year) VALUES (?, ?, ?, ?, ?, ?)",
                 (emp_id, admin_id, points, f"Weekly vote result: {counts['plus']} +1, {counts['minus']} -1", now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m"))
             )
+            logging.debug(f"Updated score: emp_id={emp_id}, old_score={old_score}, new_score={new_score}, points={points}")
 
     conn.execute("UPDATE voting_sessions SET end_time = ? WHERE session_id = ?", (now.strftime("%Y-%m-%d %H:%M:%S"), active_session["session_id"]))
+    logging.debug(f"Voting session closed: total_votes={total_votes}")
     return True, f"Voting session closed, scores updated based on {total_votes} votes"
 
 def is_voting_active(conn):
@@ -129,11 +137,13 @@ def cast_votes(conn, voter_initials, votes):
     
     for recipient_id, vote_value in votes.items():
         if not conn.execute("SELECT 1 FROM employees WHERE employee_id = ?", (recipient_id,)).fetchone():
+            logging.warning(f"Invalid recipient_id: {recipient_id}")
             continue
         conn.execute(
             "INSERT INTO votes (voter_initials, recipient_id, vote_value, vote_date) VALUES (?, ?, ?, ?)",
             (voter_initials, recipient_id, vote_value, now.strftime("%Y-%m-%d %H:%M:%S"))
         )
+        logging.debug(f"Vote recorded: voter={voter_initials}, recipient={recipient_id}, value={vote_value}")
     return True, "Votes cast successfully"
 
 def add_employee(conn, name, initials, role):
@@ -239,4 +249,5 @@ def get_voting_results(conn):
         WHERE strftime('%W', v.vote_date) = ?
         ORDER BY v.vote_date DESC
     """, (str(week_number),)).fetchall()
+    logging.debug(f"Voting results fetched: {len(results)} entries")
     return [dict(row) for row in results]
