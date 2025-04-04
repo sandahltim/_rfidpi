@@ -41,6 +41,8 @@
     tr.score-high-90 { background-color: #66ff66 !important; color: black; font-weight: 750; text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
     tr.score-high-95 { background-color: #4dff4d !important; color: black; font-weight: 750; text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
     tr.score-high-100 { background-color: #33ff33 !important; color: black; font-weight: 800; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+    .vote-positive { color: green; }
+    .vote-negative { color: red; }
 </style>
 
 <div class="table-container">
@@ -139,6 +141,32 @@
         </table>
         <button type="submit" class="btn btn-success">Submit Votes</button>
     </form>
+{% endif %}
+
+{% if is_admin and voting_results %}
+    <h2>Voting Results (This Week)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Voter Initials</th>
+                <th>Recipient Name</th>
+                <th>Vote</th>
+                <th>Date</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in voting_results %}
+            <tr class="{% if result.points > 0 %}vote-positive{% elif result.points < 0 %}vote-negative{% endif %}">
+                <td>{{ result.voter_initials }}</td>
+                <td>{{ result.recipient_name }}</td>
+                <td>{{ result.vote_value }}</td>
+                <td>{{ result.vote_date }}</td>
+                <td>{{ result.points|default('Pending') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endif %}
 
 <script>
@@ -242,6 +270,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert(data.message);
                 if (data.success) {
                     document.getElementById("voteForm").reset();
+                    document.querySelectorAll("#voteTableBody input[type='radio']").forEach(radio => {
+                        if (radio.value === "0") radio.checked = true;
+                        else radio.checked = false;
+                    });
                     document.getElementById("voteForm").style.display = "none";
                     document.getElementById("voteInitialsForm").style.display = "block";
                     document.getElementById("voterInitials").value = "";

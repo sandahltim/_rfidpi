@@ -54,7 +54,7 @@ def close_voting_session(conn, admin_id):
         "SELECT voter_initials, recipient_id, vote_value FROM votes WHERE vote_date >= ? AND vote_date <= ?",
         (active_session["start_time"], active_session["end_time"])
     ).fetchall()
-    employees = {e["employee_id"]: e for e in conn.execute("SELECT employee_id, role, score FROM employees").fetchall()}
+    employees = {e["employee_id"]: dict(e) for e in conn.execute("SELECT employee_id, name, role, score FROM employees").fetchall()}
     vote_counts = {}
     total_votes = 0
     for vote in votes:
@@ -198,10 +198,10 @@ def get_pot_info(conn):
             "sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0, "supervisor_percent": 0.0,
             "driver_pot": 0.0, "laborer_pot": 0.0, "supervisor_pot": 0.0, "driver_point_value": 0.0, "laborer_point_value": 0.0, "supervisor_point_value": 0.0
         }
-    total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
-    driver_pot = total_pot * pot["driver_percent"] / 100
-    laborer_pot = total_pot * pot["laborer_percent"] / 100
-    supervisor_pot = total_pot * pot["supervisor_percent"] / 100
+    total_pot = pot.get("sales_dollars", 0.0) * pot.get("bonus_percent", 0.0) / 100
+    driver_pot = total_pot * pot.get("driver_percent", 50.0) / 100
+    laborer_pot = total_pot * pot.get("laborer_percent", 50.0) / 100
+    supervisor_pot = total_pot * pot.get("supervisor_percent", 0.0) / 100
     driver_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'driver'").fetchone()["count"] or 1
     laborer_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'laborer'").fetchone()["count"] or 1
     supervisor_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'supervisor'").fetchone()["count"] or 1
@@ -213,8 +213,8 @@ def get_pot_info(conn):
     laborer_point_value = laborer_pot / laborer_max_points if laborer_max_points > 0 else 0
     supervisor_point_value = supervisor_pot / supervisor_max_points if supervisor_max_points > 0 else 0
     return {
-        "sales_dollars": pot["sales_dollars"], "bonus_percent": pot["bonus_percent"],
-        "driver_percent": pot["driver_percent"], "laborer_percent": pot["laborer_percent"], "supervisor_percent": pot["supervisor_percent"],
+        "sales_dollars": pot.get("sales_dollars", 0.0), "bonus_percent": pot.get("bonus_percent", 0.0),
+        "driver_percent": pot.get("driver_percent", 50.0), "laborer_percent": pot.get("laborer_percent", 50.0), "supervisor_percent": pot.get("supervisor_percent", 0.0),
         "driver_pot": driver_pot, "laborer_pot": laborer_pot, "supervisor_pot": supervisor_pot,
         "driver_point_value": driver_point_value, "laborer_point_value": laborer_point_value, "supervisor_point_value": supervisor_point_value
     }
@@ -227,3 +227,16 @@ def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_
         (sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent)
     )
     return True, "Pot info updated"
+
+def get_voting_results(conn):
+    now = datetime.now()
+    week_number = now.isocalendar()[1]
+    results = conn.execute("""
+        SELECT v.voter_initials, e.name AS recipient_name, v.vote_value, v.vote_date, sh.points
+        FROM votes v
+        JOIN employees e ON v.recipient_id = e.employee_id
+        LEFT JOIN score_history sh ON v.recipient_id = sh.employee_id AND sh.reason LIKE 'Weekly vote result%'
+        WHERE strftime('%W', v.vote_date) = ?
+        ORDER BY v.vote_date DESC
+    """, (str(week_number),)).fetchall()
+    return [dict(row) for row in results]
