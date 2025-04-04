@@ -36,8 +36,28 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>document.addEventListener('DOMContentLoaded', () => { document.querySelectorAll('.modal').forEach(el => { if (el) new bootstrap.Modal(el, { backdrop: true, keyboard: true }); }); });</script>
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Only initialize modals if they exist and are explicitly needed
+        const modalElements = document.querySelectorAll('.modal');
+        if (modalElements.length > 0) {
+            modalElements.forEach(el => {
+                new bootstrap.Modal(el, { backdrop: true, keyboard: true });
+            });
+        }
+        // Prevent automatic modal triggers unless explicitly coded
+        document.querySelectorAll('[data-bs-toggle="modal"]').forEach(trigger => {
+            trigger.addEventListener('click', (e) => {
+                const targetId = trigger.getAttribute('data-bs-target');
+                const modal = document.querySelector(targetId);
+                if (modal) {
+                    new bootstrap.Modal(modal).show();
+                }
+            });
+        });
+    });
+    </script>
+    <script>
     let lastRefreshTime = new Date().toISOString();
     const refreshModal = new bootstrap.Modal(document.getElementById('refreshModal'), { backdrop: 'static', keyboard: false });
 
