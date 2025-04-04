@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Incentive Program</h1>
+
+<div class="table-container">
+    <table class="table table-striped table-bordered" id="scoreboardTable">
+        <thead>
+            <tr>
+                <th class="sortable" data-col-name="name">Name</th>
+                <th class="sortable" data-col-name="initials">Initials</th>
+                <th class="sortable" data-col-name="score">Score</th>
+            </tr>
+        </thead>
+        <tbody id="scoreboardBody">
+            {% for emp in scoreboard %}
+            <tr>
+                <td>{{ emp.name }}</td>
+                <td>{{ emp.initials }}</td>
+                <td>{{ emp.score }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if session.admin_id %}
+    <button class="btn btn-primary" id="startVotingBtn">Start Voting</button>
+    <a href="{{ url_for('tab7.admin') }}" class="btn btn-secondary">Manage Employees</a>
+{% endif %}
+<a href="{{ url_for('tab7.history') }}" class="btn btn-info">View History</a>
+
+{% if voting_active %}
+    <h2>Cast Your Votes</h2>
+    <form id="voteForm">
+        <div class="mb-3">
+            <label for="initials" class="form-label">Your Initials:</label>
+            <input type="text" class="form-control" id="initials" name="initials" required>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>+1</th>
+                    <th>0</th>
+                    <th>-1</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in scoreboard %}
+                <tr>
+                    <td>{{ emp.name }}</td>
+                    <td><input type="radio" name="vote_{{ emp.employee_id }}" value="1"></td>
+                    <td><input type="radio" name="vote_{{ emp.employee_id }}" value="0" checked></td>
+                    <td><input type="radio" name="vote_{{ emp.employee_id }}" value="-1"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-success">Submit Votes</button>
+    </form>
+{% endif %}
+
+<script>
+function sortTable(tableEl, colName) {
+    let tbody = tableEl.querySelector("tbody");
+    let asc = tableEl.getAttribute("data-sort-col") === colName ? 
+              tableEl.getAttribute("data-sort-dir") !== "asc" : true;
+    tableEl.setAttribute("data-sort-col", colName);
+    tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+
+    let headers = Array.from(tableEl.querySelectorAll("th"));
+    let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
+    let rows = Array.from(tbody.children);
+    rows.sort((a, b) => {
+        let cellA = a.cells[colIndex]?.innerText.trim() || "";
+        let cellB = b.cells[colIndex]?.innerText.trim() || "";
+        let numA = parseFloat(cellA);
+        let numB = parseFloat(cellB);
+        if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
+        return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+    tbody.innerHTML = "";
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".sortable").forEach(th => {
+        th.addEventListener("click", () => sortTable(document.getElementById("scoreboardTable"), th.getAttribute("data-col-name")));
+    });
+
+    if (document.getElementById("startVotingBtn")) {
+        document.getElementById("startVotingBtn").addEventListener("click", () => {
+            window.location.href = "{{ url_for('tab7.start_voting') }}";
+        });
+    }
+
+    if (document.getElementById("voteForm")) {
+        document.getElementById("voteForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            fetch("{{ url_for('tab7.vote') }}", {
+                method: "POST",
+                body: new FormData(e.target),
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error("Error submitting votes:", error));
+        });
+    }
+
+    function refreshScoreboard() {
+        fetch("{{ url_for('tab7.data') }}")
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById("scoreboardBody");
+                tbody.innerHTML = "";
+                data.scoreboard.forEach(emp => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${emp.name}</td><td>${emp.initials}</td><td>${emp.score}</td>`;
+                    tbody.appendChild(tr);
+                });
+                if (data.voting_active && !document.getElementById("voteForm")) {
+                    window.location.reload(); // Refresh to show voting form
+                }
+            });
+    }
+    setInterval(refreshScoreboard, 60000);
+    refreshScoreboard();
+});
+</script>
+{% endblock %}

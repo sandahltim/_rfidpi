@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Admin Management</h1>
+
+<h2>Add Employee</h2>
+<form id="addEmployeeForm">
+    <div class="mb-3">
+        <label for="name" class="form-label">Name:</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <div class="mb-3">
+        <label for="initials" class="form-label">Initials:</label>
+        <input type="text" class="form-control" id="initials" name="initials" required>
+    </div>
+    <div class="mb-3">
+        <label for="role" class="form-label">Role:</label>
+        <select class="form-control" id="role" name="role">
+            <option value="employee">Employee</option>
+            <option value="supervisor">Supervisor</option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Employee</button>
+</form>
+
+<h2>Reset Scores</h2>
+<button class="btn btn-danger" id="resetScoresBtn">Reset All Scores to 50</button>
+
+<script>
+document.getElementById("addEmployeeForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("{{ url_for('tab7.admin_add') }}", {
+        method: "POST",
+        body: new FormData(e.target),
+    })
+    .then(response => response.json())
+    .then(data => alert(data.message))
+    .catch(error => console.error("Error adding employee:", error));
+});
+
+document.getElementById("resetScoresBtn").addEventListener("click", () => {
+    if (confirm("Reset all scores to 50?")) {
+        fetch("{{ url_for('tab7.admin_reset') }}", {
+            method: "POST",
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            window.location.href = "{{ url_for('tab7.show_tab7') }}";
+        })
+        .catch(error => console.error("Error resetting scores:", error));
+    }
+});
+</script>
+{% endblock %}

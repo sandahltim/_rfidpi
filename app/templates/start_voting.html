@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Start Voting Session</h1>
+<form id="startVotingForm" method="POST">
+    <div class="mb-3">
+        <label for="vote_code" class="form-label">Enter Voting Code:</label>
+        <input type="text" class="form-control" id="vote_code" name="vote_code" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Start Voting</button>
+</form>
+
+<script>
+document.getElementById("startVotingForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("{{ url_for('tab7.start_voting') }}", {
+        method: "POST",
+        body: new FormData(e.target),
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) window.location.href = "{{ url_for('tab7.show_tab7') }}";
+    })
+    .catch(error => console.error("Error starting voting:", error));
+});
+</script>
+{% endblock %}
