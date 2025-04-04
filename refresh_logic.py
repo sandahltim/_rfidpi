@@ -3,7 +3,17 @@ import requests
 import sqlite3
 import time
 from datetime import datetime, timedelta
+<<<<<<< HEAD
 from config import LOGIN_URL, DB_FILE, SEED_URL, ITEM_MASTER_URL, TRANSACTION_URL, API_PASSWORD, API_USERNAME
+=======
+from config import DB_FILE
+
+API_USERNAME = os.environ.get("API_USERNAME", "api")
+API_PASSWORD = os.environ.get("API_PASSWORD", "Broadway8101")
+LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"
+ITEM_MASTER_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169344381"
+TRANSACTION_URL = "https://cs.iot.ptshome.com/api/v1/data/14223767938169346196"
+>>>>>>> 0cd9632179b13a1fd2bf1c588573afce46abb5ed
 
 TOKEN = None
 TOKEN_EXPIRY = None

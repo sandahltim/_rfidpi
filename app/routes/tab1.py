@@ -33,6 +33,7 @@ def show_tab1():
         }
         for contract, info in contract_totals.items()
     ]
+<<<<<<< HEAD
     parent_data.sort(key=lambda x: x["contract"])
 
     child_map = {}
@@ -118,15 +119,31 @@ def subcat_data():
 
     filtered_items = [item for item in items if item.get("common_name") == common_name]
     total_items = len(filtered_items)
+=======
+    
+    # Pagination
+    per_page = 40
+    total_items = len(parent_data)
+>>>>>>> 0cd9632179b13a1fd2bf1c588573afce46abb5ed
     total_pages = (total_items + per_page - 1) // per_page
     page = max(1, min(page, total_pages))
     start = (page - 1) * per_page
     end = start + per_page
     paginated_items = filtered_items[start:end]
 
+<<<<<<< HEAD
     return jsonify({
         "items": paginated_items,
         "total_items": total_items,
         "total_pages": total_pages,
         "current_page": page
     })
+=======
+    return render_template(
+        "tab1.html",
+        parent_data=paginated_data,
+        contract_map=contract_map,
+        current_page=page,
+        total_pages=total_pages
+    )
+>>>>>>> 0cd9632179b13a1fd2bf1c588573afce46abb5ed

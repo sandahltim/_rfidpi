@@ -4,6 +4,10 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_FILE = os.path.join(BASE_DIR, "inventory.db")
 INCENTIVE_DB_FILE = os.path.join(BASE_DIR, "incentive.db")  # New DB
 
+<<<<<<< HEAD
+=======
+# API configuration (as noted in the project overview)
+>>>>>>> 0cd9632179b13a1fd2bf1c588573afce46abb5ed
 API_USERNAME = os.environ.get("API_USERNAME", "api")
 API_PASSWORD = os.environ.get("API_PASSWORD", "Broadway8101")
 LOGIN_URL = "https://login.cloud.ptshome.com/api/v1/login"

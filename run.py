@@ -51,6 +51,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logging.info("Starting Flask application...")
     try:
+<<<<<<< HEAD
         app.run(host="0.0.0.0", port=7409, debug=True)
+=======
+        app.run(host="0.0.0.0", port=8102, debug=True)
+>>>>>>> 0cd9632179b13a1fd2bf1c588573afce46abb5ed
     except Exception as e:
         logging.error(f"Flask failed to start: {e}")
