@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from werkzeug.security import check_password_hash
 from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info
+import logging
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = "your-secret-key-here"  # Replace with a secure key
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route("/", methods=["GET"])
 def show_incentive():
@@ -109,13 +111,18 @@ def admin_add_rule():
 def admin_update_pot():
     if "admin_id" not in session:
         return jsonify({"success": False, "message": "Admin login required"}), 403
-    sales_dollars = float(request.form["sales_dollars"])
-    bonus_percent = float(request.form["bonus_percent"])
-    driver_percent = float(request.form["driver_percent"])
-    laborer_percent = float(request.form["laborer_percent"])
-    with DatabaseConnection() as conn:
-        success, message = update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent)
-    return jsonify({"success": success, "message": message})
+    try:
+        sales_dollars = float(request.form["sales_dollars"])
+        bonus_percent = float(request.form["bonus_percent"])
+        driver_percent = float(request.form["driver_percent"])
+        laborer_percent = float(request.form["laborer_percent"])
+        logging.debug(f"Received pot update: sales_dollars={sales_dollars}, bonus_percent={bonus_percent}, driver_percent={driver_percent}, laborer_percent={laborer_percent}")
+        with DatabaseConnection() as conn:
+            success, message = update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in update_pot: {str(e)}")
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 @app.route("/history", methods=["GET"])
 def history():

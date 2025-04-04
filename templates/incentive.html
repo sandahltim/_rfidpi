@@ -139,10 +139,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 tbody.innerHTML = "";
                 data.scoreboard.forEach(emp => {
                     const tr = document.createElement("tr");
-                    const scoreClass = emp.score < 30 ? `score-low-${Math.floor(emp.score / 5) * 5}` :
-                                      emp.score <= 65 ? `score-mid-${Math.floor(emp.score / 5) * 5}` :
-                                      `score-high-${Math.floor(emp.score / 5) * 5}`;
+                    const score = parseInt(emp.score);
+                    let scoreClass;
+                    if (score < 30) {
+                        scoreClass = `score-low-${Math.floor(score / 5) * 5}`;
+                    } else if (score <= 65) {
+                        scoreClass = `score-mid-${Math.floor(score / 5) * 5}`;
+                    } else {
+                        scoreClass = `score-high-${Math.floor(score / 5) * 5}`;
+                    }
                     tr.className = scoreClass;
+                    console.log(`Employee: ${emp.name}, Score: ${emp.score}, Class: ${scoreClass}`);
                     const potShare = emp.score * (emp.role === "driver" ? data.pot_info.driver_point_value : data.pot_info.laborer_point_value);
                     tr.innerHTML = `<td>${emp.name}</td><td>${emp.initials}</td><td>${emp.role}</td><td>${emp.score}</td><td>$${potShare.toFixed(2)}</td>`;
                     tbody.appendChild(tr);
