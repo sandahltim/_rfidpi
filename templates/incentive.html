@@ -8,19 +8,38 @@
             <tr>
                 <th class="sortable" data-col-name="name">Name</th>
                 <th class="sortable" data-col-name="initials">Initials</th>
+                <th class="sortable" data-col-name="role">Role</th>
                 <th class="sortable" data-col-name="score">Score</th>
             </tr>
         </thead>
         <tbody id="scoreboardBody">
             {% for emp in scoreboard %}
-            <tr>
+            <tr class="{% if emp.score >= 90 %}table-success{% elif emp.score <= 10 %}table-danger{% elif emp.score >= 75 %}table-warning{% elif emp.score <= 25 %}table-warning{% endif %}">
                 <td>{{ emp.name }}</td>
                 <td>{{ emp.initials }}</td>
+                <td>{{ emp.role }}</td>
                 <td>{{ emp.score }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<h2>Points Rules</h2>
+<ul>
+    {% for rule in rules %}
+    <li>{{ rule.description }}: <span class="{% if rule.points > 0 %}text-success{% else %}text-danger{% endif %}">{{ rule.points }} points</span></li>
+    {% endfor %}
+</ul>
+
+<h2>Incentive Pot</h2>
+<div id="potInfo">
+    <p>Sales Dollars: ${{ "%.2f"|format(pot_info.sales_dollars) }}</p>
+    <p>Bonus %: {{ pot_info.bonus_percent }}%</p>
+    <p>Total Pot: ${{ "%.2f"|format(pot_info.sales_dollars * pot_info.bonus_percent / 100) }}</p>
+    <p>Drivers ({{ pot_info.driver_percent }}%): ${{ "%.2f"|format(pot_info.sales_dollars * pot_info.bonus_percent * pot_info.driver_percent / 10000) }}</p>
+    <p>Laborers ({{ pot_info.laborer_percent }}%): ${{ "%.2f"|format(pot_info.sales_dollars * pot_info.bonus_percent * pot_info.laborer_percent / 10000) }}</p>
+    <p>Value per Point: ${{ "%.2f"|format(pot_info.point_value) }}</p>
 </div>
 
 {% if session.admin_id %}
@@ -119,12 +138,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 tbody.innerHTML = "";
                 data.scoreboard.forEach(emp => {
                     const tr = document.createElement("tr");
-                    tr.innerHTML = `<td>${emp.name}</td><td>${emp.initials}</td><td>${emp.score}</td>`;
+                    tr.className = emp.score >= 90 ? "table-success" : 
+                                   emp.score <= 10 ? "table-danger" : 
+                                   emp.score >= 75 || emp.score <= 25 ? "table-warning" : "";
+                    tr.innerHTML = `<td>${emp.name}</td><td>${emp.initials}</td><td>${emp.role}</td><td>${emp.score}</td>`;
                     tbody.appendChild(tr);
                 });
                 if (data.voting_active && !document.getElementById("voteForm")) {
                     window.location.reload();
                 }
+                const potInfo = document.getElementById("potInfo");
+                potInfo.innerHTML = `
+                    <p>Sales Dollars: $${data.pot_info.sales_dollars.toFixed(2)}</p>
+                    <p>Bonus %: ${data.pot_info.bonus_percent}%</p>
+                    <p>Total Pot: $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent / 100).toFixed(2)}</p>
+                    <p>Drivers (${data.pot_info.driver_percent}%): $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent * data.pot_info.driver_percent / 10000).toFixed(2)}</p>
+                    <p>Laborers (${data.pot_info.laborer_percent}%): $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent * data.pot_info.laborer_percent / 10000).toFixed(2)}</p>
+                    <p>Value per Point: $${data.pot_info.point_value.toFixed(2)}</p>
+                `;
             });
     }
     setInterval(refreshScoreboard, 60000);

@@ -16,7 +16,7 @@ class DatabaseConnection:
         self.conn.close()
 
 def get_scoreboard(conn):
-    return conn.execute("SELECT employee_id, name, initials, score FROM employees ORDER BY score DESC").fetchall()
+    return conn.execute("SELECT employee_id, name, initials, score, role FROM employees ORDER BY score DESC").fetchall()
 
 def start_voting_session(conn, admin_id, code):
     from config import VOTE_CODE
@@ -91,6 +91,22 @@ def add_employee(conn, name, initials, role):
     )
     return True, f"Employee {name} added with ID {employee_id}"
 
+def adjust_points(conn, employee_id, points, admin_id, reason):
+    now = datetime.now()
+    employee = conn.execute("SELECT score FROM employees WHERE employee_id = ?", (employee_id,)).fetchone()
+    if not employee:
+        return False, "Employee not found"
+    new_score = min(100, max(0, employee["score"] + points))
+    conn.execute(
+        "UPDATE employees SET score = ? WHERE employee_id = ?",
+        (new_score, employee_id)
+    )
+    conn.execute(
+        "INSERT INTO score_history (employee_id, changed_by, points, reason, date, month_year) VALUES (?, ?, ?, ?, ?, ?)",
+        (employee_id, admin_id, points, reason, now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m"))
+    )
+    return True, f"Adjusted {points} points for employee {employee_id}"
+
 def reset_scores(conn, admin_id, reason=None):
     now = datetime.now()
     employees = conn.execute("SELECT employee_id, score FROM employees").fetchall()
@@ -111,3 +127,31 @@ def get_history(conn, month_year=None):
         params.append(month_year)
     query += " ORDER BY date DESC"
     return conn.execute(query, params).fetchall()
+
+def get_rules(conn):
+    return conn.execute("SELECT description, points FROM incentive_rules ORDER BY points DESC").fetchall()
+
+def add_rule(conn, description, points):
+    conn.execute(
+        "INSERT INTO incentive_rules (description, points) VALUES (?, ?)",
+        (description, points)
+    )
+    return True, f"Rule '{description}' added with {points} points"
+
+def get_pot_info(conn):
+    pot = conn.execute("SELECT * FROM incentive_pot WHERE id = 1").fetchone()
+    if not pot:
+        return {"sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0, "point_value": 0.0}
+    total_points = conn.execute("SELECT SUM(score) as total FROM employees WHERE role IN ('driver', 'laborer')").fetchone()["total"] or 1
+    total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
+    point_value = total_pot / total_points if total_points > 0 else 0
+    return {"sales_dollars": pot["sales_dollars"], "bonus_percent": pot["bonus_percent"], "driver_percent": pot["driver_percent"], "laborer_percent": pot["laborer_percent"], "point_value": point_value}
+
+def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent):
+    if driver_percent + laborer_percent != 100:
+        return False, "Driver and Laborer percentages must sum to 100%"
+    conn.execute(
+        "INSERT OR REPLACE INTO incentive_pot (id, sales_dollars, bonus_percent, driver_percent, laborer_percent) VALUES (1, ?, ?, ?, ?)",
+        (sales_dollars, bonus_percent, driver_percent, laborer_percent)
+    )
+    return True, "Pot info updated"

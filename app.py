@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from werkzeug.security import check_password_hash
-from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history
+from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = "your-secret-key-here"  # Replace with a secure key
@@ -10,14 +10,17 @@ def show_incentive():
     with DatabaseConnection() as conn:
         scoreboard = get_scoreboard(conn)
         voting_active = is_voting_active(conn)
-    return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active)
+        rules = get_rules(conn)
+        pot_info = get_pot_info(conn)
+    return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info)
 
 @app.route("/data", methods=["GET"])
 def incentive_data():
     with DatabaseConnection() as conn:
         scoreboard = [dict(row) for row in get_scoreboard(conn)]
         voting_active = is_voting_active(conn)
-    return jsonify({"scoreboard": scoreboard, "voting_active": voting_active})
+        pot_info = get_pot_info(conn)
+    return jsonify({"scoreboard": scoreboard, "voting_active": voting_active, "pot_info": pot_info})
 
 @app.route("/start_voting", methods=["GET", "POST"])
 def start_voting():
@@ -51,7 +54,11 @@ def admin():
         return render_template("admin_login.html", error="Invalid credentials")
     if "admin_id" not in session:
         return render_template("admin_login.html")
-    return render_template("admin_manage.html")
+    with DatabaseConnection() as conn:
+        employees = conn.execute("SELECT employee_id, name, initials, score, role FROM employees").fetchall()
+        rules = get_rules(conn)
+        pot_info = get_pot_info(conn)
+    return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info)
 
 @app.route("/admin/add", methods=["POST"])
 def admin_add():
@@ -64,12 +71,45 @@ def admin_add():
         success, message = add_employee(conn, name, initials, role)
     return jsonify({"success": success, "message": message})
 
+@app.route("/admin/adjust_points", methods=["POST"])
+def admin_adjust_points():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    employee_id = request.form["employee_id"]
+    points = int(request.form["points"])
+    reason = request.form["reason"]
+    with DatabaseConnection() as conn:
+        success, message = adjust_points(conn, employee_id, points, session["admin_id"], reason)
+    return jsonify({"success": success, "message": message})
+
 @app.route("/admin/reset", methods=["POST"])
 def admin_reset():
     if "admin_id" not in session:
         return jsonify({"success": False, "message": "Admin login required"}), 403
     with DatabaseConnection() as conn:
         success, message = reset_scores(conn, session["admin_id"])
+    return jsonify({"success": success, "message": message})
+
+@app.route("/admin/add_rule", methods=["POST"])
+def admin_add_rule():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    description = request.form["description"]
+    points = int(request.form["points"])
+    with DatabaseConnection() as conn:
+        success, message = add_rule(conn, description, points)
+    return jsonify({"success": success, "message": message})
+
+@app.route("/admin/update_pot", methods=["POST"])
+def admin_update_pot():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    sales_dollars = float(request.form["sales_dollars"])
+    bonus_percent = float(request.form["bonus_percent"])
+    driver_percent = float(request.form["driver_percent"])
+    laborer_percent = float(request.form["laborer_percent"])
+    with DatabaseConnection() as conn:
+        success, message = update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent)
     return jsonify({"success": success, "message": message})
 
 @app.route("/history", methods=["GET"])

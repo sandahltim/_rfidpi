@@ -15,11 +15,72 @@
     <div class="mb-3">
         <label for="role" class="form-label">Role:</label>
         <select class="form-control" id="role" name="role">
-            <option value="employee">Employee</option>
+            <option value="driver">Driver</option>
+            <option value="laborer">Laborer</option>
             <option value="supervisor">Supervisor</option>
         </select>
     </div>
     <button type="submit" class="btn btn-primary">Add Employee</button>
+</form>
+
+<h2>Adjust Points</h2>
+<form id="adjustPointsForm">
+    <div class="mb-3">
+        <label for="employee_id" class="form-label">Employee:</label>
+        <select class="form-control" id="employee_id" name="employee_id" required>
+            {% for emp in employees %}
+            <option value="{{ emp.employee_id }}">{{ emp.name }} ({{ emp.initials }}) - {{ emp.score }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="points" class="form-label">Points (positive or negative):</label>
+        <input type="number" class="form-control" id="points" name="points" required>
+    </div>
+    <div class="mb-3">
+        <label for="reason" class="form-label">Reason:</label>
+        <input type="text" class="form-control" id="reason" name="reason" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Adjust Points</button>
+</form>
+
+<h2>Points Rules</h2>
+<form id="addRuleForm">
+    <div class="mb-3">
+        <label for="description" class="form-label">Description:</label>
+        <input type="text" class="form-control" id="description" name="description" required>
+    </div>
+    <div class="mb-3">
+        <label for="points" class="form-label">Points:</label>
+        <input type="number" class="form-control" id="points" name="points" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Rule</button>
+</form>
+<ul>
+    {% for rule in rules %}
+    <li>{{ rule.description }}: <span class="{% if rule.points > 0 %}text-success{% else %}text-danger{% endif %}">{{ rule.points }} points</span></li>
+    {% endfor %}
+</ul>
+
+<h2>Incentive Pot</h2>
+<form id="updatePotForm">
+    <div class="mb-3">
+        <label for="sales_dollars" class="form-label">Sales Dollars:</label>
+        <input type="number" step="0.01" class="form-control" id="sales_dollars" name="sales_dollars" value="{{ pot_info.sales_dollars }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="bonus_percent" class="form-label">Bonus %:</label>
+        <input type="number" step="0.1" class="form-control" id="bonus_percent" name="bonus_percent" value="{{ pot_info.bonus_percent }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="driver_percent" class="form-label">Driver % of Pot:</label>
+        <input type="number" step="0.1" class="form-control" id="driver_percent" name="driver_percent" value="{{ pot_info.driver_percent }}" required>
+    </div>
+    <div class="mb-3">
+        <label for="laborer_percent" class="form-label">Laborer % of Pot:</label>
+        <input type="number" step="0.1" class="form-control" id="laborer_percent" name="laborer_percent" value="{{ pot_info.laborer_percent }}" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Update Pot</button>
 </form>
 
 <h2>Reset Scores</h2>
@@ -35,6 +96,48 @@ document.getElementById("addEmployeeForm").addEventListener("submit", (e) => {
     .then(response => response.json())
     .then(data => alert(data.message))
     .catch(error => console.error("Error adding employee:", error));
+});
+
+document.getElementById("adjustPointsForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("/admin/adjust_points", {
+        method: "POST",
+        body: new FormData(e.target),
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) window.location.reload();
+    })
+    .catch(error => console.error("Error adjusting points:", error));
+});
+
+document.getElementById("addRuleForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("/admin/add_rule", {
+        method: "POST",
+        body: new FormData(e.target),
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) window.location.reload();
+    })
+    .catch(error => console.error("Error adding rule:", error));
+});
+
+document.getElementById("updatePotForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("/admin/update_pot", {
+        method: "POST",
+        body: new FormData(e.target),
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) window.location.reload();
+    })
+    .catch(error => console.error("Error updating pot:", error));
 });
 
 document.getElementById("resetScoresBtn").addEventListener("click", () => {

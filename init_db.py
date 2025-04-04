@@ -12,7 +12,7 @@ def initialize_incentive_db():
             name TEXT NOT NULL,
             initials TEXT UNIQUE NOT NULL,
             score INTEGER DEFAULT 50,
-            role TEXT CHECK(role IN ('employee', 'supervisor'))
+            role TEXT CHECK(role IN ('driver', 'laborer', 'supervisor'))
         )
     """)
 
@@ -64,6 +64,25 @@ def initialize_incentive_db():
             FOREIGN KEY(employee_id) REFERENCES employees(employee_id)
         )
     """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS incentive_rules (
+            rule_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            description TEXT NOT NULL,
+            points INTEGER NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS incentive_pot (
+            id INTEGER PRIMARY KEY,
+            sales_dollars REAL DEFAULT 0.0,
+            bonus_percent REAL DEFAULT 0.0,
+            driver_percent REAL DEFAULT 50.0,
+            laborer_percent REAL DEFAULT 50.0
+        )
+    """)
+    cursor.execute("INSERT OR IGNORE INTO incentive_pot (id, sales_dollars, bonus_percent, driver_percent, laborer_percent) VALUES (1, 0.0, 0.0, 50.0, 50.0)")
 
     conn.commit()
     conn.close()

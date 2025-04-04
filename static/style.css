@@ -7,3 +7,8 @@ body {
 .table th, .table td {
     vertical-align: middle;
 }
+.table-success { background-color: #d4edda; } /* Green for 90-100 */
+.table-danger { background-color: #f8d7da; } /* Red for 0-10 */
+.table-warning { background-color: #fff3cd; } /* Yellow for 75-89 or 11-25 */
+.text-success { color: #28a745; }
+.text-danger { color: #dc3545; }
