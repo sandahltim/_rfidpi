@@ -2,38 +2,40 @@
 {% block content %}
 <h1>Score History</h1>
 
-<div class="mb-3">
-    <label for="monthFilter" class="form-label">Filter by Month:</label>
-    <select class="form-control" id="monthFilter" onchange="window.location.href='/history?month_year=' + this.value">
-        <option value="">All</option>
+<form method="GET" class="mb-3">
+    <label for="month_year" class="form-label">Select Month:</label>
+    <select name="month_year" id="month_year" class="form-control" onchange="this.form.submit()">
+        <option value="">All Months</option>
         {% for month in months %}
-            <option value="{{ month }}" {% if month == month_year %}selected{% endif %}>{{ month }}</option>
+        <option value="{{ month }}" {% if month == month_year %}selected{% endif %}>{{ month }}</option>
         {% endfor %}
     </select>
-</div>
+</form>
 
-<table class="table table-striped table-bordered">
+<table class="table table-bordered">
     <thead>
         <tr>
-            <th>Date</th>
-            <th>Employee ID</th>
+            <th>Employee</th>
             <th>Changed By</th>
             <th>Points</th>
             <th>Reason</th>
-            <th>Month-Year</th>
+            <th>Date</th>
         </tr>
     </thead>
     <tbody>
         {% for entry in history %}
-        <tr>
-            <td>{{ entry.date }}</td>
-            <td>{{ entry.employee_id }}</td>
+        <tr class="{% if entry.points > 0 %}text-success{% elif entry.points < 0 %}text-danger{% endif %}">
+            <td>{{ entry.name }}</td>
             <td>{{ entry.changed_by }}</td>
             <td>{{ entry.points }}</td>
             <td>{{ entry.reason }}</td>
-            <td>{{ entry.month_year }}</td>
+            <td>{{ entry.date }}</td>
         </tr>
+        {% else %}
+        <tr><td colspan="5">No history available</td></tr>
         {% endfor %}
     </tbody>
 </table>
+
+<a href="/" class="btn btn-primary">Back to Incentive Program</a>
 {% endblock %}
