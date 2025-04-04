@@ -144,7 +144,7 @@
 {% endif %}
 
 {% if is_admin %}
-    <h2>Voting Results (This Week)</h2>
+    <h2>Voting Results (Last Session)</h2>
     <table>
         <thead>
             <tr>
@@ -157,7 +157,7 @@
         </thead>
         <tbody>
             {% for result in voting_results %}
-            <tr class="{% if result.points > 0 %}vote-positive{% elif result.points < 0 %}vote-negative{% endif %}">
+            <tr class="{% if result.points|default(0) > 0 %}vote-positive{% elif result.points|default(0) < 0 %}vote-negative{% endif %}">
                 <td>{{ result.voter_initials }}</td>
                 <td>{{ result.recipient_name }}</td>
                 <td>{{ result.vote_value }}</td>

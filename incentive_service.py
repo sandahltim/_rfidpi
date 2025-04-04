@@ -84,22 +84,18 @@ def close_voting_session(conn, admin_id):
         plus_percent = (counts["plus"] / total_votes) * 100 if total_votes > 0 else 0
         minus_percent = (counts["minus"] / total_votes) * 100 if total_votes > 0 else 0
         points = 0
-        if plus_percent >= 100:
-            points += 10
-        elif plus_percent >= 75:
-            points += 7
-        elif plus_percent >= 50:
+        if plus_percent >= 50:
             points += 5
-        elif plus_percent >= 25:
+        elif plus_percent >= 20:
             points += 3
-        if minus_percent >= 100:
-            points -= 10
-        elif minus_percent >= 75:
-            points -= 7
-        elif minus_percent >= 50:
+        elif plus_percent >= 10:
+            points += 1
+        if minus_percent >= 50:
             points -= 5
-        elif minus_percent >= 25:
+        elif minus_percent >= 20:
             points -= 3
+        elif minus_percent >= 10:
+            points -= 1
         logging.debug(f"Employee {emp_id} ({employees[emp_id]['name']}): plus={counts['plus']} ({plus_percent}%), minus={counts['minus']} ({minus_percent}%), points={points}")
         if points != 0:
             old_score = employees[emp_id]["score"]
@@ -168,7 +164,7 @@ def adjust_points(conn, employee_id, points, admin_id, reason):
     new_score = min(100, max(0, employee["score"] + points))
     conn.execute(
         "UPDATE employees SET score = ? WHERE employee_id = ?",
-        (new_score, employee_id)
+        (new_score, emp_id)
     )
     conn.execute(
         "INSERT INTO score_history (employee_id, changed_by, points, reason, date, month_year) VALUES (?, ?, ?, ?, ?, ?)",
