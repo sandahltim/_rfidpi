@@ -21,61 +21,116 @@ def get_scoreboard(conn):
 def start_voting_session(conn, admin_id, code, is_master=False):
     from config import VOTE_CODE
     now = datetime.now()
-    if not is_master:  # Only check date if not master
-        if now.weekday() != 2 or now.strftime("%Y-%m-%d") not in VOTING_DAYS_2025:
-            return False, "Voting only allowed on designated Wednesdays"
+    if not is_master:
+        if now.weekday() not in [2, 3, 4]:  # Wed (2), Thu (3), Fri (4)
+            return False, "Voting only allowed Wednesday through Friday"
     if code != VOTE_CODE:
         return False, "Invalid voting code"
     active_session = conn.execute(
-        "SELECT * FROM voting_sessions WHERE start_time <= ? AND end_time >= ?",
-        (now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m-%d %H:%M:%S"))
+        "SELECT * FROM voting_sessions WHERE end_time > ?",
+        (now.strftime("%Y-%m-%d %H:%M:%S"),)
     ).fetchone()
     if active_session:
         return False, "Voting session already active"
     start_time = now.strftime("%Y-%m-%d %H:%M:%S")
-    end_time = (now + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+    # Set end time to Friday 11:59 PM of current week
+    days_to_friday = (4 - now.weekday()) % 7
+    end_time = (now + timedelta(days=days_to_friday)).replace(hour=23, minute=59, second=59).strftime("%Y-%m-%d %H:%M:%S")
     conn.execute(
         "INSERT INTO voting_sessions (vote_code, admin_id, start_time, end_time) VALUES (?, ?, ?, ?)",
         (code, admin_id, start_time, end_time)
     )
-    return True, "Voting session started"
+    return True, "Voting session started until Friday 11:59 PM"
+
+def close_voting_session(conn, admin_id):
+    now = datetime.now()
+    active_session = conn.execute(
+        "SELECT * FROM voting_sessions WHERE end_time > ?",
+        (now.strftime("%Y-%m-%d %H:%M:%S"),)
+    ).fetchone()
+    if not active_session:
+        return False, "No active voting session to close"
+    week_number = datetime.strptime(active_session["start_time"], "%Y-%m-%d %H:%M:%S").isocalendar()[1]
+    votes = conn.execute(
+        "SELECT voter_initials, recipient_id, vote_value FROM votes WHERE vote_date >= ? AND vote_date <= ?",
+        (active_session["start_time"], active_session["end_time"])
+    ).fetchall()
+    employees = {e["employee_id"]: e for e in conn.execute("SELECT employee_id, role, score FROM employees").fetchall()}
+    vote_counts = {}
+    total_votes = 0
+    for vote in votes:
+        voter = conn.execute("SELECT role FROM employees WHERE initials = ?", (vote["voter_initials"],)).fetchone()
+        weight = 2 if voter and voter["role"] == "supervisor" else 1
+        total_votes += weight
+        recipient_id = vote["recipient_id"]
+        if recipient_id not in vote_counts:
+            vote_counts[recipient_id] = {"plus": 0, "minus": 0}
+        if vote["vote_value"] > 0:
+            vote_counts[recipient_id]["plus"] += weight
+        elif vote["vote_value"] < 0:
+            vote_counts[recipient_id]["minus"] += weight
+
+    for emp_id, counts in vote_counts.items():
+        plus_percent = (counts["plus"] / total_votes) * 100 if total_votes > 0 else 0
+        minus_percent = (counts["minus"] / total_votes) * 100 if total_votes > 0 else 0
+        points = 0
+        if plus_percent >= 100:
+            points += 10
+        elif plus_percent >= 75:
+            points += 7
+        elif plus_percent >= 50:
+            points += 5
+        elif plus_percent >= 25:
+            points += 3
+        if minus_percent >= 100:
+            points -= 10
+        elif minus_percent >= 75:
+            points -= 7
+        elif minus_percent >= 50:
+            points -= 5
+        elif minus_percent >= 25:
+            points -= 3
+        if points != 0 and emp_id in employees:
+            old_score = employees[emp_id]["score"]
+            new_score = min(100, max(0, old_score + points))
+            conn.execute(
+                "UPDATE employees SET score = ? WHERE employee_id = ?",
+                (new_score, emp_id)
+            )
+            conn.execute(
+                "INSERT INTO score_history (employee_id, changed_by, points, reason, date, month_year) VALUES (?, ?, ?, ?, ?, ?)",
+                (emp_id, admin_id, points, f"Weekly vote result: {counts['plus']} +1, {counts['minus']} -1", now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m"))
+            )
+
+    conn.execute("UPDATE voting_sessions SET end_time = ? WHERE session_id = ?", (now.strftime("%Y-%m-%d %H:%M:%S"), active_session["session_id"]))
+    return True, f"Voting session closed, scores updated based on {total_votes} votes"
 
 def is_voting_active(conn):
     now = datetime.now()
     session = conn.execute(
-        "SELECT * FROM voting_sessions WHERE start_time <= ? AND end_time >= ?",
+        "SELECT * FROM voting_sessions WHERE start_time <= ? AND end_time > ?",
         (now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m-%d %H:%M:%S"))
     ).fetchone()
-    return bool(session)
+    return bool(session and now.weekday() in [2, 3, 4])
 
 def cast_votes(conn, voter_initials, votes):
     now = datetime.now()
-    voter = conn.execute("SELECT initials FROM employees WHERE initials = ?", (voter_initials,)).fetchone()
+    voter = conn.execute("SELECT employee_id, role FROM employees WHERE initials = ?", (voter_initials,)).fetchone()
     if not voter:
         return False, "Invalid voter initials"
     if not is_voting_active(conn):
         return False, "Voting is not active"
-    today = now.strftime("%Y-%m-%d")
-    existing_votes = conn.execute(
-        "SELECT recipient_id FROM votes WHERE voter_initials = ? AND vote_date LIKE ?",
-        (voter_initials, f"{today}%")
-    ).fetchall()
-    if existing_votes:
-        return False, "You have already voted today"
+    week_number = now.isocalendar()[1]
+    existing_vote = conn.execute(
+        "SELECT COUNT(*) as count FROM votes WHERE voter_initials = ? AND strftime('%W', vote_date) = ?",
+        (voter_initials, str(week_number))
+    ).fetchone()["count"]
+    if existing_vote > 0:
+        return False, "You have already voted this week"
     
     for recipient_id, vote_value in votes.items():
-        employee = conn.execute("SELECT score FROM employees WHERE employee_id = ?", (recipient_id,)).fetchone()
-        if not employee:
+        if recipient_id not in conn.execute("SELECT employee_id FROM employees").fetchall():
             continue
-        new_score = min(100, max(0, employee["score"] + vote_value))
-        conn.execute(
-            "UPDATE employees SET score = ? WHERE employee_id = ?",
-            (new_score, recipient_id)
-        )
-        conn.execute(
-            "INSERT INTO score_history (employee_id, changed_by, points, reason, date, month_year) VALUES (?, ?, ?, ?, ?, ?)",
-            (recipient_id, voter_initials, vote_value, f"Vote by {voter_initials}", now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m"))
-        )
         conn.execute(
             "INSERT INTO votes (voter_initials, recipient_id, vote_value, vote_date) VALUES (?, ?, ?, ?)",
             (voter_initials, recipient_id, vote_value, now.strftime("%Y-%m-%d %H:%M:%S"))

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from werkzeug.security import check_password_hash
-from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info
+from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info, close_voting_session
 import logging
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -34,6 +34,14 @@ def start_voting():
     code = request.form.get("vote_code")
     with DatabaseConnection() as conn:
         success, message = start_voting_session(conn, session["admin_id"], code, is_master=is_master)
+    return jsonify({"success": success, "message": message})
+
+@app.route("/close_voting", methods=["POST"])
+def close_voting():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    with DatabaseConnection() as conn:
+        success, message = close_voting_session(conn, session["admin_id"])
     return jsonify({"success": success, "message": message})
 
 @app.route("/vote", methods=["POST"])

@@ -49,6 +49,9 @@
 
 {% if session.admin_id %}
     <button class="btn btn-primary" id="startVotingBtn">Start Voting</button>
+    {% if voting_active %}
+    <button class="btn btn-warning" id="closeVotingBtn">Close Voting</button>
+    {% endif %}
     <a href="/admin" class="btn btn-secondary">Manage Employees</a>
 {% endif %}
 <a href="/history" class="btn btn-info">View History</a>
@@ -130,6 +133,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (document.getElementById("startVotingBtn")) {
         document.getElementById("startVotingBtn").addEventListener("click", () => {
             window.location.href = "/start_voting";
+        });
+    }
+
+    if (document.getElementById("closeVotingBtn")) {
+        document.getElementById("closeVotingBtn").addEventListener("click", (e) => {
+            e.preventDefault();
+            if (confirm("Close voting session and tally votes?")) {
+                fetch("/close_voting", {
+                    method: "POST",
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) window.location.reload();
+                })
+                .catch(error => console.error("Error closing voting:", error));
+            }
         });
     }
 
