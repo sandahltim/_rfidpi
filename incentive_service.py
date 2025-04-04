@@ -192,16 +192,17 @@ def add_rule(conn, description, points):
     return True, f"Rule '{description}' added with {points} points"
 
 def get_pot_info(conn):
-    pot = conn.execute("SELECT * FROM incentive_pot WHERE id = 1").fetchone()
-    if not pot:
-        return {
-            "sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0, "supervisor_percent": 0.0,
-            "driver_pot": 0.0, "laborer_pot": 0.0, "supervisor_pot": 0.0, "driver_point_value": 0.0, "laborer_point_value": 0.0, "supervisor_point_value": 0.0
-        }
-    total_pot = pot.get("sales_dollars", 0.0) * pot.get("bonus_percent", 0.0) / 100
-    driver_pot = total_pot * pot.get("driver_percent", 50.0) / 100
-    laborer_pot = total_pot * pot.get("laborer_percent", 50.0) / 100
-    supervisor_pot = total_pot * pot.get("supervisor_percent", 0.0) / 100
+    pot_row = conn.execute("SELECT * FROM incentive_pot WHERE id = 1").fetchone()
+    pot = dict(pot_row) if pot_row else {}
+    defaults = {
+        "sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0, "supervisor_percent": 0.0,
+        "driver_pot": 0.0, "laborer_pot": 0.0, "supervisor_pot": 0.0, "driver_point_value": 0.0, "laborer_point_value": 0.0, "supervisor_point_value": 0.0
+    }
+    pot = {**defaults, **pot}
+    total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
+    driver_pot = total_pot * pot["driver_percent"] / 100
+    laborer_pot = total_pot * pot["laborer_percent"] / 100
+    supervisor_pot = total_pot * pot["supervisor_percent"] / 100
     driver_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'driver'").fetchone()["count"] or 1
     laborer_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'laborer'").fetchone()["count"] or 1
     supervisor_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'supervisor'").fetchone()["count"] or 1
@@ -212,12 +213,11 @@ def get_pot_info(conn):
     driver_point_value = driver_pot / driver_max_points if driver_max_points > 0 else 0
     laborer_point_value = laborer_pot / laborer_max_points if laborer_max_points > 0 else 0
     supervisor_point_value = supervisor_pot / supervisor_max_points if supervisor_max_points > 0 else 0
-    return {
-        "sales_dollars": pot.get("sales_dollars", 0.0), "bonus_percent": pot.get("bonus_percent", 0.0),
-        "driver_percent": pot.get("driver_percent", 50.0), "laborer_percent": pot.get("laborer_percent", 50.0), "supervisor_percent": pot.get("supervisor_percent", 0.0),
+    pot.update({
         "driver_pot": driver_pot, "laborer_pot": laborer_pot, "supervisor_pot": supervisor_pot,
         "driver_point_value": driver_point_value, "laborer_point_value": laborer_point_value, "supervisor_point_value": supervisor_point_value
-    }
+    })
+    return pot
 
 def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent):
     if driver_percent + laborer_percent + supervisor_percent != 100:
