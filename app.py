@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from werkzeug.security import check_password_hash
 from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info, close_voting_session
 import logging
+import time
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = "your-secret-key-here"  # Replace with a secure key
@@ -14,7 +15,7 @@ def show_incentive():
         voting_active = is_voting_active(conn)
         rules = get_rules(conn)
         pot_info = get_pot_info(conn)
-    return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info)
+    return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()))
 
 @app.route("/data", methods=["GET"])
 def incentive_data():
@@ -30,7 +31,7 @@ def start_voting():
         return redirect(url_for("admin"))
     is_master = session.get("admin_id") == "master"
     if request.method == "GET":
-        return render_template("start_voting.html", is_master=is_master)
+        return render_template("start_voting.html", is_master=is_master, import_time=int(time.time()))
     code = request.form.get("vote_code")
     with DatabaseConnection() as conn:
         success, message = start_voting_session(conn, session["admin_id"], code, is_master=is_master)
@@ -62,14 +63,14 @@ def admin():
             if admin and check_password_hash(admin["password"], password):
                 session["admin_id"] = admin["admin_id"]
                 return redirect(url_for("admin"))
-        return render_template("admin_login.html", error="Invalid credentials")
+        return render_template("admin_login.html", error="Invalid credentials", import_time=int(time.time()))
     if "admin_id" not in session:
-        return render_template("admin_login.html")
+        return render_template("admin_login.html", import_time=int(time.time()))
     with DatabaseConnection() as conn:
         employees = conn.execute("SELECT employee_id, name, initials, score, role FROM employees").fetchall()
         rules = get_rules(conn)
         pot_info = get_pot_info(conn)
-    return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info)
+    return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, is_admin=True, import_time=int(time.time()))
 
 @app.route("/admin/logout", methods=["POST"])
 def admin_logout():
@@ -139,7 +140,7 @@ def history():
     with DatabaseConnection() as conn:
         history = [dict(row) for row in get_history(conn, month_year)]
         months = conn.execute("SELECT DISTINCT month_year FROM score_history ORDER BY month_year DESC").fetchall()
-    return render_template("history.html", history=history, months=[m["month_year"] for m in months])
+    return render_template("history.html", history=history, months=[m["month_year"] for m in months], is_admin=bool(session.get("admin_id")), import_time=int(time.time()))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=6800, debug=True)
