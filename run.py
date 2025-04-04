@@ -37,7 +37,7 @@ if not os.path.exists(incentive_db_path):
 
 def check_monthly_reset():
     now = datetime.now()
-    with IncentiveDBConnection(INCENTIVE_DB_FILE) as conn:
+    with IncentiveDBConnection() as conn:  # Remove INCENTIVE_DB_FILE argument
         cursor = conn.execute("SELECT MAX(date) FROM score_history WHERE reason LIKE 'Monthly reset%'")
         last_reset = cursor.fetchone()[0]
         if not last_reset or datetime.strptime(last_reset, "%Y-%m-%d %H:%M:%S").month != now.month:
@@ -45,7 +45,8 @@ def check_monthly_reset():
             print(f"Performed monthly reset for {now.strftime('%Y-%m')}")
 
 if not is_running_from_reloader():
-    refresher_thread = threading.Thread(target=background_refresh, daemon=True)
+    stop_event = threading.Event()  # Add stop_event
+    refresher_thread = threading.Thread(target=background_refresh, args=(stop_event,), daemon=True)
     refresher_thread.start()
     check_monthly_reset()
 
