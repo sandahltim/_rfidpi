@@ -324,9 +324,15 @@ def add_role(conn, role_name, percentage):
     total_percentage = sum(role["percentage"] for role in roles) + percentage
     if total_percentage > 100:
         return False, "Total percentage exceeds 100%"
+    role_name_lower = role_name.lower()
     conn.execute(
         "INSERT INTO roles (role_name, percentage) VALUES (?, ?)",
         (role_name, percentage)
+    )
+    # Update any existing employees with this role to lowercase (if applicable)
+    conn.execute(
+        "UPDATE employees SET role = ? WHERE role = ?",
+        (role_name_lower, role_name)
     )
     return True, f"Role '{role_name}' added with {percentage}%"
 
@@ -335,16 +341,19 @@ def edit_role(conn, old_role_name, new_role_name, percentage):
     total_percentage = sum(role["percentage"] for role in roles if role["role_name"] != old_role_name) + percentage
     if total_percentage > 100:
         return False, f"Total percentage cannot exceed 100%, got {total_percentage}% after edit"
+    # Normalize new_role_name to lowercase for employees table
+    new_role_name_lower = new_role_name.lower()
     conn.execute(
         "UPDATE roles SET role_name = ?, percentage = ? WHERE role_name = ?",
         (new_role_name, percentage, old_role_name)
     )
     conn.execute(
         "UPDATE employees SET role = ? WHERE role = ?",
-        (new_role_name, old_role_name)
+        (new_role_name_lower, old_role_name)
     )
     affected = conn.total_changes
     return affected > 0, f"Role '{old_role_name}' updated to '{new_role_name}' with {percentage}% (Total: {total_percentage}%)" if affected > 0 else "Role not found"
+
 
 def remove_role(conn, role_name):
     if role_name == "supervisor":

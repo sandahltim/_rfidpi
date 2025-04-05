@@ -57,6 +57,7 @@
         <label for="adjust_employee_id" class="form-label">Employee:</label>
         <select class="form-control" id="adjust_employee_id" name="employee_id" required>
             {% for emp in employees %}
+            {% set role_display = roles|selectattr('role_name', 'eq', emp.role)|map(attribute='role_name')|first|default(emp.role) %}
             <option value="{{ emp.employee_id }}">{{ emp.employee_id }} - {{ emp.name }} ({{ emp.initials }}) - {{ emp.score }} {% if emp.active == 0 %}(Retired){% endif %}</option>
             {% endfor %}
         </select>
@@ -163,18 +164,20 @@
 </ul>
 {% endif %}
 
+</form>
+
 <h2>Incentive Pot</h2>
-<!-- Debug Output -->
 <p>Debug - Employee Data:</p>
 <ul>
     {% for emp in employees %}
-    <li>{{ emp.employee_id }}: Score={{ emp.score }}, Role={{ emp.role }}, Active={{ emp.active|default('MISSING') }}, Point Value={{ pot_info.get(emp.role + '_point_value', 0) }}, Share={{ emp.score * pot_info.get(emp.role + '_point_value', 0) }}</li>
+    {% set role_display = roles|selectattr('role_name', 'eq', emp.role)|map(attribute='role_name')|first|default(emp.role) %}
+    <li>{{ emp.employee_id }}: Score={{ emp.score }}, Role={{ role_display }}, Active={{ emp.active|default('MISSING') }}, Point Value={{ pot_info.get(emp.role.lower() + '_point_value', 0) }}, Share={{ emp.score * pot_info.get(emp.role.lower() + '_point_value', 0) }}</li>
     {% endfor %}
 </ul>
 {% set shares = [] %}
 {% for emp in employees %}
     {% if emp.active == 1 %}
-        {% set share = emp.score * pot_info.get(emp.role + '_point_value', 0) %}
+        {% set share = emp.score * pot_info.get(emp.role.lower() + '_point_value', 0) %}
         {% set _ = shares.append(share) %}
     {% endif %}
 {% endfor %}

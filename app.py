@@ -20,7 +20,7 @@ def show_incentive():
             voting_active = is_voting_active(conn)
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
-            roles = get_roles(conn)  # Add this line
+            roles = get_roles(conn)
             week_number = request.args.get("week", None, type=int)
             voting_results = get_voting_results(conn, is_admin=bool(session.get("admin_id")), week_number=week_number)
         current_month = datetime.now().strftime("%B %Y")
@@ -138,7 +138,6 @@ def admin():
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
             roles = get_roles(conn)
-            # Fetch admins for master view
             admins = conn.execute("SELECT admin_id, username FROM admins").fetchall() if session.get("admin_id") == "master" else []
         logging.debug(f"Loaded admin page: employees_count={len(employees)}, roles_count={len(roles)}")
         return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, roles=roles, admins=admins, is_admin=True, is_master=session.get("admin_id") == "master", import_time=int(time.time()))
