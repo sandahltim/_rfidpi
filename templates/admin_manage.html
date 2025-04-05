@@ -171,13 +171,11 @@
     <li>{{ emp.employee_id }}: Score={{ emp.score }}, Role={{ emp.role }}, Active={{ emp.active }}, Point Value={{ pot_info.get(emp.role + '_point_value', 0) }}, Share={{ emp.score * pot_info.get(emp.role + '_point_value', 0) }}</li>
     {% endfor %}
 </ul>
-{% set total_payout = namespace(value=0) %}
-{% for emp in employees %}
-    {% if emp.active == 1 %}
-        {% set total_payout.value = total_payout.value + (emp.score * pot_info.get(emp.role + '_point_value', 0)) %}
-    {% endif %}
+{% set shares = [] %}
+{% for emp in employees if emp.active == 1 %}
+    {% do shares.append(emp.score * pot_info.get(emp.role + '_point_value', 0)) %}
 {% endfor %}
-<p>Total Bonus Payout: ${{ "%.2f"|format(total_payout.value) }}</p>
+<p>Total Bonus Payout: ${{ "%.2f"|format(shares | sum(default=0)) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
         <label for="sales_dollars" class="form-label">Sales Dollars:</label>
