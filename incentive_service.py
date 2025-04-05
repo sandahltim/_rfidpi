@@ -21,7 +21,6 @@ class DatabaseConnection:
 
 def get_scoreboard(conn):
     return conn.execute("SELECT employee_id, name, initials, score, role FROM employees WHERE active = 1 ORDER BY score DESC").fetchall()
-
 def start_voting_session(conn, admin_id):
     now = datetime.now()
     active_session = conn.execute(
@@ -372,22 +371,27 @@ def get_pot_info(conn):
         "sales_dollars": 0.0,
         "bonus_percent": 0.0,
     }
+    # Always fetch fresh percentages from roles table
     for role in roles:
-        defaults[f"{role['role_name']}_percent"] = role["percentage"]
-        defaults[f"{role['role_name']}_pot"] = 0.0
-        defaults[f"{role['role_name']}_point_value"] = 0.0
-    pot = {**defaults, **pot}
+        role_name = role["role_name"]
+        defaults[f"{role_name}_percent"] = role["percentage"]
+        defaults[f"{role_name}_pot"] = 0.0
+        defaults[f"{role_name}_point_value"] = 0.0
+    pot = {**defaults, **pot}  # Merge defaults with stored pot data
 
     total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
     for role in roles:
-        role_pot = total_pot * pot[f"{role['role_name']}_percent"] / 100
-        role_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = ?", (role["role_name"],)).fetchone()["count"] or 1
+        role_name = role["role_name"]
+        role_percent = pot[f"{role_name}_percent"]
+        role_pot = total_pot * role_percent / 100
+        role_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = ? AND active = 1", (role_name,)).fetchone()["count"] or 1
         max_points_per_employee = 100
         role_max_points = role_count * max_points_per_employee
         role_point_value = role_pot / role_max_points if role_max_points > 0 else 0
-        pot[f"{role['role_name']}_pot"] = role_pot
-        pot[f"{role['role_name']}_point_value"] = role_point_value
+        pot[f"{role_name}_pot"] = role_pot
+        pot[f"{role_name}_point_value"] = role_point_value
 
+    logging.debug(f"Pot info retrieved: {pot}")
     return pot
 
 def update_pot_info(conn, sales_dollars, bonus_percent, percentages):
