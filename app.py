@@ -4,6 +4,7 @@ from incentive_service import DatabaseConnection, get_scoreboard, start_voting_s
 import logging
 import time
 import traceback
+from datetime import datetime
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = "your-secret-key-here"
@@ -17,9 +18,11 @@ def show_incentive():
             voting_active = is_voting_active(conn)
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
-            voting_results = get_voting_results(conn, is_admin=bool(session.get("admin_id")))
+            week_number = request.args.get("week", None, type=int)
+            voting_results = get_voting_results(conn, is_admin=bool(session.get("admin_id")), week_number=week_number)
+        current_month = datetime.now().strftime("%B %Y")
         logging.debug(f"Loaded incentive page: voting_active={voting_active}, results_count={len(voting_results)}")
-        return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()), voting_results=voting_results)
+        return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()), voting_results=voting_results, current_month=current_month, selected_week=week_number)
     except Exception as e:
         logging.error(f"Error in show_incentive: {str(e)}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
