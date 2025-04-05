@@ -381,14 +381,14 @@ def get_pot_info(conn):
     pot = dict(pot_row) if pot_row else {"sales_dollars": 0.0, "bonus_percent": 0.0}
     roles = get_roles(conn)
     for role in roles:
-        role_name = role["role_name"]
+        role_name = role["role_name"].lower()  # Normalize to lowercase
         pot[f"{role_name}_percent"] = role["percentage"]
         pot[f"{role_name}_pot"] = 0.0
         pot[f"{role_name}_point_value"] = 0.0
 
     total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
     for role in roles:
-        role_name = role["role_name"]
+        role_name = role["role_name"].lower()  # Normalize to lowercase
         role_percent = pot[f"{role_name}_percent"]
         role_pot = total_pot * role_percent / 100
         role_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = ? AND active = 1", (role_name,)).fetchone()["count"] or 1
