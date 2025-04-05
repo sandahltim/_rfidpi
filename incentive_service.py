@@ -21,6 +21,7 @@ class DatabaseConnection:
 
 def get_scoreboard(conn):
     return conn.execute("SELECT employee_id, name, initials, score, role FROM employees WHERE active = 1 ORDER BY score DESC").fetchall()
+
 def start_voting_session(conn, admin_id):
     now = datetime.now()
     active_session = conn.execute(
@@ -315,7 +316,7 @@ def get_roles(conn):
         conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('laborer', 45)")
         conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('supervisor', 5)")
         return conn.execute("SELECT role_name, percentage FROM roles").fetchall()
-    
+      
 def add_role(conn, role_name, percentage):
     roles = get_roles(conn)
     if len(roles) >= 10:
@@ -332,8 +333,8 @@ def add_role(conn, role_name, percentage):
 def edit_role(conn, old_role_name, new_role_name, percentage):
     roles = get_roles(conn)
     total_percentage = sum(role["percentage"] for role in roles if role["role_name"] != old_role_name) + percentage
-    if total_percentage != 100:
-        return False, f"Total percentage must equal 100%, got {total_percentage}% after edit"
+    if total_percentage > 100:
+        return False, f"Total percentage cannot exceed 100%, got {total_percentage}% after edit"
     conn.execute(
         "UPDATE roles SET role_name = ?, percentage = ? WHERE role_name = ?",
         (new_role_name, percentage, old_role_name)
@@ -343,7 +344,8 @@ def edit_role(conn, old_role_name, new_role_name, percentage):
         (new_role_name, old_role_name)
     )
     affected = conn.total_changes
-    return affected > 0, f"Role '{old_role_name}' updated to '{new_role_name}' with {percentage}%" if affected > 0 else "Role not found"
+    return affected > 0, f"Role '{old_role_name}' updated to '{new_role_name}' with {percentage}% (Total: {total_percentage}%)" if affected > 0 else "Role not found"
+
 def remove_role(conn, role_name):
     if role_name == "supervisor":
         return False, "Cannot remove the 'supervisor' role as it is required for voting weight and admin functionality"
@@ -360,7 +362,7 @@ def remove_role(conn, role_name):
 def get_pot_info(conn):
     pot_row = conn.execute("SELECT sales_dollars, bonus_percent FROM incentive_pot WHERE id = 1").fetchone()
     pot = dict(pot_row) if pot_row else {"sales_dollars": 0.0, "bonus_percent": 0.0}
-    roles = get_roles(conn)  # Always fetch fresh roles data
+    roles = get_roles(conn)
     for role in roles:
         role_name = role["role_name"]
         pot[f"{role_name}_percent"] = role["percentage"]
