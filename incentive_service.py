@@ -287,10 +287,19 @@ def reorder_rules(conn, order):
 
 def get_roles(conn):
     try:
+        roles = conn.execute("SELECT role_name, percentage FROM roles").fetchall()
+        if not any(role["role_name"] == "supervisor" for role in roles):
+            logging.warning("Supervisor role missing, adding default")
+            conn.execute("INSERT OR IGNORE INTO roles (role_name, percentage) VALUES ('supervisor', 10)")
+            conn.execute("UPDATE roles SET percentage = 45 WHERE role_name IN ('driver', 'laborer')")
         return conn.execute("SELECT role_name, percentage FROM roles").fetchall()
     except sqlite3.OperationalError:
-        logging.warning("roles table missing, returning default roles")
-        return [{'role_name': 'driver', 'percentage': 50.0}, {'role_name': 'laborer', 'percentage': 50.0}]
+        logging.warning("roles table missing, returning default roles with supervisor")
+        conn.execute("CREATE TABLE roles (role_name TEXT PRIMARY KEY, percentage REAL)")
+        conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('driver', 45)")
+        conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('laborer', 45)")
+        conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('supervisor', 10)")
+        return conn.execute("SELECT role_name, percentage FROM roles").fetchall()
 
 def add_role(conn, role_name, percentage):
     roles = get_roles(conn)
@@ -322,9 +331,11 @@ def edit_role(conn, old_role_name, new_role_name, percentage):
     return affected > 0, f"Role '{old_role_name}' updated to '{new_role_name}' with {percentage}%" if affected > 0 else "Role not found"
 
 def remove_role(conn, role_name):
+    if role_name == "supervisor":
+        return False, "Cannot remove the 'supervisor' role as it is required for voting weight and admin functionality"
     roles = get_roles(conn)
     if len(roles) <= 2:
-        return False, "Cannot remove role; minimum of 2 roles required"
+        return False, "Cannot remove role; minimum of 2 roles (excluding supervisor) required"
     conn.execute("DELETE FROM roles WHERE role_name = ?", (role_name,))
     affected = conn.total_changes
     if affected > 0:
