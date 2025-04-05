@@ -257,9 +257,25 @@ def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_
     )
     return True, "Pot info updated"
 
-def get_voting_results(conn, is_admin=False):
+def get_voting_results(conn, is_admin=False, week_number=None):
     now = datetime.now()
-    if is_admin:
+    current_month = now.strftime("%Y-%m")
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")
+    end_of_month = (now.replace(day=1, month=now.month+1) - timedelta(days=1)).replace(hour=23, minute=59, second=59).strftime("%Y-%m-%d %H:%M:%S")
+
+    if is_admin and week_number:
+        week_start = (now.replace(day=1) + timedelta(weeks=week_number-1)).strftime("%Y-%m-%d 00:00:00")
+        week_end = (datetime.strptime(week_start, "%Y-%m-%d %H:%M:%S") + timedelta(days=6)).strftime("%Y-%m-%d 23:59:59")
+        query = """
+            SELECT v.voter_initials, e.name AS recipient_name, v.vote_value, v.vote_date, sh.points
+            FROM votes v
+            JOIN employees e ON v.recipient_id = e.employee_id
+            LEFT JOIN score_history sh ON v.recipient_id = sh.employee_id AND sh.reason LIKE 'Weekly vote result%' AND sh.date >= ? AND sh.date <= ?
+            WHERE v.vote_date >= ? AND v.vote_date <= ?
+            ORDER BY v.vote_date DESC
+        """
+        params = [week_start, week_end, week_start, week_end]
+    elif is_admin:
         last_session = conn.execute(
             "SELECT start_time, end_time FROM voting_sessions ORDER BY end_time DESC LIMIT 1"
         ).fetchone()
@@ -278,19 +294,19 @@ def get_voting_results(conn, is_admin=False):
         """
         params = [start_date, end_date, start_date, end_date]
     else:
-        start_date = now.replace(day=1, hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")
-        end_date = now.strftime("%Y-%m-%d %H:%M:%S")
         query = """
-            SELECT e.name AS recipient_name, SUM(CASE WHEN v.vote_value > 0 THEN v.vote_value ELSE 0 END) as plus_votes,
+            SELECT strftime('%W', v.vote_date) as week_number, e.name AS recipient_name,
+                   SUM(CASE WHEN v.vote_value > 0 THEN v.vote_value ELSE 0 END) as plus_votes,
                    SUM(CASE WHEN v.vote_value < 0 THEN -v.vote_value ELSE 0 END) as minus_votes, sh.points
             FROM votes v
             JOIN employees e ON v.recipient_id = e.employee_id
             LEFT JOIN score_history sh ON v.recipient_id = sh.employee_id AND sh.reason LIKE 'Weekly vote result%' AND sh.date >= ? AND sh.date <= ?
             WHERE v.vote_date >= ? AND v.vote_date <= ?
-            GROUP BY e.name, sh.points
-            ORDER BY v.vote_date DESC
+            GROUP BY strftime('%W', v.vote_date), e.name, sh.points
+            ORDER BY week_number DESC
         """
-        params = [start_date, end_date, start_date, end_date]
+        params = [start_of_month, end_of_month, start_of_month, end_of_month]
+
     results = conn.execute(query, params).fetchall()
-    logging.debug(f"Voting results fetched: {len(results)} entries between {start_date} and {end_date}")
+    logging.debug(f"Voting results fetched: {len(results)} entries for {'admin' if is_admin else 'non-admin'} view")
     return [dict(row) for row in results]

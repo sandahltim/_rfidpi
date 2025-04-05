@@ -144,45 +144,75 @@
     </form>
 {% endif %}
 
-<h2>Voting Results {% if is_admin %}(Last Session){% else %}(This Month){% endif %}</h2>
-<table>
-    <thead>
-        <tr>
-            {% if is_admin %}
-            <th>Voter Initials</th>
-            {% endif %}
-            <th>Recipient Name</th>
-            {% if is_admin %}
-            <th>Vote</th>
-            <th>Date</th>
+<h2>{{ "now"|strftime("%B %Y") }} Voting Results</h2>
+{% if is_admin %}
+    <div class="mb-3">
+        <label for="weekSelector" class="form-label">Select Week:</label>
+        <select id="weekSelector" class="form-control" onchange="fetchWeekResults(this.value)">
+            <option value="">Last Session</option>
+            <option value="1">Week 1</option>
+            <option value="2">Week 2</option>
+            <option value="3">Week 3</option>
+            <option value="4">Week 4</option>
+        </select>
+    </div>
+{% endif %}
+
+<div id="votingResults">
+    {% if not is_admin %}
+    {% set weeks = voting_results | groupby('week_number') %}
+    {% for week_num, week_results in weeks %}
+    <h3>Week {{ week_num }}</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Recipient Name</th>
+                <th>+1 Votes</th>
+                <th>-1 Votes</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in week_results %}
+            <tr class="{% if result.points is not none and result.points > 0 %}vote-positive{% elif result.points is not none and result.points < 0 %}vote-negative{% endif %}">
+                <td>{{ result.recipient_name }}</td>
+                <td>{{ result.plus_votes }}</td>
+                <td>{{ result.minus_votes }}</td>
+                <td>{{ result.points if result.points is not none else 'Pending' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No voting results for Week {{ week_num }}</p>
+    {% endfor %}
+    {% else %}
+    <table>
+        <thead>
+            <tr>
+                <th>Voter Initials</th>
+                <th>Recipient Name</th>
+                <th>Vote</th>
+                <th>Date</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in voting_results %}
+            <tr class="{% if result.points is not none and result.points > 0 %}vote-positive{% elif result.points is not none and result.points < 0 %}vote-negative{% endif %}">
+                <td>{{ result.voter_initials }}</td>
+                <td>{{ result.recipient_name }}</td>
+                <td>{{ result.vote_value }}</td>
+                <td>{{ result.vote_date }}</td>
+                <td>{{ result.points if result.points is not none else 'Pending' }}</td>
+            </tr>
             {% else %}
-            <th>+1 Votes</th>
-            <th>-1 Votes</th>
-            {% endif %}
-            <th>Points</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for result in voting_results %}
-        <tr class="{% if result.points is not none and result.points > 0 %}vote-positive{% elif result.points is not none and result.points < 0 %}vote-negative{% endif %}">
-            {% if is_admin %}
-            <td>{{ result.voter_initials }}</td>
-            {% endif %}
-            <td>{{ result.recipient_name }}</td>
-            {% if is_admin %}
-            <td>{{ result.vote_value }}</td>
-            <td>{{ result.vote_date }}</td>
-            {% else %}
-            <td>{{ result.plus_votes }}</td>
-            <td>{{ result.minus_votes }}</td>
-            {% endif %}
-            <td>{{ result.points if result.points is not none else 'Pending' }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="{% if is_admin %}5{% else %}4{% endif %}">No voting results yet</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+            <tr><td colspan="5">No voting results yet</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
 
 <script>
 function sortTable(tableEl, colName) {
@@ -318,6 +348,58 @@ document.addEventListener("DOMContentLoaded", () => {
             .catch(error => console.error("Error submitting votes:", error));
         });
     }
+
+    function fetchWeekResults(week) {
+        fetch("/data") // Replace with actual endpoint if needed
+            .then(response => response.json())
+            .then(data => {
+                // For simplicity, we'll filter client-side here; ideally, this should be server-side
+                const resultsDiv = document.getElementById("votingResults");
+                resultsDiv.innerHTML = "";
+                const table = document.createElement("table");
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Voter Initials</th>
+                            <th>Recipient Name</th>
+                            <th>Vote</th>
+                            <th>Date</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+                const tbody = table.querySelector("tbody");
+                {% for result in voting_results %}
+                if (!week || new Date("{{ result.vote_date }}").getWeek() === parseInt(week) + new Date().getMonthStart().getWeek() - 1) {
+                    const tr = document.createElement("tr");
+                    tr.className = {% if result.points is not none and result.points > 0 %}"vote-positive"{% elif result.points is not none and result.points < 0 %}"vote-negative"{% endif %};
+                    tr.innerHTML = `
+                        <td>{{ result.voter_initials }}</td>
+                        <td>{{ result.recipient_name }}</td>
+                        <td>{{ result.vote_value }}</td>
+                        <td>{{ result.vote_date }}</td>
+                        <td>{{ result.points if result.points is not none else 'Pending' }}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+                {% endfor %}
+                resultsDiv.appendChild(table);
+            })
+            .catch(error => console.error("Error fetching week results:", error));
+    }
+
+    Date.prototype.getWeek = function() {
+        const d = new Date(Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    };
+
+    Date.prototype.getMonthStart = function() {
+        return new Date(this.getFullYear(), this.getMonth(), 1);
+    };
 
     function refreshScoreboard() {
         fetch("/data")
