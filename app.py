@@ -396,16 +396,20 @@ def admin_update_pot():
     try:
         sales_dollars = float(request.form["sales_dollars"])
         bonus_percent = float(request.form["bonus_percent"])
-        # Only include role-specific percentages, exclude bonus_percent
-        role_percentages = {key.replace('_percent', ''): float(value) for key, value in request.form.items() if key.endswith('_percent') and key != 'bonus_percent'}
-        logging.debug(f"Received pot update: sales_dollars={sales_dollars}, bonus_percent={bonus_percent}, role_percentages={role_percentages}")
+        logging.debug(f"Received pot update: sales_dollars={sales_dollars}, bonus_percent={bonus_percent}")
         with DatabaseConnection() as conn:
-            success, message = update_pot_info(conn, sales_dollars, bonus_percent, role_percentages)
+            # Only update sales_dollars and bonus_percent, not role percentages
+            conn.execute(
+                "INSERT OR REPLACE INTO incentive_pot (id, sales_dollars, bonus_percent) VALUES (1, ?, ?)",
+                (sales_dollars, bonus_percent)
+            )
+            success = True
+            message = "Pot sales and bonus updated (role percentages managed via Edit Roles)"
         return jsonify({"success": success, "message": message})
     except Exception as e:
         logging.error(f"Error in admin_update_pot: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
-
+    
 @app.route("/history", methods=["GET"])
 def history():
     month_year = request.args.get("month_year")

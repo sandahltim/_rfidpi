@@ -371,13 +371,12 @@ def get_pot_info(conn):
         "sales_dollars": 0.0,
         "bonus_percent": 0.0,
     }
-    # Always fetch fresh percentages from roles table
     for role in roles:
         role_name = role["role_name"]
         defaults[f"{role_name}_percent"] = role["percentage"]
         defaults[f"{role_name}_pot"] = 0.0
         defaults[f"{role_name}_point_value"] = 0.0
-    pot = {**defaults, **pot}  # Merge defaults with stored pot data
+    pot = {**defaults, **pot}
 
     total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
     for role in roles:
