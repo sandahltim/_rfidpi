@@ -34,8 +34,8 @@
         </select>
     </div>
     <div class="mb-3">
-        <label for="points" class="form-label">Points (positive or negative):</label>
-        <input type="number" class="form-control" id="points" name="points" required>
+        <label for="adjust_points" class="form-label">Points (positive or negative):</label>
+        <input type="number" class="form-control" id="adjust_points" name="points" required>
     </div>
     <div class="mb-3">
         <label for="reason" class="form-label">Reason:</label>
@@ -57,8 +57,8 @@
         <input type="text" class="form-control" id="description" name="description" required>
     </div>
     <div class="mb-3">
-        <label for="points" class="form-label">Points:</label>
-        <input type="number" class="form-control" id="points" name="points" required>
+        <label for="rule_points" class="form-label">Points:</label>
+        <input type="number" class="form-control" id="rule_points" name="points" required>
     </div>
     <button type="submit" class="btn btn-primary">Add Rule</button>
 </form>
@@ -142,7 +142,7 @@ document.getElementById("adjustPointsForm").addEventListener("submit", (e) => {
 document.querySelectorAll(".rule-link").forEach(link => {
     link.addEventListener("click", (e) => {
         e.preventDefault();
-        document.getElementById("points").value = link.getAttribute("data-points");
+        document.getElementById("adjust_points").value = link.getAttribute("data-points");
         document.getElementById("reason").value = link.getAttribute("data-reason");
     });
 });

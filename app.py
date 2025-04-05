@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
-from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info, close_voting_session, get_voting_results, master_reset_all
+from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info, close_voting_session, pause_voting_session, get_voting_results, master_reset_all
 import logging
 import time
 import traceback
@@ -17,7 +17,7 @@ def show_incentive():
             voting_active = is_voting_active(conn)
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
-            voting_results = get_voting_results(conn, is_admin=session.get("admin_id"))
+            voting_results = get_voting_results(conn, is_admin=bool(session.get("admin_id")))
         logging.debug(f"Loaded incentive page: voting_active={voting_active}, results_count={len(voting_results)}")
         return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()), voting_results=voting_results)
     except Exception as e:
@@ -56,9 +56,22 @@ def start_voting():
 def close_voting():
     if "admin_id" not in session:
         return jsonify({"success": False, "message": "Admin login required"}), 403
+    password = request.form.get("password")
     with DatabaseConnection() as conn:
+        admin = conn.execute("SELECT * FROM admins WHERE admin_id = ?", (session["admin_id"],)).fetchone()
+        if not admin or not check_password_hash(admin["password"], password):
+            return jsonify({"success": False, "message": "Invalid password"}), 403
         success, message = close_voting_session(conn, session["admin_id"])
     logging.debug(f"Close voting: success={success}, message={message}")
+    return jsonify({"success": success, "message": message})
+
+@app.route("/pause_voting", methods=["POST"])
+def pause_voting():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    with DatabaseConnection() as conn:
+        success, message = pause_voting_session(conn, session["admin_id"])
+    logging.debug(f"Pause voting: success={success}, message={message}")
     return jsonify({"success": success, "message": message})
 
 @app.route("/vote", methods=["POST"])

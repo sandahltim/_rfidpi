@@ -25,11 +25,11 @@ def get_scoreboard(conn):
 def start_voting_session(conn, admin_id):
     now = datetime.now()
     active_session = conn.execute(
-        "SELECT * FROM voting_sessions WHERE end_time > ?",
+        "SELECT * FROM voting_sessions WHERE end_time > ? OR end_time IS NULL",
         (now.strftime("%Y-%m-%d %H:%M:%S"),)
     ).fetchone()
     if active_session:
-        return False, "Voting session already active"
+        return False, "Voting session already active or paused"
     start_time = now.strftime("%Y-%m-%d %H:%M:%S")
     conn.execute(
         "INSERT INTO voting_sessions (vote_code, admin_id, start_time, end_time) VALUES (?, ?, ?, NULL)",
@@ -104,6 +104,18 @@ def close_voting_session(conn, admin_id):
     conn.execute("UPDATE voting_sessions SET end_time = ? WHERE session_id = ?", (end_time, active_session["session_id"]))
     logging.debug(f"Voting session closed: total_votes={total_votes}")
     return True, f"Voting session closed, scores updated based on {total_votes} votes"
+
+def pause_voting_session(conn, admin_id):
+    now = datetime.now()
+    active_session = conn.execute(
+        "SELECT * FROM voting_sessions WHERE end_time IS NULL"
+    ).fetchone()
+    if not active_session:
+        return False, "No active voting session to pause"
+    end_time = now.strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute("UPDATE voting_sessions SET end_time = ? WHERE session_id = ?", (end_time, active_session["session_id"]))
+    logging.debug(f"Voting session paused: admin_id={admin_id}, end_time={end_time}")
+    return True, "Voting session paused"
 
 def is_voting_active(conn):
     now = datetime.now()
@@ -256,21 +268,29 @@ def get_voting_results(conn, is_admin=False):
             return []
         start_date = last_session["start_time"]
         end_date = last_session["end_time"] or now.strftime("%Y-%m-%d %H:%M:%S")
+        query = """
+            SELECT v.voter_initials, e.name AS recipient_name, v.vote_value, v.vote_date, sh.points
+            FROM votes v
+            JOIN employees e ON v.recipient_id = e.employee_id
+            LEFT JOIN score_history sh ON v.recipient_id = sh.employee_id AND sh.reason LIKE 'Weekly vote result%' AND sh.date >= ? AND sh.date <= ?
+            WHERE v.vote_date >= ? AND v.vote_date <= ?
+            ORDER BY v.vote_date DESC
+        """
+        params = [start_date, end_date, start_date, end_date]
     else:
-        start_date = (now - timedelta(weeks=4)).strftime("%Y-%m-%d 00:00:00")
-        end_date = now.strftime("%Y-%m-%d 23:59:59")
-        current_month = now.strftime("%Y-%m")
-        query_filter = "WHERE strftime('%Y-%m', v.vote_date) = ?"
-        params = [current_month]
-    query = f"""
-        SELECT v.voter_initials, e.name AS recipient_name, v.vote_value, v.vote_date, sh.points
-        FROM votes v
-        JOIN employees e ON v.recipient_id = e.employee_id
-        LEFT JOIN score_history sh ON v.recipient_id = sh.employee_id AND sh.reason LIKE 'Weekly vote result%' AND sh.date >= ? AND sh.date <= ?
-        WHERE v.vote_date >= ? AND v.vote_date <= ? {'' if is_admin else query_filter}
-        ORDER BY v.vote_date DESC
-    """
-    params = [start_date, end_date, start_date, end_date] + (params if not is_admin else [])
+        start_date = now.replace(day=1, hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M:%S")
+        end_date = now.strftime("%Y-%m-%d %H:%M:%S")
+        query = """
+            SELECT e.name AS recipient_name, SUM(CASE WHEN v.vote_value > 0 THEN v.vote_value ELSE 0 END) as plus_votes,
+                   SUM(CASE WHEN v.vote_value < 0 THEN -v.vote_value ELSE 0 END) as minus_votes, sh.points
+            FROM votes v
+            JOIN employees e ON v.recipient_id = e.employee_id
+            LEFT JOIN score_history sh ON v.recipient_id = sh.employee_id AND sh.reason LIKE 'Weekly vote result%' AND sh.date >= ? AND sh.date <= ?
+            WHERE v.vote_date >= ? AND v.vote_date <= ?
+            GROUP BY e.name, sh.points
+            ORDER BY v.vote_date DESC
+        """
+        params = [start_date, end_date, start_date, end_date]
     results = conn.execute(query, params).fetchall()
     logging.debug(f"Voting results fetched: {len(results)} entries between {start_date} and {end_date}")
     return [dict(row) for row in results]
