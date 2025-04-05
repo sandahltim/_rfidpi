@@ -146,7 +146,6 @@ def cast_votes(conn, voter_initials, votes):
     if existing_vote > 0:
         return False, "You have already voted this week"
 
-    # Count proposed votes
     plus_votes = sum(1 for value in votes.values() if value > 0)
     minus_votes = sum(1 for value in votes.values() if value < 0)
     total_votes = plus_votes + minus_votes
@@ -231,14 +230,29 @@ def get_history(conn, month_year=None):
     return conn.execute(query, params).fetchall()
 
 def get_rules(conn):
-    return conn.execute("SELECT description, points FROM incentive_rules ORDER BY display_order ASC").fetchall()
+    try:
+        return conn.execute("SELECT description, points FROM incentive_rules ORDER BY display_order ASC").fetchall()
+    except sqlite3.OperationalError as e:
+        if "no such column: display_order" in str(e):
+            logging.warning("display_order column missing, falling back to unordered fetch")
+            return conn.execute("SELECT description, points FROM incentive_rules").fetchall()
+        raise
 
 def add_rule(conn, description, points):
-    max_order = conn.execute("SELECT MAX(display_order) as max_order FROM incentive_rules").fetchone()["max_order"] or 0
-    conn.execute(
-        "INSERT INTO incentive_rules (description, points, display_order) VALUES (?, ?, ?)",
-        (description, points, max_order + 1)
-    )
+    try:
+        max_order = conn.execute("SELECT MAX(display_order) as max_order FROM incentive_rules").fetchone()["max_order"] or 0
+        conn.execute(
+            "INSERT INTO incentive_rules (description, points, display_order) VALUES (?, ?, ?)",
+            (description, points, max_order + 1)
+        )
+    except sqlite3.OperationalError as e:
+        if "no such column: display_order" in str(e):
+            conn.execute(
+                "INSERT INTO incentive_rules (description, points) VALUES (?, ?)",
+                (description, points)
+            )
+        else:
+            raise
     return True, f"Rule '{description}' added with {points} points"
 
 def edit_rule(conn, old_description, new_description, points):
@@ -258,19 +272,29 @@ def remove_rule(conn, description):
     return affected > 0, f"Rule '{description}' removed" if affected > 0 else "Rule not found"
 
 def reorder_rules(conn, order):
-    for index, description in enumerate(order):
-        conn.execute(
-            "UPDATE incentive_rules SET display_order = ? WHERE description = ?",
-            (index + 1, description)
-        )
-    return True, "Rules reordered successfully"
+    try:
+        for index, description in enumerate(order):
+            conn.execute(
+                "UPDATE incentive_rules SET display_order = ? WHERE description = ?",
+                (index + 1, description)
+            )
+        return True, "Rules reordered successfully"
+    except sqlite3.OperationalError as e:
+        if "no such column: display_order" in str(e):
+            logging.warning("display_order column missing, reordering not supported")
+            return False, "Rule reordering not available due to missing display_order column"
+        raise
 
 def get_roles(conn):
-    return conn.execute("SELECT role_name, percentage FROM roles").fetchall()
+    try:
+        return conn.execute("SELECT role_name, percentage FROM roles").fetchall()
+    except sqlite3.OperationalError:
+        logging.warning("roles table missing, returning default roles")
+        return [{'role_name': 'driver', 'percentage': 50.0}, {'role_name': 'laborer', 'percentage': 50.0}]
 
 def add_role(conn, role_name, percentage):
     roles = get_roles(conn)
-    if len(roles) >= 10:  # Arbitrary max roles, adjust as needed
+    if len(roles) >= 10:
         return False, "Maximum number of roles reached"
     total_percentage = sum(role["percentage"] for role in roles) + percentage
     if total_percentage > 100:
