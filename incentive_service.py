@@ -170,9 +170,10 @@ def cast_votes(conn, voter_initials, votes):
 
 def add_employee(conn, name, initials, role):
     employee_id = f"E{str(len(conn.execute('SELECT * FROM employees').fetchall()) + 1).zfill(3)}"
+    role_lower = role.lower()  # Normalize to lowercase for employees table
     conn.execute(
         "INSERT INTO employees (employee_id, name, initials, score, role, active) VALUES (?, ?, ?, 50, ?, 1)",
-        (employee_id, name, initials, role)
+        (employee_id, name, initials, role_lower)
     )
     return True, f"Employee {name} added with ID {employee_id}"
 
@@ -198,9 +199,10 @@ def delete_employee(conn, employee_id):
     return affected > 0, f"Employee {employee_id} permanently deleted" if affected > 0 else "Employee not found"
 
 def edit_employee(conn, employee_id, name, role):
+    role_lower = role.lower()  # Normalize to lowercase for employees table
     conn.execute(
         "UPDATE employees SET name = ?, role = ? WHERE employee_id = ?",
-        (name, role, employee_id)
+        (name, role_lower, employee_id)
     )
     affected = conn.total_changes
     return affected > 0, f"Employee {employee_id} updated" if affected > 0 else "Employee not found"
