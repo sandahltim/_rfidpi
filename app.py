@@ -20,11 +20,12 @@ def show_incentive():
             voting_active = is_voting_active(conn)
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
+            roles = get_roles(conn)  # Add this line
             week_number = request.args.get("week", None, type=int)
             voting_results = get_voting_results(conn, is_admin=bool(session.get("admin_id")), week_number=week_number)
         current_month = datetime.now().strftime("%B %Y")
         logging.debug(f"Loaded incentive page: voting_active={voting_active}, results_count={len(voting_results)}")
-        return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()), voting_results=voting_results, current_month=current_month, selected_week=week_number)
+        return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, roles=roles, is_admin=bool(session.get("admin_id")), import_time=int(time.time()), voting_results=voting_results, current_month=current_month, selected_week=week_number)
     except Exception as e:
         logging.error(f"Error in show_incentive: {str(e)}\n{traceback.format_exc()}")
         return "Internal Server Error", 500

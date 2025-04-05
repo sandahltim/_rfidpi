@@ -227,245 +227,247 @@
 </div>
 
 <script>
-function sortTable(tableEl, colName) {
-    let tbody = tableEl.querySelector("tbody");
-    let asc = tableEl.getAttribute("data-sort-col") === colName ? 
-              tableEl.getAttribute("data-sort-dir") !== "asc" : true;
-    tableEl.setAttribute("data-sort-col", colName);
-    tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
-
-    let headers = Array.from(tableEl.querySelectorAll("th"));
-    let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
-    let rows = Array.from(tbody.children);
-    rows.sort((a, b) => {
-        let cellA = a.cells[colIndex]?.innerText.trim() || "";
-        let cellB = b.cells[colIndex]?.innerText.trim() || "";
-        let numA = parseFloat(cellA);
-        let numB = parseFloat(cellB);
-        if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
-        return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-    });
-    tbody.innerHTML = "";
-    rows.forEach(row => tbody.appendChild(row));
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM Content Loaded - Incentive Program");
-    fetch("/static/style.css?v=" + new Date().getTime())
-        .then(response => {
-            if (!response.ok) throw new Error("CSS fetch failed: " + response.status);
-            return response.text();
-        })
-        .then(css => {
-            console.log("CSS Loaded Successfully:", css.substring(0, 50) + "...");
-            document.getElementById("css-status").textContent = "CSS Load Status: Loaded";
-        })
-        .catch(error => {
-            console.error("CSS Load Error:", error);
-            document.getElementById("css-status").textContent = "CSS Load Status: Failed";
+    function sortTable(tableEl, colName) {
+        let tbody = tableEl.querySelector("tbody");
+        let asc = tableEl.getAttribute("data-sort-col") === colName ? 
+                  tableEl.getAttribute("data-sort-dir") !== "asc" : true;
+        tableEl.setAttribute("data-sort-col", colName);
+        tableEl.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+    
+        let headers = Array.from(tableEl.querySelectorAll("th"));
+        let colIndex = headers.findIndex(th => th.getAttribute("data-col-name") === colName);
+        let rows = Array.from(tbody.children);
+        rows.sort((a, b) => {
+            let cellA = a.cells[colIndex]?.innerText.trim() || "";
+            let cellB = b.cells[colIndex]?.innerText.trim() || "";
+            let numA = parseFloat(cellA);
+            let numB = parseFloat(cellB);
+            if (!isNaN(numA) && !isNaN(numB)) return asc ? numA - numB : numB - numA;
+            return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
         });
-
-    document.querySelectorAll(".sortable").forEach(th => {
-        th.addEventListener("click", () => sortTable(document.getElementById("scoreboardTable"), th.getAttribute("data-col-name")));
-    });
-
-    document.querySelectorAll(".rule-link").forEach(link => {
-        link.addEventListener("click", (e) => {
-            e.preventDefault();
-            const description = link.getAttribute("data-description");
-            const points = parseInt(link.getAttribute("data-points"));
-            const username = prompt("Enter admin username:");
-            if (!username) return;
-            const password = prompt("Enter admin password:");
-            if (!password) return;
-
-            const employeeId = prompt("Enter employee ID (e.g., E001) to adjust points for:");
-            if (!employeeId) return;
-
-            fetch("/admin/adjust_points", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&employee_id=${encodeURIComponent(employeeId)}&points=${points}&reason=${encodeURIComponent(description)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.success) {
-                    refreshScoreboard();
-                }
-            })
-            .catch(error => console.error("Error adjusting points:", error));
-        });
-    });
-
-    if (document.getElementById("startVotingBtn")) {
-        document.getElementById("startVotingBtn").addEventListener("click", () => {
-            window.location.href = "/start_voting";
-        });
+        tbody.innerHTML = "";
+        rows.forEach(row => tbody.appendChild(row));
     }
-
-    if (document.getElementById("pauseVotingBtn")) {
-        document.getElementById("pauseVotingBtn").addEventListener("click", (e) => {
-            e.preventDefault();
-            if (confirm("Pause voting session? Votes will be saved but not tallied.")) {
-                fetch("/pause_voting", {
-                    method: "POST",
-                })
-                .then(response => response.json())
-                .then(data => {
-                    alert(data.message);
-                    if (data.success) window.location.reload();
-                })
-                .catch(error => console.error("Error pausing voting:", error));
-            }
+    
+    document.addEventListener("DOMContentLoaded", () => {
+        console.log("DOM Content Loaded - Incentive Program");
+        fetch("/static/style.css?v=" + new Date().getTime())
+            .then(response => {
+                if (!response.ok) throw new Error("CSS fetch failed: " + response.status);
+                return response.text();
+            })
+            .then(css => {
+                console.log("CSS Loaded Successfully:", css.substring(0, 50) + "...");
+                document.getElementById("css-status").textContent = "CSS Load Status: Loaded";
+            })
+            .catch(error => {
+                console.error("CSS Load Error:", error);
+                document.getElementById("css-status").textContent = "CSS Load Status: Failed";
+            });
+    
+        document.querySelectorAll(".sortable").forEach(th => {
+            th.addEventListener("click", () => sortTable(document.getElementById("scoreboardTable"), th.getAttribute("data-col-name")));
         });
-    }
-
-    if (document.getElementById("closeVotingBtn")) {
-        document.getElementById("closeVotingBtn").addEventListener("click", (e) => {
-            e.preventDefault();
-            const password = prompt("Enter admin password to end weekly voting and tally votes:");
-            if (password) {
-                fetch("/close_voting", {
+    
+        document.querySelectorAll(".rule-link").forEach(link => {
+            link.addEventListener("click", (e) => {
+                e.preventDefault();
+                const description = link.getAttribute("data-description");
+                const points = parseInt(link.getAttribute("data-points"));
+                const username = prompt("Enter admin username:");
+                if (!username) return;
+                const password = prompt("Enter admin password:");
+                if (!password) return;
+    
+                const employeeId = prompt("Enter employee ID (e.g., E001) to adjust points for:");
+                if (!employeeId) return;
+    
+                fetch("/admin/adjust_points", {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: "password=" + encodeURIComponent(password)
+                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&employee_id=${encodeURIComponent(employeeId)}&points=${points}&reason=${encodeURIComponent(description)}`
                 })
                 .then(response => response.json())
                 .then(data => {
                     alert(data.message);
-                    if (data.success) window.location.reload();
+                    if (data.success) {
+                        refreshScoreboard();
+                    }
                 })
-                .catch(error => console.error("Error closing voting:", error));
-            }
+                .catch(error => console.error("Error adjusting points:", error));
+            });
         });
-    }
-
-    if (document.getElementById("checkInitialsBtn")) {
-        document.getElementById("checkInitialsBtn").addEventListener("click", () => {
-            const initials = document.getElementById("voterInitials").value.trim();
-            if (initials) {
-                fetch("/data")
+    
+        if (document.getElementById("startVotingBtn")) {
+            document.getElementById("startVotingBtn").addEventListener("click", () => {
+                window.location.href = "/start_voting";
+            });
+        }
+    
+        if (document.getElementById("pauseVotingBtn")) {
+            document.getElementById("pauseVotingBtn").addEventListener("click", (e) => {
+                e.preventDefault();
+                if (confirm("Pause voting session? Votes will be saved but not tallied.")) {
+                    fetch("/pause_voting", {
+                        method: "POST",
+                    })
                     .then(response => response.json())
                     .then(data => {
-                        const valid = data.scoreboard.some(emp => emp.initials === initials);
-                        if (valid) {
-                            document.getElementById("hiddenInitials").value = initials;
-                            document.getElementById("voteInitialsForm").style.display = "none";
-                            document.getElementById("voteForm").style.display = "block";
-                        } else {
-                            alert("Invalid initials");
-                        }
+                        alert(data.message);
+                        if (data.success) window.location.reload();
                     })
-                    .catch(error => console.error("Error checking initials:", error));
-            } else {
-                alert("Please enter your initials");
+                    .catch(error => console.error("Error pausing voting:", error));
+                }
+            });
+        }
+    
+        if (document.getElementById("closeVotingBtn")) {
+            document.getElementById("closeVotingBtn").addEventListener("click", (e) => {
+                e.preventDefault();
+                const password = prompt("Enter admin password to end weekly voting and tally votes:");
+                if (password) {
+                    fetch("/close_voting", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: "password=" + encodeURIComponent(password)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        if (data.success) window.location.reload();
+                    })
+                    .catch(error => console.error("Error closing voting:", error));
+                }
+            });
+        }
+    
+        if (document.getElementById("checkInitialsBtn")) {
+            document.getElementById("checkInitialsBtn").addEventListener("click", () => {
+                const initials = document.getElementById("voterInitials").value.trim();
+                if (initials) {
+                    fetch("/data")
+                        .then(response => response.json())
+                        .then(data => {
+                            const valid = data.scoreboard.some(emp => emp.initials === initials);
+                            if (valid) {
+                                document.getElementById("hiddenInitials").value = initials;
+                                document.getElementById("voteInitialsForm").style.display = "none";
+                                document.getElementById("voteForm").style.display = "block";
+                            } else {
+                                alert("Invalid initials");
+                            }
+                        })
+                        .catch(error => console.error("Error checking initials:", error));
+                } else {
+                    alert("Please enter your initials");
+                }
+            });
+        }
+    
+        if (document.getElementById("voteForm")) {
+            document.getElementById("voteForm").addEventListener("submit", (e) => {
+                e.preventDefault();
+                fetch("/vote", {
+                    method: "POST",
+                    body: new FormData(e.target),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        document.getElementById("voteForm").reset();
+                        document.querySelectorAll("#voteTableBody input[type='radio']").forEach(radio => {
+                            if (radio.value === "0") radio.checked = true;
+                            else radio.checked = false;
+                        });
+                        document.getElementById("voteForm").style.display = "none";
+                        document.getElementById("voteInitialsForm").style.display = "block";
+                        document.getElementById("voterInitials").value = "";
+                        refreshScoreboard();
+                    }
+                })
+                .catch(error => console.error("Error submitting votes:", error));
+            });
+        }
+    
+        function refreshScoreboard() {
+            fetch("/data", { cache: "no-store" })  // Prevent caching
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById("scoreboardBody");
+                    tbody.innerHTML = "";
+                    data.scoreboard.forEach(emp => {
+                        const tr = document.createElement("tr");
+                        const score = parseInt(emp.score);
+                        let scoreClass;
+                        if (score < 30) {
+                            scoreClass = `score-low-${Math.floor(score / 5) * 5}`;
+                        } else if (score <= 65) {
+                            scoreClass = `score-mid-${Math.floor(score / 5) * 5}`;
+                        } else {
+                            scoreClass = `score-high-${Math.floor(score / 5) * 5}`;
+                        }
+                        tr.className = scoreClass;
+                        console.log(`Employee: ${emp.name}, Score: ${emp.score}, Class: ${scoreClass}`);
+                        const potShare = emp.score * (data.pot_info[emp.role + '_point_value'] || 0);
+                        tr.innerHTML = `
+                            <td>${emp.employee_id}</td>
+                            <td>${emp.name}</td>
+                            {% if is_admin %}<td>${emp.initials}</td>{% endif %}
+                            <td>${emp.role}</td>
+                            <td>${emp.score}</td>
+                            <td>$${potShare.toFixed(2)}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                    if (data.voting_active && document.getElementById("voteForm").style.display !== "block") {
+                        document.getElementById("voteInitialsForm").style.display = "block";
+                    }
+                    const potInfo = document.getElementById("potInfo");
+                    potInfo.innerHTML = `
+                        <p>Sales Dollars: $${(data.pot_info.sales_dollars || 0).toFixed(2)}</p>
+                        <p>Bonus %: ${(data.pot_info.bonus_percent || 0)}%</p>
+                        <p>Total Pot: $${((data.pot_info.sales_dollars || 0) * (data.pot_info.bonus_percent || 0) / 100).toFixed(2)}</p>
+                    `;
+                    // Use roles from server instead of hardcoded list
+                    const validRoles = [{% for role in roles %}'{{ role.role_name }}'{% if not loop.last %}, {% endif %}{% endfor %}];
+                    Object.keys(data.pot_info).forEach(key => {
+                        if (key.endsWith('_percent') && validRoles.includes(key.replace('_percent', ''))) {
+                            const role = key.replace('_percent', '');
+                            const percent = data.pot_info[key] || 0;
+                            const potValue = data.pot_info[role + '_pot'] || 0;
+                            const pointValue = data.pot_info[role + '_point_value'] || 0;
+                            potInfo.innerHTML += `
+                                <p>${role.charAt(0).toUpperCase() + role.slice(1)} (${percent}%): $${potValue.toFixed(2)}, Point Value: $${pointValue.toFixed(2)}</p>
+                            `;
+                        }
+                    });
+                })
+                .catch(error => console.error("Error fetching data:", error));
+        }
+        setInterval(refreshScoreboard, 60000);
+        refreshScoreboard();
+    
+        {% if is_admin %}
+        const rulesList = document.getElementById("rulesList");
+        new Sortable(rulesList, {
+            animation: 150,
+            onEnd: function (evt) {
+                const order = Array.from(rulesList.children).map(li => li.getAttribute("data-description"));
+                fetch("/admin/reorder_rules", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: "order[]=" + order.map(encodeURIComponent).join("&order[]=")
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) alert(data.message);
+                })
+                .catch(error => console.error("Error reordering rules:", error));
             }
         });
-    }
-
-    if (document.getElementById("voteForm")) {
-        document.getElementById("voteForm").addEventListener("submit", (e) => {
-            e.preventDefault();
-            fetch("/vote", {
-                method: "POST",
-                body: new FormData(e.target),
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.success) {
-                    document.getElementById("voteForm").reset();
-                    document.querySelectorAll("#voteTableBody input[type='radio']").forEach(radio => {
-                        if (radio.value === "0") radio.checked = true;
-                        else radio.checked = false;
-                    });
-                    document.getElementById("voteForm").style.display = "none";
-                    document.getElementById("voteInitialsForm").style.display = "block";
-                    document.getElementById("voterInitials").value = "";
-                    refreshScoreboard();
-                }
-            })
-            .catch(error => console.error("Error submitting votes:", error));
-        });
-    }
-
-    function refreshScoreboard() {
-        fetch("/data", { cache: "no-store" })  // Prevent caching
-            .then(response => response.json())
-            .then(data => {
-                const tbody = document.getElementById("scoreboardBody");
-                tbody.innerHTML = "";
-                data.scoreboard.forEach(emp => {
-                    const tr = document.createElement("tr");
-                    const score = parseInt(emp.score);
-                    let scoreClass;
-                    if (score < 30) {
-                        scoreClass = `score-low-${Math.floor(score / 5) * 5}`;
-                    } else if (score <= 65) {
-                        scoreClass = `score-mid-${Math.floor(score / 5) * 5}`;
-                    } else {
-                        scoreClass = `score-high-${Math.floor(score / 5) * 5}`;
-                    }
-                    tr.className = scoreClass;
-                    console.log(`Employee: ${emp.name}, Score: ${emp.score}, Class: ${scoreClass}`);
-                    const potShare = emp.score * (data.pot_info[emp.role + '_point_value'] || 0);
-                    tr.innerHTML = `
-                        <td>${emp.employee_id}</td>
-                        <td>${emp.name}</td>
-                        {% if is_admin %}<td>${emp.initials}</td>{% endif %}
-                        <td>${emp.role}</td>
-                        <td>${emp.score}</td>
-                        <td>$${potShare.toFixed(2)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-                if (data.voting_active && document.getElementById("voteForm").style.display !== "block") {
-                    document.getElementById("voteInitialsForm").style.display = "block";
-                }
-                const potInfo = document.getElementById("potInfo");
-                potInfo.innerHTML = `
-                    <p>Sales Dollars: $${(data.pot_info.sales_dollars || 0).toFixed(2)}</p>
-                    <p>Bonus %: ${(data.pot_info.bonus_percent || 0)}%</p>
-                    <p>Total Pot: $${((data.pot_info.sales_dollars || 0) * (data.pot_info.bonus_percent || 0) / 100).toFixed(2)}</p>
-                `;
-                Object.keys(data.pot_info).forEach(key => {
-                    if (key.endsWith('_percent')) {
-                        const role = key.replace('_percent', '');
-                        const percent = data.pot_info[key] || 0;
-                        const potValue = data.pot_info[role + '_pot'] || 0;
-                        const pointValue = data.pot_info[role + '_point_value'] || 0;
-                        potInfo.innerHTML += `
-                            <p>${role.charAt(0).toUpperCase() + role.slice(1)} (${percent}%): $${potValue.toFixed(2)}, Point Value: $${pointValue.toFixed(2)}</p>
-                        `;
-                    }
-                });
-            })
-            .catch(error => console.error("Error fetching data:", error));
-    }
-    setInterval(refreshScoreboard, 60000);
-    refreshScoreboard();
-
-    {% if is_admin %}
-    const rulesList = document.getElementById("rulesList");
-    new Sortable(rulesList, {
-        animation: 150,
-        onEnd: function (evt) {
-            const order = Array.from(rulesList.children).map(li => li.getAttribute("data-description"));
-            fetch("/admin/reorder_rules", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: "order[]=" + order.map(encodeURIComponent).join("&order[]=")
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) alert(data.message);
-            })
-            .catch(error => console.error("Error reordering rules:", error));
-        }
+        {% endif %}
     });
-    {% endif %}
-});
-</script>
+    </script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 {% endblock %}
