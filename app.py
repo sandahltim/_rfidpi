@@ -5,10 +5,12 @@ import logging
 import time
 import traceback
 from datetime import datetime
+import sqlite3
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = "your-secret-key-here"
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s')
+logging.getLogger('gunicorn.error').setLevel(logging.DEBUG)
 
 @app.route("/", methods=["GET"])
 def show_incentive():
@@ -47,35 +49,47 @@ def start_voting():
     if request.method == "GET":
         return render_template("start_voting.html", is_master=session.get("admin_id") == "master", import_time=int(time.time()))
     password = request.form.get("password")
-    with DatabaseConnection() as conn:
-        admin = conn.execute("SELECT * FROM admins WHERE admin_id = ?", (session["admin_id"],)).fetchone()
-        if not admin or not check_password_hash(admin["password"], password):
-            return jsonify({"success": False, "message": "Invalid password"}), 403
-        success, message = start_voting_session(conn, session["admin_id"])
-    logging.debug(f"Start voting: success={success}, message={message}")
-    return jsonify({"success": success, "message": message})
+    try:
+        with DatabaseConnection() as conn:
+            admin = conn.execute("SELECT * FROM admins WHERE admin_id = ?", (session["admin_id"],)).fetchone()
+            if not admin or not check_password_hash(admin["password"], password):
+                return jsonify({"success": False, "message": "Invalid password"}), 403
+            success, message = start_voting_session(conn, session["admin_id"])
+        logging.debug(f"Start voting: success={success}, message={message}")
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in start_voting: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/close_voting", methods=["POST"])
 def close_voting():
     if "admin_id" not in session:
         return jsonify({"success": False, "message": "Admin login required"}), 403
     password = request.form.get("password")
-    with DatabaseConnection() as conn:
-        admin = conn.execute("SELECT * FROM admins WHERE admin_id = ?", (session["admin_id"],)).fetchone()
-        if not admin or not check_password_hash(admin["password"], password):
-            return jsonify({"success": False, "message": "Invalid password"}), 403
-        success, message = close_voting_session(conn, session["admin_id"])
-    logging.debug(f"Close voting: success={success}, message={message}")
-    return jsonify({"success": success, "message": message})
+    try:
+        with DatabaseConnection() as conn:
+            admin = conn.execute("SELECT * FROM admins WHERE admin_id = ?", (session["admin_id"],)).fetchone()
+            if not admin or not check_password_hash(admin["password"], password):
+                return jsonify({"success": False, "message": "Invalid password"}), 403
+            success, message = close_voting_session(conn, session["admin_id"])
+        logging.debug(f"Close voting: success={success}, message={message}")
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in close_voting: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/pause_voting", methods=["POST"])
 def pause_voting():
     if "admin_id" not in session:
         return jsonify({"success": False, "message": "Admin login required"}), 403
-    with DatabaseConnection() as conn:
-        success, message = pause_voting_session(conn, session["admin_id"])
-    logging.debug(f"Pause voting: success={success}, message={message}")
-    return jsonify({"success": success, "message": message})
+    try:
+        with DatabaseConnection() as conn:
+            success, message = pause_voting_session(conn, session["admin_id"])
+        logging.debug(f"Pause voting: success={success}, message={message}")
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in pause_voting: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/vote", methods=["POST"])
 def vote():
@@ -95,12 +109,16 @@ def admin():
     if request.method == "POST" and "username" in request.form:
         username = request.form["username"]
         password = request.form["password"]
-        with DatabaseConnection() as conn:
-            admin = conn.execute("SELECT * FROM admins WHERE username = ?", (username,)).fetchone()
-            if admin and check_password_hash(admin["password"], password):
-                session["admin_id"] = admin["admin_id"]
-                return redirect(url_for("admin"))
-        return render_template("admin_login.html", error="Invalid credentials", import_time=int(time.time()))
+        try:
+            with DatabaseConnection() as conn:
+                admin = conn.execute("SELECT * FROM admins WHERE username = ?", (username,)).fetchone()
+                if admin and check_password_hash(admin["password"], password):
+                    session["admin_id"] = admin["admin_id"]
+                    return redirect(url_for("admin"))
+            return render_template("admin_login.html", error="Invalid credentials", import_time=int(time.time()))
+        except Exception as e:
+            logging.error(f"Error in admin login: {str(e)}\n{traceback.format_exc()}")
+            return "Internal Server Error", 500
     if "admin_id" not in session:
         return render_template("admin_login.html", import_time=int(time.time()))
     try:
@@ -108,6 +126,7 @@ def admin():
             employees = conn.execute("SELECT employee_id, name, initials, score, role FROM employees").fetchall()
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
+        logging.debug(f"Loaded admin page: employees_count={len(employees)}")
         return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, is_admin=True, is_master=session.get("admin_id") == "master", import_time=int(time.time()))
     except Exception as e:
         logging.error(f"Error in admin: {str(e)}\n{traceback.format_exc()}")
@@ -125,9 +144,13 @@ def admin_add():
     name = request.form["name"]
     initials = request.form["initials"]
     role = request.form["role"]
-    with DatabaseConnection() as conn:
-        success, message = add_employee(conn, name, initials, role)
-    return jsonify({"success": success, "message": message})
+    try:
+        with DatabaseConnection() as conn:
+            success, message = add_employee(conn, name, initials, role)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_add: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/admin/adjust_points", methods=["POST"])
 def admin_adjust_points():
@@ -136,29 +159,41 @@ def admin_adjust_points():
     employee_id = request.form["employee_id"]
     points = int(request.form["points"])
     reason = request.form["reason"]
-    with DatabaseConnection() as conn:
-        success, message = adjust_points(conn, employee_id, points, session["admin_id"], reason)
-    return jsonify({"success": success, "message": message})
+    try:
+        with DatabaseConnection() as conn:
+            success, message = adjust_points(conn, employee_id, points, session["admin_id"], reason)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_adjust_points: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/admin/reset", methods=["POST"])
 def admin_reset():
     if "admin_id" not in session:
         return jsonify({"success": False, "message": "Admin login required"}), 403
-    with DatabaseConnection() as conn:
-        success, message = reset_scores(conn, session["admin_id"], reason="Admin reset to 50")
-    return jsonify({"success": success, "message": message})
+    try:
+        with DatabaseConnection() as conn:
+            success, message = reset_scores(conn, session["admin_id"], reason="Admin reset to 50")
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_reset: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/admin/master_reset", methods=["POST"])
 def admin_master_reset():
     if session.get("admin_id") != "master":
         return jsonify({"success": False, "message": "Master account required"}), 403
     password = request.form.get("password")
-    with DatabaseConnection() as conn:
-        admin = conn.execute("SELECT * FROM admins WHERE admin_id = 'master'").fetchone()
-        if not admin or not check_password_hash(admin["password"], password):
-            return jsonify({"success": False, "message": "Invalid master password"}), 403
-        success, message = master_reset_all(conn)
-    return jsonify({"success": success, "message": message})
+    try:
+        with DatabaseConnection() as conn:
+            admin = conn.execute("SELECT * FROM admins WHERE admin_id = 'master'").fetchone()
+            if not admin or not check_password_hash(admin["password"], password):
+                return jsonify({"success": False, "message": "Invalid master password"}), 403
+            success, message = master_reset_all(conn)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_master_reset: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/admin/add_rule", methods=["POST"])
 def admin_add_rule():
@@ -166,9 +201,13 @@ def admin_add_rule():
         return jsonify({"success": False, "message": "Admin login required"}), 403
     description = request.form["description"]
     points = int(request.form["points"])
-    with DatabaseConnection() as conn:
-        success, message = add_rule(conn, description, points)
-    return jsonify({"success": success, "message": message})
+    try:
+        with DatabaseConnection() as conn:
+            success, message = add_rule(conn, description, points)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_add_rule: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/admin/update_pot", methods=["POST"])
 def admin_update_pot():
@@ -185,16 +224,20 @@ def admin_update_pot():
             success, message = update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent)
         return jsonify({"success": success, "message": message})
     except Exception as e:
-        logging.error(f"Error in update_pot: {str(e)}\n{traceback.format_exc()}")
+        logging.error(f"Error in admin_update_pot: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 @app.route("/history", methods=["GET"])
 def history():
     month_year = request.args.get("month_year")
-    with DatabaseConnection() as conn:
-        history = [dict(row) for row in get_history(conn, month_year)]
-        months = conn.execute("SELECT DISTINCT month_year FROM score_history ORDER BY month_year DESC").fetchall()
-    return render_template("history.html", history=history, months=[m["month_year"] for m in months], is_admin=bool(session.get("admin_id")), import_time=int(time.time()))
+    try:
+        with DatabaseConnection() as conn:
+            history = [dict(row) for row in get_history(conn, month_year)]
+            months = conn.execute("SELECT DISTINCT month_year FROM score_history ORDER BY month_year DESC").fetchall()
+        return render_template("history.html", history=history, months=[m["month_year"] for m in months], is_admin=bool(session.get("admin_id")), import_time=int(time.time()))
+    except Exception as e:
+        logging.error(f"Error in history: {str(e)}\n{traceback.format_exc()}")
+        return "Internal Server Error", 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=6800, debug=True)
