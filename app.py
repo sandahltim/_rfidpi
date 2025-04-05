@@ -133,12 +133,14 @@ def admin():
         return render_template("admin_login.html", import_time=int(time.time()))
     try:
         with DatabaseConnection() as conn:
-            employees = conn.execute("SELECT employee_id, name, initials, score, role FROM employees").fetchall()
+            employees = conn.execute("SELECT employee_id, name, initials, score, role, active FROM employees").fetchall()
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
             roles = get_roles(conn)
+            # Fetch admins for master view
+            admins = conn.execute("SELECT admin_id, username FROM admins").fetchall() if session.get("admin_id") == "master" else []
         logging.debug(f"Loaded admin page: employees_count={len(employees)}, roles_count={len(roles)}")
-        return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, roles=roles, is_admin=True, is_master=session.get("admin_id") == "master", import_time=int(time.time()))
+        return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, roles=roles, admins=admins, is_admin=True, is_master=session.get("admin_id") == "master", import_time=int(time.time()))
     except Exception as e:
         logging.error(f"Error in admin: {str(e)}\n{traceback.format_exc()}")
         return "Internal Server Error", 500

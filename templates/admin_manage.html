@@ -173,8 +173,8 @@
 </ul>
 {% set shares = [] %}
 {% for emp in employees %}
-    {% set share = emp.score * pot_info.get(emp.role + '_point_value', 0) %}
-    {% if emp.active is not defined or emp.active == 1 %}
+    {% if emp.active == 1 %}
+        {% set share = emp.score * pot_info.get(emp.role + '_point_value', 0) %}
         {% set _ = shares.append(share) %}
     {% endif %}
 {% endfor %}
