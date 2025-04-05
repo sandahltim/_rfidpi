@@ -371,18 +371,20 @@ def get_pot_info(conn):
 
 def update_pot_info(conn, sales_dollars, bonus_percent, percentages):
     roles = get_roles(conn)
-    total_role_percentage = sum(percentages.values())
+    # Filter out non-role percentages (like bonus_percent) and only include role-specific ones
+    role_percentages = {key.replace('_percent', ''): value for key, value in percentages.items() if key.endswith('_percent')}
+    total_role_percentage = sum(role_percentages.values())
     if total_role_percentage != 100:
-        return False, "Total role percentages must equal 100%"
-    if len(roles) != len(percentages):
+        return False, f"Total role percentages must equal 100%, got {total_role_percentage}%"
+    if len(roles) != len(role_percentages):
         return False, "Percentage must be provided for each role"
     for role in roles:
         role_name = role["role_name"]
-        if role_name not in percentages:
+        if role_name not in role_percentages:
             return False, f"Percentage for role '{role_name}' missing"
         conn.execute(
             "UPDATE roles SET percentage = ? WHERE role_name = ?",
-            (percentages[role_name], role_name)
+            (role_percentages[role_name], role_name)
         )
     conn.execute(
         "INSERT OR REPLACE INTO incentive_pot (id, sales_dollars, bonus_percent) VALUES (1, ?, ?)",
