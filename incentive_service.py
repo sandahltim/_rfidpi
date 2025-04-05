@@ -20,7 +20,13 @@ class DatabaseConnection:
         self.conn.close()
 
 def get_scoreboard(conn):
-    return conn.execute("SELECT employee_id, name, initials, score, role FROM employees WHERE active = 1 ORDER BY score DESC").fetchall()
+    return conn.execute("""
+        SELECT e.employee_id, e.name, e.initials, e.score, LOWER(r.role_name) AS role
+        FROM employees e
+        JOIN roles r ON e.role = LOWER(r.role_name)
+        WHERE e.active = 1
+        ORDER BY e.score DESC
+    """).fetchall()
 
 def start_voting_session(conn, admin_id):
     now = datetime.now()
