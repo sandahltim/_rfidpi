@@ -423,17 +423,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 const potInfo = document.getElementById("potInfo");
                 potInfo.innerHTML = `
-                    <p>Sales Dollars: $${data.pot_info.sales_dollars.toFixed(2)}</p>
-                    <p>Bonus %: ${data.pot_info.bonus_percent}%</p>
-                    <p>Total Pot: $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent / 100).toFixed(2)}</p>
+                    <p>Sales Dollars: $${(data.pot_info.sales_dollars || 0).toFixed(2)}</p>
+                    <p>Bonus %: ${(data.pot_info.bonus_percent || 0)}%</p>
+                    <p>Total Pot: $${((data.pot_info.sales_dollars || 0) * (data.pot_info.bonus_percent || 0) / 100).toFixed(2)}</p>
                 `;
-                Object.keys(data.pot_info).forEach(key => {
-                    if (key.endsWith('_percent')) {
-                        const role = key.replace('_percent', '');
-                        potInfo.innerHTML += `
-                            <p>${role.charAt(0).toUpperCase() + role.slice(1)} (${data.pot_info[key]}%): $${data.pot_info[role + '_pot'].toFixed(2)}, Point Value: $${data.pot_info[role + '_point_value'].toFixed(2)}</p>
-                        `;
-                    }
+                const roles = ['driver', 'laborer', 'supervisor']; // Explicitly list expected roles
+                roles.forEach(role => {
+                    const percent = data.pot_info[role + '_percent'] || 0;
+                    const potValue = data.pot_info[role + '_pot'] || 0;
+                    const pointValue = data.pot_info[role + '_point_value'] || 0;
+                    potInfo.innerHTML += `
+                        <p>${role.charAt(0).toUpperCase() + role.slice(1)} (${percent}%): $${potValue.toFixed(2)}, Point Value: $${pointValue.toFixed(2)}</p>
+                    `;
                 });
             })
             .catch(error => console.error("Error fetching data:", error));

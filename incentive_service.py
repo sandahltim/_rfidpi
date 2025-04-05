@@ -371,9 +371,9 @@ def get_pot_info(conn):
 
 def update_pot_info(conn, sales_dollars, bonus_percent, percentages):
     roles = get_roles(conn)
-    total_percentage = sum(percentages.values())
-    if total_percentage != 100:
-        return False, "Total percentage must equal 100%"
+    total_role_percentage = sum(percentages.values())
+    if total_role_percentage != 100:
+        return False, "Total role percentages must equal 100%"
     if len(roles) != len(percentages):
         return False, "Percentage must be provided for each role"
     for role in roles:
