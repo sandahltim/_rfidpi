@@ -145,7 +145,19 @@ def cast_votes(conn, voter_initials, votes):
     ).fetchone()["count"]
     if existing_vote > 0:
         return False, "You have already voted this week"
+
+    # Count proposed votes
+    plus_votes = sum(1 for value in votes.values() if value > 0)
+    minus_votes = sum(1 for value in votes.values() if value < 0)
+    total_votes = plus_votes + minus_votes
     
+    if plus_votes > 2:
+        return False, "You can only cast up to 2 positive (+1) votes per session"
+    if minus_votes > 3:
+        return False, "You can only cast up to 3 negative (-1) votes per session"
+    if total_votes > 3:
+        return False, "You can only cast a maximum of 3 votes total per session"
+
     for recipient_id, vote_value in votes.items():
         if not conn.execute("SELECT 1 FROM employees WHERE employee_id = ?", (recipient_id,)).fetchone():
             logging.warning(f"Invalid recipient_id: {recipient_id}")
@@ -219,6 +231,22 @@ def add_rule(conn, description, points):
         (description, points)
     )
     return True, f"Rule '{description}' added with {points} points"
+
+def edit_rule(conn, old_description, new_description, points):
+    conn.execute(
+        "UPDATE incentive_rules SET description = ?, points = ? WHERE description = ?",
+        (new_description, points, old_description)
+    )
+    affected = conn.total_changes
+    return affected > 0, f"Rule '{old_description}' updated to '{new_description}' with {points} points" if affected > 0 else "Rule not found"
+
+def remove_rule(conn, description):
+    conn.execute(
+        "DELETE FROM incentive_rules WHERE description = ?",
+        (description,)
+    )
+    affected = conn.total_changes
+    return affected > 0, f"Rule '{description}' removed" if affected > 0 else "Rule not found"
 
 def get_pot_info(conn):
     pot_row = conn.execute("SELECT * FROM incentive_pot WHERE id = 1").fetchone()

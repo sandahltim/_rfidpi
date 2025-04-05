@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
-from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info, close_voting_session, pause_voting_session, get_voting_results, master_reset_all
+from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, edit_rule, remove_rule, get_pot_info, update_pot_info, close_voting_session, pause_voting_session, get_voting_results, master_reset_all
 import logging
 import time
 import traceback
@@ -207,6 +207,34 @@ def admin_add_rule():
         return jsonify({"success": success, "message": message})
     except Exception as e:
         logging.error(f"Error in admin_add_rule: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/admin/edit_rule", methods=["POST"])
+def admin_edit_rule():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    old_description = request.form["old_description"]
+    new_description = request.form["new_description"]
+    points = int(request.form["points"])
+    try:
+        with DatabaseConnection() as conn:
+            success, message = edit_rule(conn, old_description, new_description, points)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_edit_rule: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/admin/remove_rule", methods=["POST"])
+def admin_remove_rule():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    description = request.form["description"]
+    try:
+        with DatabaseConnection() as conn:
+            success, message = remove_rule(conn, description)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_remove_rule: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/admin/update_pot", methods=["POST"])

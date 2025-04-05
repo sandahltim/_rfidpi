@@ -62,9 +62,22 @@
     </div>
     <button type="submit" class="btn btn-primary">Add Rule</button>
 </form>
+
+<h3>Edit or Remove Rules</h3>
 <ul>
     {% for rule in rules %}
-    <li>{{ rule.description }}: <span class="{% if rule.points > 0 %}text-success{% else %}text-danger{% endif %}">{{ rule.points }} points</span></li>
+    <li>
+        <form class="editRuleForm" style="display: inline;">
+            <input type="hidden" name="old_description" value="{{ rule.description }}">
+            <input type="text" name="new_description" value="{{ rule.description }}" required>
+            <input type="number" name="points" value="{{ rule.points }}" required>
+            <button type="submit" class="btn btn-sm btn-success">Edit</button>
+        </form>
+        <form class="removeRuleForm" style="display: inline;">
+            <input type="hidden" name="description" value="{{ rule.description }}">
+            <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+        </form>
+    </li>
     {% endfor %}
 </ul>
 
@@ -159,6 +172,40 @@ document.getElementById("addRuleForm").addEventListener("submit", (e) => {
         if (data.success) window.location.reload();
     })
     .catch(error => console.error("Error adding rule:", error));
+});
+
+document.querySelectorAll(".editRuleForm").forEach(form => {
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        fetch("/admin/edit_rule", {
+            method: "POST",
+            body: new FormData(form),
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) window.location.reload();
+        })
+        .catch(error => console.error("Error editing rule:", error));
+    });
+});
+
+document.querySelectorAll(".removeRuleForm").forEach(form => {
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (confirm("Are you sure you want to remove this rule?")) {
+            fetch("/admin/remove_rule", {
+                method: "POST",
+                body: new FormData(form),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) window.location.reload();
+            })
+            .catch(error => console.error("Error removing rule:", error));
+        }
+    });
 });
 
 document.getElementById("updatePotForm").addEventListener("submit", (e) => {
