@@ -126,7 +126,7 @@
     </div>
     <div class="mb-3">
         <label for="new_password" class="form-label">New Password:</label>
-        <input type="text" class="form-control" id="new_password" name="new_password" required>
+        <input type="password" class="form-control" id="new_password" name="new_password" required>
     </div>
     <button type="submit" class="btn btn-primary">Update Admin</button>
 </form>
@@ -164,7 +164,7 @@
 {% endif %}
 
 <h2>Incentive Pot</h2>
-<p>Total Bonus Payout: ${{ "%.2f"|format(employees | selectattr('active') | map('mul', 'score', lambda e: pot_info.get(e.role + '_point_value', 0)) | sum(default=0)) }}</p>
+<p>Total Bonus Payout: ${{ "%.2f"|format(employees | selectattr('active') | map(attribute='score') | map('mul', lambda e: pot_info.get(e.role + '_point_value', 0)) | sum(default=0)) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
         <label for="sales_dollars" class="form-label">Sales Dollars:</label>
