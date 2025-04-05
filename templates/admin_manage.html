@@ -144,7 +144,7 @@
     <button type="submit" class="btn btn-primary">Add Role</button>
 </form>
 
-<h3>Edit or Remove Roles (Must Total 100%)</h3>
+<h3>Edit or Remove Roles (Must Total ≤ 100%)</h3>
 <ul>
     {% for role in roles %}
     <li>
@@ -164,7 +164,7 @@
 {% endif %}
 
 <h2>Incentive Pot</h2>
-<p>Total Bonus Payout: ${{ "%.2f"|format(employees | map(attribute='score') | sum * (pot_info.get('driver_point_value', 0) + pot_info.get('laborer_point_value', 0) + pot_info.get('supervisor_point_value', 0))) }}</p>
+<p>Total Bonus Payout: ${{ "%.2f"|format(employees | selectattr('active') | map(attribute='score') | map('mul', employees | map(attribute='role') | map('add', '_point_value') | map('get', pot_info, 0)) | sum) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
         <label for="sales_dollars" class="form-label">Sales Dollars:</label>
