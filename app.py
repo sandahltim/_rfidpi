@@ -155,7 +155,18 @@ def admin_add():
 @app.route("/admin/adjust_points", methods=["POST"])
 def admin_adjust_points():
     if "admin_id" not in session:
-        return jsonify({"success": False, "message": "Admin login required"}), 403
+        username = request.form.get("username")
+        password = request.form.get("password")
+        try:
+            with DatabaseConnection() as conn:
+                admin = conn.execute("SELECT * FROM admins WHERE username = ?", (username,)).fetchone()
+                if not admin or not check_password_hash(admin["password"], password):
+                    return jsonify({"success": False, "message": "Invalid admin credentials"}), 403
+                session["admin_id"] = admin["admin_id"]
+        except Exception as e:
+            logging.error(f"Error in admin_adjust_points auth: {str(e)}\n{traceback.format_exc()}")
+            return jsonify({"success": False, "message": "Server error"}), 500
+
     employee_id = request.form["employee_id"]
     points = int(request.form["points"])
     reason = request.form["reason"]
