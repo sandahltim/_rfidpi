@@ -168,15 +168,17 @@
 <p>Debug - Employee Data:</p>
 <ul>
     {% for emp in employees %}
-    <li>{{ emp.employee_id }}: Score={{ emp.score }}, Role={{ emp.role }}, Active={{ emp.active }}, Point Value={{ pot_info.get(emp.role + '_point_value', 0) }}, Share={{ emp.score * pot_info.get(emp.role + '_point_value', 0) }}</li>
+    <li>{{ emp.employee_id }}: Score={{ emp.score }}, Role={{ emp.role }}, Active={{ emp.active|default('MISSING') }}, Point Value={{ pot_info.get(emp.role + '_point_value', 0) }}, Share={{ emp.score * pot_info.get(emp.role + '_point_value', 0) }}</li>
     {% endfor %}
 </ul>
 {% set shares = [] %}
 {% for emp in employees %}
-    {% if emp.active == 1 %}
-        {% set _ = shares.append(emp.score * pot_info.get(emp.role + '_point_value', 0)) %}
+    {% if emp.active is defined and emp.active == 1 %}
+        {% set share = emp.score * pot_info.get(emp.role + '_point_value', 0) %}
+        {% set _ = shares.append(share) %}
     {% endif %}
 {% endfor %}
+<p>Shares List: {{ shares }}</p>
 <p>Total Bonus Payout: ${{ "%.2f"|format(shares | sum) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
