@@ -177,7 +177,7 @@
         {% set _ = shares.append(emp.score * pot_info.get(emp.role + '_point_value', 0)) %}
     {% endif %}
 {% endfor %}
-<p>Total Bonus Payout: ${{ "%.2f"|format(shares | sum(default=0)) }}</p>
+<p>Total Bonus Payout: ${{ "%.2f"|format(shares | sum) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
         <label for="sales_dollars" class="form-label">Sales Dollars:</label>
