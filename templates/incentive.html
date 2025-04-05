@@ -94,10 +94,8 @@
     <p>Sales Dollars: ${{ "%.2f"|format(pot_info.get('sales_dollars', 0)) }}</p>
     <p>Bonus %: {{ pot_info.get('bonus_percent', 0) }}%</p>
     <p>Total Pot: ${{ "%.2f"|format(pot_info.get('sales_dollars', 0) * pot_info.get('bonus_percent', 0) / 100) }}</p>
-    {% for key, value in pot_info.items() %}
-    {% if key.endswith('_percent') %}
-    <p>{{ key.replace('_percent', '')|capitalize }} ({{ value }}%): ${{ "%.2f"|format(pot_info.get(key.replace('_percent', '_pot'), 0)) }}, Point Value: ${{ "%.2f"|format(pot_info.get(key.replace('_percent', '_point_value'), 0)) }}</p>
-    {% endif %}
+    {% for role in pot_info if role.endswith('_percent') %}
+    <p>{{ role.replace('_percent', '')|capitalize }} ({{ pot_info[role] }}%): ${{ "%.2f"|format(pot_info.get(role.replace('_percent', '_pot'), 0)) }}, Point Value: ${{ "%.2f"|format(pot_info.get(role.replace('_percent', '_point_value'), 0)) }}</p>
     {% endfor %}
 </div>
 

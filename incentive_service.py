@@ -307,20 +307,15 @@ def reorder_rules(conn, order):
 
 def get_roles(conn):
     try:
-        roles = conn.execute("SELECT role_name, percentage FROM roles").fetchall()
-        if not any(role["role_name"] == "supervisor" for role in roles):
-            logging.warning("Supervisor role missing, adding default")
-            conn.execute("INSERT OR IGNORE INTO roles (role_name, percentage) VALUES ('supervisor', 10)")
-            conn.execute("UPDATE roles SET percentage = 45 WHERE role_name IN ('driver', 'laborer')")
         return conn.execute("SELECT role_name, percentage FROM roles").fetchall()
     except sqlite3.OperationalError:
         logging.warning("roles table missing, returning default roles with supervisor")
         conn.execute("CREATE TABLE roles (role_name TEXT PRIMARY KEY, percentage REAL)")
-        conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('driver', 45)")
+        conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('driver', 50)")
         conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('laborer', 45)")
-        conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('supervisor', 10)")
+        conn.execute("INSERT INTO roles (role_name, percentage) VALUES ('supervisor', 5)")
         return conn.execute("SELECT role_name, percentage FROM roles").fetchall()
-
+    
 def add_role(conn, role_name, percentage):
     roles = get_roles(conn)
     if len(roles) >= 10:
@@ -337,8 +332,8 @@ def add_role(conn, role_name, percentage):
 def edit_role(conn, old_role_name, new_role_name, percentage):
     roles = get_roles(conn)
     total_percentage = sum(role["percentage"] for role in roles if role["role_name"] != old_role_name) + percentage
-    if total_percentage > 100:
-        return False, "Total percentage exceeds 100%"
+    if total_percentage != 100:
+        return False, f"Total percentage must equal 100%, got {total_percentage}% after edit"
     conn.execute(
         "UPDATE roles SET role_name = ?, percentage = ? WHERE role_name = ?",
         (new_role_name, percentage, old_role_name)
@@ -349,7 +344,6 @@ def edit_role(conn, old_role_name, new_role_name, percentage):
     )
     affected = conn.total_changes
     return affected > 0, f"Role '{old_role_name}' updated to '{new_role_name}' with {percentage}%" if affected > 0 else "Role not found"
-
 def remove_role(conn, role_name):
     if role_name == "supervisor":
         return False, "Cannot remove the 'supervisor' role as it is required for voting weight and admin functionality"
@@ -364,19 +358,14 @@ def remove_role(conn, role_name):
     return False, "Role not found"
 
 def get_pot_info(conn):
-    pot_row = conn.execute("SELECT * FROM incentive_pot WHERE id = 1").fetchone()
-    pot = dict(pot_row) if pot_row else {}
-    roles = get_roles(conn)
-    defaults = {
-        "sales_dollars": 0.0,
-        "bonus_percent": 0.0,
-    }
+    pot_row = conn.execute("SELECT sales_dollars, bonus_percent FROM incentive_pot WHERE id = 1").fetchone()
+    pot = dict(pot_row) if pot_row else {"sales_dollars": 0.0, "bonus_percent": 0.0}
+    roles = get_roles(conn)  # Always fetch fresh roles data
     for role in roles:
         role_name = role["role_name"]
-        defaults[f"{role_name}_percent"] = role["percentage"]
-        defaults[f"{role_name}_pot"] = 0.0
-        defaults[f"{role_name}_point_value"] = 0.0
-    pot = {**defaults, **pot}
+        pot[f"{role_name}_percent"] = role["percentage"]
+        pot[f"{role_name}_pot"] = 0.0
+        pot[f"{role_name}_point_value"] = 0.0
 
     total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
     for role in roles:
