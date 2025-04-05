@@ -20,7 +20,7 @@ class DatabaseConnection:
         self.conn.close()
 
 def get_scoreboard(conn):
-    return conn.execute("SELECT employee_id, name, initials, score, role FROM employees ORDER BY score DESC").fetchall()
+    return conn.execute("SELECT employee_id, name, initials, score, role FROM employees WHERE active = 1 ORDER BY score DESC").fetchall()
 
 def start_voting_session(conn, admin_id):
     now = datetime.now()
@@ -171,10 +171,31 @@ def cast_votes(conn, voter_initials, votes):
 def add_employee(conn, name, initials, role):
     employee_id = f"E{str(len(conn.execute('SELECT * FROM employees').fetchall()) + 1).zfill(3)}"
     conn.execute(
-        "INSERT INTO employees (employee_id, name, initials, score, role) VALUES (?, ?, ?, 50, ?)",
+        "INSERT INTO employees (employee_id, name, initials, score, role, active) VALUES (?, ?, ?, 50, ?, 1)",
         (employee_id, name, initials, role)
     )
     return True, f"Employee {name} added with ID {employee_id}"
+
+def retire_employee(conn, employee_id):
+    conn.execute(
+        "UPDATE employees SET active = 0 WHERE employee_id = ?",
+        (employee_id,)
+    )
+    affected = conn.total_changes
+    return affected > 0, f"Employee {employee_id} retired" if affected > 0 else "Employee not found"
+
+def reactivate_employee(conn, employee_id):
+    conn.execute(
+        "UPDATE employees SET active = 1 WHERE employee_id = ?",
+        (employee_id,)
+    )
+    affected = conn.total_changes
+    return affected > 0, f"Employee {employee_id} reactivated" if affected > 0 else "Employee not found"
+
+def delete_employee(conn, employee_id):
+    conn.execute("DELETE FROM employees WHERE employee_id = ?", (employee_id,))
+    affected = conn.total_changes
+    return affected > 0, f"Employee {employee_id} permanently deleted" if affected > 0 else "Employee not found"
 
 def edit_employee(conn, employee_id, name, role):
     conn.execute(
@@ -371,20 +392,18 @@ def get_pot_info(conn):
 
 def update_pot_info(conn, sales_dollars, bonus_percent, percentages):
     roles = get_roles(conn)
-    # Filter out non-role percentages (like bonus_percent) and only include role-specific ones
-    role_percentages = {key.replace('_percent', ''): value for key, value in percentages.items() if key.endswith('_percent')}
-    total_role_percentage = sum(role_percentages.values())
+    total_role_percentage = sum(percentages.values())
     if total_role_percentage != 100:
         return False, f"Total role percentages must equal 100%, got {total_role_percentage}%"
-    if len(roles) != len(role_percentages):
+    if len(roles) != len(percentages):
         return False, "Percentage must be provided for each role"
     for role in roles:
         role_name = role["role_name"]
-        if role_name not in role_percentages:
+        if role_name not in percentages:
             return False, f"Percentage for role '{role_name}' missing"
         conn.execute(
             "UPDATE roles SET percentage = ? WHERE role_name = ?",
-            (role_percentages[role_name], role_name)
+            (percentages[role_name], role_name)
         )
     conn.execute(
         "INSERT OR REPLACE INTO incentive_pot (id, sales_dollars, bonus_percent) VALUES (1, ?, ?)",
