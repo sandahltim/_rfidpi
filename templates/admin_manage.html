@@ -15,12 +15,37 @@
     <div class="mb-3">
         <label for="role" class="form-label">Role:</label>
         <select class="form-control" id="role" name="role">
-            <option value="driver">Driver</option>
-            <option value="laborer">Laborer</option>
-            <option value="supervisor">Supervisor</option>
+            {% for role in roles %}
+            <option value="{{ role.role_name }}">{{ role.role_name }}</option>
+            {% endfor %}
         </select>
     </div>
     <button type="submit" class="btn btn-primary">Add Employee</button>
+</form>
+
+<h2>Edit Employee</h2>
+<form id="editEmployeeForm">
+    <div class="mb-3">
+        <label for="employee_id" class="form-label">Employee:</label>
+        <select class="form-control" id="employee_id" name="employee_id" required>
+            {% for emp in employees %}
+            <option value="{{ emp.employee_id }}">{{ emp.employee_id }} - {{ emp.name }} ({{ emp.initials }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="edit_name" class="form-label">New Name:</label>
+        <input type="text" class="form-control" id="edit_name" name="name" required>
+    </div>
+    <div class="mb-3">
+        <label for="edit_role" class="form-label">New Role:</label>
+        <select class="form-control" id="edit_role" name="role">
+            {% for role in roles %}
+            <option value="{{ role.role_name }}">{{ role.role_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Edit Employee</button>
 </form>
 
 <h2>Adjust Points</h2>
@@ -29,7 +54,7 @@
         <label for="employee_id" class="form-label">Employee:</label>
         <select class="form-control" id="employee_id" name="employee_id" required>
             {% for emp in employees %}
-            <option value="{{ emp.employee_id }}">{{ emp.name }} ({{ emp.initials }}) - {{ emp.score }}</option>
+            <option value="{{ emp.employee_id }}">{{ emp.employee_id }} - {{ emp.name }} ({{ emp.initials }}) - {{ emp.score }}</option>
             {% endfor %}
         </select>
     </div>
@@ -81,8 +106,62 @@
     {% endfor %}
 </ul>
 
+{% if is_master %}
+<h2>Manage Admins</h2>
+<form id="updateAdminForm">
+    <div class="mb-3">
+        <label for="old_username" class="form-label">Current Username:</label>
+        <select class="form-control" id="old_username" name="old_username" required>
+            {% for admin in admins %}
+            <option value="{{ admin.username }}">{{ admin.username }} ({{ admin.admin_id }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="new_username" class="form-label">New Username:</label>
+        <input type="text" class="form-control" id="new_username" name="new_username" required>
+    </div>
+    <div class="mb-3">
+        <label for="new_password" class="form-label">New Password:</label>
+        <input type="password" class="form-control" id="new_password" name="new_password" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Update Admin</button>
+</form>
+
+<h2>Manage Job Roles</h2>
+<form id="addRoleForm">
+    <div class="mb-3">
+        <label for="role_name" class="form-label">Role Name:</label>
+        <input type="text" class="form-control" id="role_name" name="role_name" required>
+    </div>
+    <div class="mb-3">
+        <label for="percentage" class="form-label">Percentage:</label>
+        <input type="number" step="0.1" class="form-control" id="percentage" name="percentage" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Role</button>
+</form>
+
+<h3>Edit or Remove Roles</h3>
+<ul>
+    {% for role in roles %}
+    <li>
+        <form class="editRoleForm" style="display: inline;">
+            <input type="hidden" name="old_role_name" value="{{ role.role_name }}">
+            <input type="text" name="new_role_name" value="{{ role.role_name }}" required>
+            <input type="number" step="0.1" name="percentage" value="{{ role.percentage }}" required>
+            <button type="submit" class="btn btn-sm btn-success">Edit</button>
+        </form>
+        <form class="removeRoleForm" style="display: inline;">
+            <input type="hidden" name="role_name" value="{{ role.role_name }}">
+            <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
 <h2>Incentive Pot</h2>
-<p>Total Bonus Payout: ${{ "%.2f"|format((employees | selectattr('role', 'equalto', 'driver') | map(attribute='score') | sum * pot_info.get('driver_point_value', 0)) + (employees | selectattr('role', 'equalto', 'laborer') | map(attribute='score') | sum * pot_info.get('laborer_point_value', 0)) + (employees | selectattr('role', 'equalto', 'supervisor') | map(attribute='score') | sum * pot_info.get('supervisor_point_value', 0))) }}</p>
+<p>Total Bonus Payout: ${{ "%.2f"|format(employees | map(attribute='score') | sum * (pot_info.get('driver_point_value', 0) + pot_info.get('laborer_point_value', 0) + pot_info.get('supervisor_point_value', 0))) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
         <label for="sales_dollars" class="form-label">Sales Dollars:</label>
@@ -92,18 +171,12 @@
         <label for="bonus_percent" class="form-label">Bonus %:</label>
         <input type="number" step="0.1" class="form-control" id="bonus_percent" name="bonus_percent" value="{{ pot_info.get('bonus_percent', 0) }}" required>
     </div>
+    {% for role in roles %}
     <div class="mb-3">
-        <label for="driver_percent" class="form-label">Driver % of Pot:</label>
-        <input type="number" step="0.1" class="form-control" id="driver_percent" name="driver_percent" value="{{ pot_info.get('driver_percent', 50) }}" required>
+        <label for="{{ role.role_name }}_percent" class="form-label">{{ role.role_name|capitalize }} % of Pot:</label>
+        <input type="number" step="0.1" class="form-control" id="{{ role.role_name }}_percent" name="{{ role.role_name }}_percent" value="{{ pot_info.get(role.role_name + '_percent', role.percentage) }}" required>
     </div>
-    <div class="mb-3">
-        <label for="laborer_percent" class="form-label">Laborer % of Pot:</label>
-        <input type="number" step="0.1" class="form-control" id="laborer_percent" name="laborer_percent" value="{{ pot_info.get('laborer_percent', 50) }}" required>
-    </div>
-    <div class="mb-3">
-        <label for="supervisor_percent" class="form-label">Supervisor % of Pot:</label>
-        <input type="number" step="0.1" class="form-control" id="supervisor_percent" name="supervisor_percent" value="{{ pot_info.get('supervisor_percent', 0) }}" required>
-    </div>
+    {% endfor %}
     <button type="submit" class="btn btn-primary">Update Pot</button>
 </form>
 
@@ -136,6 +209,20 @@ document.getElementById("addEmployeeForm").addEventListener("submit", (e) => {
     .then(response => response.json())
     .then(data => alert(data.message))
     .catch(error => console.error("Error adding employee:", error));
+});
+
+document.getElementById("editEmployeeForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("/admin/edit_employee", {
+        method: "POST",
+        body: new FormData(e.target),
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) window.location.reload();
+    })
+    .catch(error => console.error("Error editing employee:", error));
 });
 
 document.getElementById("adjustPointsForm").addEventListener("submit", (e) => {
@@ -207,6 +294,70 @@ document.querySelectorAll(".removeRuleForm").forEach(form => {
         }
     });
 });
+
+{% if is_master %}
+document.getElementById("updateAdminForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("/admin/update_admin", {
+        method: "POST",
+        body: new FormData(e.target),
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) window.location.reload();
+    })
+    .catch(error => console.error("Error updating admin:", error));
+});
+
+document.getElementById("addRoleForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetch("/admin/add_role", {
+        method: "POST",
+        body: new FormData(e.target),
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) window.location.reload();
+    })
+    .catch(error => console.error("Error adding role:", error));
+});
+
+document.querySelectorAll(".editRoleForm").forEach(form => {
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        fetch("/admin/edit_role", {
+            method: "POST",
+            body: new FormData(form),
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) window.location.reload();
+        })
+        .catch(error => console.error("Error editing role:", error));
+    });
+});
+
+document.querySelectorAll(".removeRoleForm").forEach(form => {
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (confirm("Are you sure you want to remove this role? Employees will be reassigned to 'driver'.")) {
+            fetch("/admin/remove_role", {
+                method: "POST",
+                body: new FormData(form),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) window.location.reload();
+            })
+            .catch(error => console.error("Error removing role:", error));
+        }
+    });
+});
+{% endif %}
 
 document.getElementById("updatePotForm").addEventListener("submit", (e) => {
     e.preventDefault();

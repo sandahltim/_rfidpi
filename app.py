@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
-from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, edit_rule, remove_rule, get_pot_info, update_pot_info, close_voting_session, pause_voting_session, get_voting_results, master_reset_all
+from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, edit_rule, remove_rule, get_pot_info, update_pot_info, close_voting_session, pause_voting_session, get_voting_results, master_reset_all, get_roles, add_role, edit_role, remove_role, edit_employee, reorder_rules
 import logging
 import time
 import traceback
@@ -97,6 +97,16 @@ def vote():
         voter_initials = request.form.get("initials")
         votes = {key.split("_")[1]: int(value) for key, value in request.form.items() if key.startswith("vote_")}
         with DatabaseConnection() as conn:
+            # Check for active session and existing votes before proceeding
+            session = conn.execute("SELECT start_time FROM voting_sessions WHERE end_time IS NULL").fetchone()
+            if not session:
+                return jsonify({"success": False, "message": "Voting is not active"}), 400
+            existing_vote = conn.execute(
+                "SELECT COUNT(*) as count FROM votes WHERE voter_initials = ? AND vote_date >= ?",
+                (voter_initials, session["start_time"])
+            ).fetchone()["count"]
+            if existing_vote > 0:
+                return jsonify({"success": False, "message": "You have already voted in this session"}), 400
             success, message = cast_votes(conn, voter_initials, votes)
         logging.debug(f"Vote cast: initials={voter_initials}, votes={votes}, success={success}, message={message}")
         return jsonify({"success": success, "message": message})
@@ -126,8 +136,9 @@ def admin():
             employees = conn.execute("SELECT employee_id, name, initials, score, role FROM employees").fetchall()
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
-        logging.debug(f"Loaded admin page: employees_count={len(employees)}")
-        return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, is_admin=True, is_master=session.get("admin_id") == "master", import_time=int(time.time()))
+            roles = get_roles(conn)
+        logging.debug(f"Loaded admin page: employees_count={len(employees)}, roles_count={len(roles)}")
+        return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, roles=roles, is_admin=True, is_master=session.get("admin_id") == "master", import_time=int(time.time()))
     except Exception as e:
         logging.error(f"Error in admin: {str(e)}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
@@ -178,6 +189,21 @@ def admin_adjust_points():
         logging.error(f"Error in admin_adjust_points: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "message": "Server error"}), 500
 
+@app.route("/admin/edit_employee", methods=["POST"])
+def admin_edit_employee():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    employee_id = request.form["employee_id"]
+    name = request.form["name"]
+    role = request.form["role"]
+    try:
+        with DatabaseConnection() as conn:
+            success, message = edit_employee(conn, employee_id, name, role)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_edit_employee: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
 @app.route("/admin/reset", methods=["POST"])
 def admin_reset():
     if "admin_id" not in session:
@@ -204,6 +230,27 @@ def admin_master_reset():
         return jsonify({"success": success, "message": message})
     except Exception as e:
         logging.error(f"Error in admin_master_reset: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/admin/update_admin", methods=["POST"])
+def admin_update_admin():
+    if session.get("admin_id") != "master":
+        return jsonify({"success": False, "message": "Master account required"}), 403
+    old_username = request.form["old_username"]
+    new_username = request.form["new_username"]
+    new_password = request.form["new_password"]
+    try:
+        with DatabaseConnection() as conn:
+            admin = conn.execute("SELECT * FROM admins WHERE username = ?", (old_username,)).fetchone()
+            if not admin:
+                return jsonify({"success": False, "message": "Admin not found"}), 404
+            conn.execute(
+                "UPDATE admins SET username = ?, password = ? WHERE username = ?",
+                (new_username, generate_password_hash(new_password), old_username)
+            )
+        return jsonify({"success": True, "message": f"Admin '{old_username}' updated to '{new_username}'"})
+    except Exception as e:
+        logging.error(f"Error in admin_update_admin: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "message": "Server error"}), 500
 
 @app.route("/admin/add_rule", methods=["POST"])
@@ -248,6 +295,61 @@ def admin_remove_rule():
         logging.error(f"Error in admin_remove_rule: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "message": "Server error"}), 500
 
+@app.route("/admin/reorder_rules", methods=["POST"])
+def admin_reorder_rules():
+    if "admin_id" not in session:
+        return jsonify({"success": False, "message": "Admin login required"}), 403
+    order = request.form.getlist("order[]")
+    try:
+        with DatabaseConnection() as conn:
+            success, message = reorder_rules(conn, order)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_reorder_rules: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/admin/add_role", methods=["POST"])
+def admin_add_role():
+    if session.get("admin_id") != "master":
+        return jsonify({"success": False, "message": "Master account required"}), 403
+    role_name = request.form["role_name"]
+    percentage = float(request.form["percentage"])
+    try:
+        with DatabaseConnection() as conn:
+            success, message = add_role(conn, role_name, percentage)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_add_role: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/admin/edit_role", methods=["POST"])
+def admin_edit_role():
+    if session.get("admin_id") != "master":
+        return jsonify({"success": False, "message": "Master account required"}), 403
+    old_role_name = request.form["old_role_name"]
+    new_role_name = request.form["new_role_name"]
+    percentage = float(request.form["percentage"])
+    try:
+        with DatabaseConnection() as conn:
+            success, message = edit_role(conn, old_role_name, new_role_name, percentage)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_edit_role: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
+@app.route("/admin/remove_role", methods=["POST"])
+def admin_remove_role():
+    if session.get("admin_id") != "master":
+        return jsonify({"success": False, "message": "Master account required"}), 403
+    role_name = request.form["role_name"]
+    try:
+        with DatabaseConnection() as conn:
+            success, message = remove_role(conn, role_name)
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        logging.error(f"Error in admin_remove_role: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "message": "Server error"}), 500
+
 @app.route("/admin/update_pot", methods=["POST"])
 def admin_update_pot():
     if "admin_id" not in session:
@@ -255,12 +357,10 @@ def admin_update_pot():
     try:
         sales_dollars = float(request.form["sales_dollars"])
         bonus_percent = float(request.form["bonus_percent"])
-        driver_percent = float(request.form["driver_percent"])
-        laborer_percent = float(request.form["laborer_percent"])
-        supervisor_percent = float(request.form.get("supervisor_percent", 0))
-        logging.debug(f"Received pot update: sales_dollars={sales_dollars}, bonus_percent={bonus_percent}, driver_percent={driver_percent}, laborer_percent={laborer_percent}, supervisor_percent={supervisor_percent}")
+        percentages = {key: float(value) for key, value in request.form.items() if key.endswith("_percent")}
+        logging.debug(f"Received pot update: sales_dollars={sales_dollars}, bonus_percent={bonus_percent}, percentages={percentages}")
         with DatabaseConnection() as conn:
-            success, message = update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent)
+            success, message = update_pot_info(conn, sales_dollars, bonus_percent, percentages)
         return jsonify({"success": success, "message": message})
     except Exception as e:
         logging.error(f"Error in admin_update_pot: {str(e)}\n{traceback.format_exc()}")

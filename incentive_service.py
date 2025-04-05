@@ -177,6 +177,14 @@ def add_employee(conn, name, initials, role):
     )
     return True, f"Employee {name} added with ID {employee_id}"
 
+def edit_employee(conn, employee_id, name, role):
+    conn.execute(
+        "UPDATE employees SET name = ?, role = ? WHERE employee_id = ?",
+        (name, role, employee_id)
+    )
+    affected = conn.total_changes
+    return affected > 0, f"Employee {employee_id} updated" if affected > 0 else "Employee not found"
+
 def adjust_points(conn, employee_id, points, admin_id, reason):
     now = datetime.now()
     employee = conn.execute("SELECT score FROM employees WHERE employee_id = ?", (employee_id,)).fetchone()
@@ -223,12 +231,13 @@ def get_history(conn, month_year=None):
     return conn.execute(query, params).fetchall()
 
 def get_rules(conn):
-    return conn.execute("SELECT description, points FROM incentive_rules ORDER BY points DESC").fetchall()
+    return conn.execute("SELECT description, points FROM incentive_rules ORDER BY display_order ASC").fetchall()
 
 def add_rule(conn, description, points):
+    max_order = conn.execute("SELECT MAX(display_order) as max_order FROM incentive_rules").fetchone()["max_order"] or 0
     conn.execute(
-        "INSERT INTO incentive_rules (description, points) VALUES (?, ?)",
-        (description, points)
+        "INSERT INTO incentive_rules (description, points, display_order) VALUES (?, ?, ?)",
+        (description, points, max_order + 1)
     )
     return True, f"Rule '{description}' added with {points} points"
 
@@ -248,40 +257,101 @@ def remove_rule(conn, description):
     affected = conn.total_changes
     return affected > 0, f"Rule '{description}' removed" if affected > 0 else "Rule not found"
 
+def reorder_rules(conn, order):
+    for index, description in enumerate(order):
+        conn.execute(
+            "UPDATE incentive_rules SET display_order = ? WHERE description = ?",
+            (index + 1, description)
+        )
+    return True, "Rules reordered successfully"
+
+def get_roles(conn):
+    return conn.execute("SELECT role_name, percentage FROM roles").fetchall()
+
+def add_role(conn, role_name, percentage):
+    roles = get_roles(conn)
+    if len(roles) >= 10:  # Arbitrary max roles, adjust as needed
+        return False, "Maximum number of roles reached"
+    total_percentage = sum(role["percentage"] for role in roles) + percentage
+    if total_percentage > 100:
+        return False, "Total percentage exceeds 100%"
+    conn.execute(
+        "INSERT INTO roles (role_name, percentage) VALUES (?, ?)",
+        (role_name, percentage)
+    )
+    return True, f"Role '{role_name}' added with {percentage}%"
+
+def edit_role(conn, old_role_name, new_role_name, percentage):
+    roles = get_roles(conn)
+    total_percentage = sum(role["percentage"] for role in roles if role["role_name"] != old_role_name) + percentage
+    if total_percentage > 100:
+        return False, "Total percentage exceeds 100%"
+    conn.execute(
+        "UPDATE roles SET role_name = ?, percentage = ? WHERE role_name = ?",
+        (new_role_name, percentage, old_role_name)
+    )
+    conn.execute(
+        "UPDATE employees SET role = ? WHERE role = ?",
+        (new_role_name, old_role_name)
+    )
+    affected = conn.total_changes
+    return affected > 0, f"Role '{old_role_name}' updated to '{new_role_name}' with {percentage}%" if affected > 0 else "Role not found"
+
+def remove_role(conn, role_name):
+    roles = get_roles(conn)
+    if len(roles) <= 2:
+        return False, "Cannot remove role; minimum of 2 roles required"
+    conn.execute("DELETE FROM roles WHERE role_name = ?", (role_name,))
+    affected = conn.total_changes
+    if affected > 0:
+        conn.execute("UPDATE employees SET role = 'driver' WHERE role = ?", (role_name,))
+        return True, f"Role '{role_name}' removed, affected employees reassigned to 'driver'"
+    return False, "Role not found"
+
 def get_pot_info(conn):
     pot_row = conn.execute("SELECT * FROM incentive_pot WHERE id = 1").fetchone()
     pot = dict(pot_row) if pot_row else {}
+    roles = get_roles(conn)
     defaults = {
-        "sales_dollars": 0.0, "bonus_percent": 0.0, "driver_percent": 50.0, "laborer_percent": 50.0, "supervisor_percent": 0.0,
-        "driver_pot": 0.0, "laborer_pot": 0.0, "supervisor_pot": 0.0, "driver_point_value": 0.0, "laborer_point_value": 0.0, "supervisor_point_value": 0.0
+        "sales_dollars": 0.0,
+        "bonus_percent": 0.0,
     }
+    for role in roles:
+        defaults[f"{role['role_name']}_percent"] = role["percentage"]
+        defaults[f"{role['role_name']}_pot"] = 0.0
+        defaults[f"{role['role_name']}_point_value"] = 0.0
     pot = {**defaults, **pot}
+
     total_pot = pot["sales_dollars"] * pot["bonus_percent"] / 100
-    driver_pot = total_pot * pot["driver_percent"] / 100
-    laborer_pot = total_pot * pot["laborer_percent"] / 100
-    supervisor_pot = total_pot * pot["supervisor_percent"] / 100
-    driver_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'driver'").fetchone()["count"] or 1
-    laborer_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'laborer'").fetchone()["count"] or 1
-    supervisor_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = 'supervisor'").fetchone()["count"] or 1
-    max_points_per_employee = 100
-    driver_max_points = driver_count * max_points_per_employee
-    laborer_max_points = laborer_count * max_points_per_employee
-    supervisor_max_points = supervisor_count * max_points_per_employee
-    driver_point_value = driver_pot / driver_max_points if driver_max_points > 0 else 0
-    laborer_point_value = laborer_pot / laborer_max_points if laborer_max_points > 0 else 0
-    supervisor_point_value = supervisor_pot / supervisor_max_points if supervisor_max_points > 0 else 0
-    pot.update({
-        "driver_pot": driver_pot, "laborer_pot": laborer_pot, "supervisor_pot": supervisor_pot,
-        "driver_point_value": driver_point_value, "laborer_point_value": laborer_point_value, "supervisor_point_value": supervisor_point_value
-    })
+    for role in roles:
+        role_pot = total_pot * pot[f"{role['role_name']}_percent"] / 100
+        role_count = conn.execute("SELECT COUNT(*) as count FROM employees WHERE role = ?", (role["role_name"],)).fetchone()["count"] or 1
+        max_points_per_employee = 100
+        role_max_points = role_count * max_points_per_employee
+        role_point_value = role_pot / role_max_points if role_max_points > 0 else 0
+        pot[f"{role['role_name']}_pot"] = role_pot
+        pot[f"{role['role_name']}_point_value"] = role_point_value
+
     return pot
 
-def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent):
-    if driver_percent + laborer_percent + supervisor_percent != 100:
-        return False, "Driver, Laborer, and Supervisor percentages must sum to 100%"
+def update_pot_info(conn, sales_dollars, bonus_percent, percentages):
+    roles = get_roles(conn)
+    total_percentage = sum(percentages.values())
+    if total_percentage != 100:
+        return False, "Total percentage must equal 100%"
+    if len(roles) != len(percentages):
+        return False, "Percentage must be provided for each role"
+    for role in roles:
+        role_name = role["role_name"]
+        if role_name not in percentages:
+            return False, f"Percentage for role '{role_name}' missing"
+        conn.execute(
+            "UPDATE roles SET percentage = ? WHERE role_name = ?",
+            (percentages[role_name], role_name)
+        )
     conn.execute(
-        "INSERT OR REPLACE INTO incentive_pot (id, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent) VALUES (1, ?, ?, ?, ?, ?)",
-        (sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent)
+        "INSERT OR REPLACE INTO incentive_pot (id, sales_dollars, bonus_percent) VALUES (1, ?, ?)",
+        (sales_dollars, bonus_percent)
     )
     return True, "Pot info updated"
 

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
+{% block title %}Incentive Program{% endblock %}
 {% block content %}
-<h1>Incentive Program</h1>
+<h1 style="display: inline;">BTE Uncommonly Real Incentive Trial</h1>
+<span style="font-size: 2em; margin-left: 10px;">${{ "%.2f"|format(pot_info.get('sales_dollars', 0) * pot_info.get('bonus_percent', 0) / 100) }}</span>
 
 <!-- Debug CSS Load -->
 <div id="css-debug" style="height: 20px; width: 20px; background-color: #ff0000;"></div>
@@ -50,6 +52,7 @@
     <table id="scoreboardTable">
         <thead>
             <tr>
+                <th class="sortable" data-col-name="employee_id">Employee ID</th>
                 <th class="sortable" data-col-name="name">Name</th>
                 {% if is_admin %}
                 <th class="sortable" data-col-name="initials">Initials</th>
@@ -62,13 +65,14 @@
         <tbody id="scoreboardBody">
             {% for emp in scoreboard %}
             <tr class="{% if emp.score < 30 %}score-low-{{ (emp.score // 5) * 5 }}{% elif emp.score <= 65 %}score-mid-{{ (emp.score // 5) * 5 }}{% else %}score-high-{{ (emp.score // 5) * 5 }}{% endif %}">
+                <td>{{ emp.employee_id }}</td>
                 <td>{{ emp.name }}</td>
                 {% if is_admin %}
                 <td>{{ emp.initials }}</td>
                 {% endif %}
                 <td>{{ emp.role }}</td>
                 <td>{{ emp.score }}</td>
-                <td>${{ "%.2f"|format(emp.score * (pot_info.get('driver_point_value', 0) if emp.role == 'driver' else pot_info.get('laborer_point_value', 0) if emp.role == 'laborer' else pot_info.get('supervisor_point_value', 0))) }}</td>
+                <td>${{ "%.2f"|format(emp.score * (pot_info.get(emp.role + '_point_value', 0))) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -76,9 +80,9 @@
 </div>
 
 <h2>Points Rules</h2>
-<ul>
+<ul id="rulesList">
     {% for rule in rules %}
-    <li>
+    <li data-description="{{ rule.description }}">
         <a href="#" class="rule-link" data-description="{{ rule.description }}" data-points="{{ rule.points }}">{{ rule.description }}</a>: 
         <span class="{% if rule.points > 0 %}text-success{% else %}text-danger{% endif %}">{{ rule.points }} points</span>
     </li>
@@ -90,9 +94,9 @@
     <p>Sales Dollars: ${{ "%.2f"|format(pot_info.get('sales_dollars', 0)) }}</p>
     <p>Bonus %: {{ pot_info.get('bonus_percent', 0) }}%</p>
     <p>Total Pot: ${{ "%.2f"|format(pot_info.get('sales_dollars', 0) * pot_info.get('bonus_percent', 0) / 100) }}</p>
-    <p>Drivers ({{ pot_info.get('driver_percent', 0) }}%): ${{ "%.2f"|format(pot_info.get('driver_pot', 0)) }}, Point Value: ${{ "%.2f"|format(pot_info.get('driver_point_value', 0)) }}</p>
-    <p>Laborers ({{ pot_info.get('laborer_percent', 0) }}%): ${{ "%.2f"|format(pot_info.get('laborer_pot', 0)) }}, Point Value: ${{ "%.2f"|format(pot_info.get('laborer_point_value', 0)) }}</p>
-    <p>Supervisors ({{ pot_info.get('supervisor_percent', 0) }}%): ${{ "%.2f"|format(pot_info.get('supervisor_pot', 0)) }}, Point Value: ${{ "%.2f"|format(pot_info.get('supervisor_point_value', 0)) }}</p>
+    {% for role in pot_info if role.endswith('_percent') %}
+    <p>{{ role.replace('_percent', '')|capitalize }} ({{ pot_info[role] }}%): ${{ "%.2f"|format(pot_info.get(role.replace('_percent', '_pot'), 0)) }}, Point Value: ${{ "%.2f"|format(pot_info.get(role.replace('_percent', '_point_value'), 0)) }}</p>
+    {% endfor %}
 </div>
 
 {% if is_admin %}
@@ -119,6 +123,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>Employee ID</th>
                     <th>Name</th>
                     {% if is_admin %}
                     <th>Initials</th>
@@ -132,6 +137,7 @@
             <tbody id="voteTableBody">
                 {% for emp in scoreboard %}
                 <tr>
+                    <td>{{ emp.employee_id }}</td>
                     <td>{{ emp.name }}</td>
                     {% if is_admin %}
                     <td>{{ emp.initials }}</td>
@@ -401,8 +407,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     tr.className = scoreClass;
                     console.log(`Employee: ${emp.name}, Score: ${emp.score}, Class: ${scoreClass}`);
-                    const potShare = emp.score * (emp.role === "driver" ? data.pot_info.driver_point_value : emp.role === "laborer" ? data.pot_info.laborer_point_value : data.pot_info.supervisor_point_value || 0);
+                    const potShare = emp.score * (data.pot_info[emp.role + '_point_value'] || 0);
                     tr.innerHTML = `
+                        <td>${emp.employee_id}</td>
                         <td>${emp.name}</td>
                         {% if is_admin %}<td>${emp.initials}</td>{% endif %}
                         <td>${emp.role}</td>
@@ -419,15 +426,42 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p>Sales Dollars: $${data.pot_info.sales_dollars.toFixed(2)}</p>
                     <p>Bonus %: ${data.pot_info.bonus_percent}%</p>
                     <p>Total Pot: $${(data.pot_info.sales_dollars * data.pot_info.bonus_percent / 100).toFixed(2)}</p>
-                    <p>Drivers (${data.pot_info.driver_percent}%): $${data.pot_info.driver_pot.toFixed(2)}, Point Value: $${data.pot_info.driver_point_value.toFixed(2)}</p>
-                    <p>Laborers (${data.pot_info.laborer_percent}%): $${data.pot_info.laborer_pot.toFixed(2)}, Point Value: $${data.pot_info.laborer_point_value.toFixed(2)}</p>
-                    <p>Supervisors (${data.pot_info.supervisor_percent}%): $${data.pot_info.supervisor_pot.toFixed(2)}, Point Value: $${(data.pot_info.supervisor_point_value || 0).toFixed(2)}</p>
                 `;
+                Object.keys(data.pot_info).forEach(key => {
+                    if (key.endsWith('_percent')) {
+                        const role = key.replace('_percent', '');
+                        potInfo.innerHTML += `
+                            <p>${role.charAt(0).toUpperCase() + role.slice(1)} (${data.pot_info[key]}%): $${data.pot_info[role + '_pot'].toFixed(2)}, Point Value: $${data.pot_info[role + '_point_value'].toFixed(2)}</p>
+                        `;
+                    }
+                });
             })
             .catch(error => console.error("Error fetching data:", error));
     }
     setInterval(refreshScoreboard, 60000);
     refreshScoreboard();
+
+    {% if is_admin %}
+    // Make rules list sortable
+    const rulesList = document.getElementById("rulesList");
+    new Sortable(rulesList, {
+        animation: 150,
+        onEnd: function (evt) {
+            const order = Array.from(rulesList.children).map(li => li.getAttribute("data-description"));
+            fetch("/admin/reorder_rules", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "order[]=" + order.map(encodeURIComponent).join("&order[]=")
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) alert(data.message);
+            })
+            .catch(error => console.error("Error reordering rules:", error));
+        }
+    });
+    {% endif %}
 });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 {% endblock %}
