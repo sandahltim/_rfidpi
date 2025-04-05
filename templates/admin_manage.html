@@ -164,7 +164,7 @@
 {% endif %}
 
 <h2>Incentive Pot</h2>
-<p>Total Bonus Payout: ${{ "%.2f"|format(employees | selectattr('active') | sum(attribute='score', default=0, accessor=lambda e: e.score * pot_info.get(e.role + '_point_value', 0))) }}</p>
+<p>Total Bonus Payout: ${{ "%.2f"|format(employees | selectattr('active') | sum(attribute='score', default=0, accessor=lambda e, : e.score * pot_info.get(e.role + '_point_value', 0))) }}</p>
 <form id="updatePotForm">
     <div class="mb-3">
         <label for="sales_dollars" class="form-label">Sales Dollars:</label>
