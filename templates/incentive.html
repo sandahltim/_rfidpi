@@ -91,10 +91,10 @@
     <p>Supervisors ({{ pot_info.get('supervisor_percent', 0) }}%): ${{ "%.2f"|format(pot_info.get('supervisor_pot', 0)) }}, Point Value: ${{ "%.2f"|format(pot_info.get('supervisor_point_value', 0)) }}</p>
 </div>
 
-{% if session.admin_id %}
+{% if is_admin %}
     <button class="btn btn-primary" id="startVotingBtn">Start Voting</button>
     {% if voting_active %}
-    <button class="btn btn-warning" id="closeVotingBtn">Close Voting</button>
+    <button class="btn btn-warning" id="closeVotingBtn">End Weekly Voting</button>
     {% endif %}
     <a href="/admin" class="btn btn-secondary">Manage Employees</a>
 {% endif %}
@@ -143,33 +143,31 @@
     </form>
 {% endif %}
 
-{% if is_admin %}
-    <h2>Voting Results (Last Session)</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Voter Initials</th>
-                <th>Recipient Name</th>
-                <th>Vote</th>
-                <th>Date</th>
-                <th>Points</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for result in voting_results %}
-            <tr class="{% if result.points is not none and result.points > 0 %}vote-positive{% elif result.points is not none and result.points < 0 %}vote-negative{% endif %}">
-                <td>{{ result.voter_initials }}</td>
-                <td>{{ result.recipient_name }}</td>
-                <td>{{ result.vote_value }}</td>
-                <td>{{ result.vote_date }}</td>
-                <td>{{ result.points if result.points is not none else 'Pending' }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="5">No voting results yet</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% endif %}
+<h2>Voting Results {% if is_admin %}(Last Session){% else %}(This Month){% endif %}</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Voter Initials</th>
+            <th>Recipient Name</th>
+            <th>Vote</th>
+            <th>Date</th>
+            <th>Points</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for result in voting_results %}
+        <tr class="{% if result.points is not none and result.points > 0 %}vote-positive{% elif result.points is not none and result.points < 0 %}vote-negative{% endif %}">
+            <td>{{ result.voter_initials }}</td>
+            <td>{{ result.recipient_name }}</td>
+            <td>{{ result.vote_value }}</td>
+            <td>{{ result.vote_date }}</td>
+            <td>{{ result.points if result.points is not none else 'Pending' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No voting results yet</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 
 <script>
 function sortTable(tableEl, colName) {
@@ -223,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (document.getElementById("closeVotingBtn")) {
         document.getElementById("closeVotingBtn").addEventListener("click", (e) => {
             e.preventDefault();
-            if (confirm("Close voting session and tally votes?")) {
+            if (confirm("End weekly voting session and tally votes?")) {
                 fetch("/close_voting", {
                     method: "POST",
                 })
@@ -315,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                     tbody.appendChild(tr);
                 });
-                if (data.voting_active && document.getElementById("voteForm").style.display !== "block") {
+                if (data.voting_active && document.getElementById("voteFldorm").style.display !== "block") {
                     document.getElementById("voteInitialsForm").style.display = "block";
                 }
                 const potInfo = document.getElementById("potInfo");

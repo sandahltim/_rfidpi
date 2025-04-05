@@ -97,6 +97,17 @@
 <h2>Reset Scores</h2>
 <button class="btn btn-danger" id="resetScoresBtn">Reset All Scores to 50</button>
 
+{% if is_master %}
+<h2>Master Reset</h2>
+<form id="masterResetForm">
+    <div class="mb-3">
+        <label for="masterPassword" class="form-label">Master Password:</label>
+        <input type="password" class="form-control" id="masterPassword" name="password" required>
+    </div>
+    <button type="submit" class="btn btn-danger">Reset All Voting and History</button>
+</form>
+{% endif %}
+
 <h2>Logout</h2>
 <form id="logoutForm" method="POST" action="/admin/logout">
     <button type="submit" class="btn btn-warning">Logout</button>
@@ -165,7 +176,7 @@ document.getElementById("updatePotForm").addEventListener("submit", (e) => {
 });
 
 document.getElementById("resetScoresBtn").addEventListener("click", () => {
-    if (confirm("Reset all scores to 50?")) {
+    if (confirm("Reset all scores to 50 and log to history?")) {
         fetch("/admin/reset", {
             method: "POST",
         })
@@ -177,6 +188,24 @@ document.getElementById("resetScoresBtn").addEventListener("click", () => {
         .catch(error => console.error("Error resetting scores:", error));
     }
 });
+
+if (document.getElementById("masterResetForm")) {
+    document.getElementById("masterResetForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (confirm("Reset all voting data and history? This cannot be undone.")) {
+            fetch("/admin/master_reset", {
+                method: "POST",
+                body: new FormData(e.target),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) window.location.reload();
+            })
+            .catch(error => console.error("Error in master reset:", error));
+        }
+    });
+}
 
 document.getElementById("logoutForm").addEventListener("submit", (e) => {
     e.preventDefault();

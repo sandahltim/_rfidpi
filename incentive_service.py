@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import datetime, timedelta
-from config import INCENTIVE_DB_FILE, VOTING_DAYS_2025
+from config import INCENTIVE_DB_FILE
 import logging
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s')
@@ -22,14 +22,8 @@ class DatabaseConnection:
 def get_scoreboard(conn):
     return conn.execute("SELECT employee_id, name, initials, score, role FROM employees ORDER BY score DESC").fetchall()
 
-def start_voting_session(conn, admin_id, code, is_master=False):
-    from config import VOTE_CODE
+def start_voting_session(conn, admin_id):
     now = datetime.now()
-    if not is_master:
-        if now.weekday() not in [2, 3, 4]:
-            return False, "Voting only allowed Wednesday through Friday"
-    if code != VOTE_CODE:
-        return False, "Invalid voting code"
     active_session = conn.execute(
         "SELECT * FROM voting_sessions WHERE end_time > ?",
         (now.strftime("%Y-%m-%d %H:%M:%S"),)
@@ -37,20 +31,17 @@ def start_voting_session(conn, admin_id, code, is_master=False):
     if active_session:
         return False, "Voting session already active"
     start_time = now.strftime("%Y-%m-%d %H:%M:%S")
-    days_to_friday = (4 - now.weekday()) % 7
-    end_time = (now + timedelta(days=days_to_friday)).replace(hour=23, minute=59, second=59).strftime("%Y-%m-%d %H:%M:%S")
     conn.execute(
-        "INSERT INTO voting_sessions (vote_code, admin_id, start_time, end_time) VALUES (?, ?, ?, ?)",
-        (code, admin_id, start_time, end_time)
+        "INSERT INTO voting_sessions (vote_code, admin_id, start_time, end_time) VALUES (?, ?, ?, NULL)",
+        ("active", admin_id, start_time)
     )
-    logging.debug(f"Voting session started: admin_id={admin_id}, start={start_time}, end={end_time}")
-    return True, "Voting session started until Friday 11:59 PM"
+    logging.debug(f"Voting session started: admin_id={admin_id}, start={start_time}")
+    return True, "Voting session started"
 
 def close_voting_session(conn, admin_id):
     now = datetime.now()
     active_session = conn.execute(
-        "SELECT * FROM voting_sessions WHERE end_time > ?",
-        (now.strftime("%Y-%m-%d %H:%M:%S"),)
+        "SELECT * FROM voting_sessions WHERE end_time IS NULL"
     ).fetchone()
     if not active_session:
         return False, "No active voting session to close"
@@ -58,9 +49,9 @@ def close_voting_session(conn, admin_id):
     end_time = now.strftime("%Y-%m-%d %H:%M:%S")
     votes = conn.execute(
         "SELECT voter_initials, recipient_id, vote_value FROM votes WHERE vote_date >= ? AND vote_date <= ?",
-        (start_time, active_session["end_time"])
+        (start_time, now.strftime("%Y-%m-%d %H:%M:%S"))
     ).fetchall()
-    logging.debug(f"Closing session: {len(votes)} votes found between {start_time} and {active_session['end_time']}")
+    logging.debug(f"Closing session: {len(votes)} votes found between {start_time} and {end_time}")
     employees = {e["employee_id"]: dict(e) for e in conn.execute("SELECT employee_id, name, role, score FROM employees").fetchall()}
     vote_counts = {}
     total_votes = 0
@@ -84,15 +75,15 @@ def close_voting_session(conn, admin_id):
         plus_percent = (counts["plus"] / total_votes) * 100 if total_votes > 0 else 0
         minus_percent = (counts["minus"] / total_votes) * 100 if total_votes > 0 else 0
         points = 0
-        if plus_percent >= 30:
+        if plus_percent >= 20:
             points += 5
-        elif plus_percent >= 15:
+        elif plus_percent >= 10:
             points += 3
         elif plus_percent >= 5:
             points += 1
-        if minus_percent >= 30:
+        if minus_percent >= 20:
             points -= 5
-        elif minus_percent >= 15:
+        elif minus_percent >= 10:
             points -= 3
         elif minus_percent >= 5:
             points -= 1
@@ -117,10 +108,16 @@ def close_voting_session(conn, admin_id):
 def is_voting_active(conn):
     now = datetime.now()
     session = conn.execute(
-        "SELECT * FROM voting_sessions WHERE start_time <= ? AND end_time > ?",
-        (now.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m-%d %H:%M:%S"))
+        "SELECT * FROM voting_sessions WHERE end_time IS NULL"
     ).fetchone()
-    return bool(session and now.weekday() in [2, 3, 4])
+    if not session:
+        return False
+    eligible_voters = conn.execute("SELECT COUNT(*) as count FROM employees").fetchone()["count"]
+    votes_cast = conn.execute(
+        "SELECT COUNT(DISTINCT voter_initials) as count FROM votes WHERE vote_date >= ?",
+        (session["start_time"],)
+    ).fetchone()["count"]
+    return votes_cast < eligible_voters
 
 def cast_votes(conn, voter_initials, votes):
     now = datetime.now()
@@ -184,6 +181,14 @@ def reset_scores(conn, admin_id, reason=None):
     conn.execute("UPDATE employees SET score = 50")
     return True, "Scores reset to 50"
 
+def master_reset_all(conn):
+    conn.execute("DELETE FROM votes")
+    conn.execute("DELETE FROM score_history")
+    conn.execute("DELETE FROM voting_sessions")
+    conn.execute("UPDATE employees SET score = 50")
+    logging.debug("Master reset: cleared votes, history, sessions, reset scores to 50")
+    return True, "All voting data and history reset"
+
 def get_history(conn, month_year=None):
     query = "SELECT sh.*, e.name FROM score_history sh JOIN employees e ON sh.employee_id = e.employee_id"
     params = []
@@ -240,23 +245,32 @@ def update_pot_info(conn, sales_dollars, bonus_percent, driver_percent, laborer_
     )
     return True, "Pot info updated"
 
-def get_voting_results(conn):
+def get_voting_results(conn, is_admin=False):
     now = datetime.now()
-    last_session = conn.execute(
-        "SELECT start_time, end_time FROM voting_sessions ORDER BY end_time DESC LIMIT 1"
-    ).fetchone()
-    if not last_session:
-        logging.debug("No voting sessions found")
-        return []
-    start_date = last_session["start_time"]
-    end_date = last_session["end_time"]
-    results = conn.execute("""
+    if is_admin:
+        last_session = conn.execute(
+            "SELECT start_time, end_time FROM voting_sessions ORDER BY end_time DESC LIMIT 1"
+        ).fetchone()
+        if not last_session:
+            logging.debug("No voting sessions found")
+            return []
+        start_date = last_session["start_time"]
+        end_date = last_session["end_time"] or now.strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        start_date = (now - timedelta(weeks=4)).strftime("%Y-%m-%d 00:00:00")
+        end_date = now.strftime("%Y-%m-%d 23:59:59")
+        current_month = now.strftime("%Y-%m")
+        query_filter = "WHERE strftime('%Y-%m', v.vote_date) = ?"
+        params = [current_month]
+    query = f"""
         SELECT v.voter_initials, e.name AS recipient_name, v.vote_value, v.vote_date, sh.points
         FROM votes v
         JOIN employees e ON v.recipient_id = e.employee_id
         LEFT JOIN score_history sh ON v.recipient_id = sh.employee_id AND sh.reason LIKE 'Weekly vote result%' AND sh.date >= ? AND sh.date <= ?
-        WHERE v.vote_date >= ? AND v.vote_date <= ?
+        WHERE v.vote_date >= ? AND v.vote_date <= ? {'' if is_admin else query_filter}
         ORDER BY v.vote_date DESC
-    """, (start_date, end_date, start_date, end_date)).fetchall()
+    """
+    params = [start_date, end_date, start_date, end_date] + (params if not is_admin else [])
+    results = conn.execute(query, params).fetchall()
     logging.debug(f"Voting results fetched: {len(results)} entries between {start_date} and {end_date}")
     return [dict(row) for row in results]

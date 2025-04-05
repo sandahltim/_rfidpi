@@ -1,18 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Start Voting Session</h1>
-<form id="startVotingForm" method="POST">
+
+<form id="startVotingForm">
     <div class="mb-3">
-        <label for="vote_code" class="form-label">Enter Voting Code:</label>
-        <input type="text" class="form-control" id="vote_code" name="vote_code" required>
+        <label for="password" class="form-label">Admin Password:</label>
+        <input type="password" class="form-control" id="password" name="password" required>
     </div>
-    {% if is_master %}
-    <p class="text-info">As master admin, you can start voting any day.</p>
-    {% else %}
-    <p class="text-muted">Voting is only allowed on designated Wednesdays.</p>
-    {% endif %}
     <button type="submit" class="btn btn-primary">Start Voting</button>
 </form>
+
+<a href="/" class="btn btn-secondary">Back</a>
 
 <script>
 document.getElementById("startVotingForm").addEventListener("submit", (e) => {

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from werkzeug.security import check_password_hash
-from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info, close_voting_session, get_voting_results
+from werkzeug.security import check_password_hash, generate_password_hash
+from incentive_service import DatabaseConnection, get_scoreboard, start_voting_session, is_voting_active, cast_votes, add_employee, reset_scores, get_history, adjust_points, get_rules, add_rule, get_pot_info, update_pot_info, close_voting_session, get_voting_results, master_reset_all
 import logging
 import time
 import traceback
@@ -17,7 +17,7 @@ def show_incentive():
             voting_active = is_voting_active(conn)
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
-            voting_results = get_voting_results(conn) if session.get("admin_id") else []
+            voting_results = get_voting_results(conn, is_admin=session.get("admin_id"))
         logging.debug(f"Loaded incentive page: voting_active={voting_active}, results_count={len(voting_results)}")
         return render_template("incentive.html", scoreboard=scoreboard, voting_active=voting_active, rules=rules, pot_info=pot_info, is_admin=bool(session.get("admin_id")), import_time=int(time.time()), voting_results=voting_results)
     except Exception as e:
@@ -34,19 +34,21 @@ def incentive_data():
         logging.debug(f"Serving /data: scoreboard_size={len(scoreboard)}, voting_active={voting_active}")
         return jsonify({"scoreboard": scoreboard, "voting_active": voting_active, "pot_info": pot_info})
     except Exception as e:
-        logging.error(f"Error in incentive_data: {str(e)}\n{岛traceback.format_exc()}")
+        logging.error(f"Error in incentive_data: {str(e)}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
 
 @app.route("/start_voting", methods=["GET", "POST"])
 def start_voting():
     if "admin_id" not in session:
         return redirect(url_for("admin"))
-    is_master = session.get("admin_id") == "master"
     if request.method == "GET":
-        return render_template("start_voting.html", is_master=is_master, import_time=int(time.time()))
-    code = request.form.get("vote_code")
+        return render_template("start_voting.html", is_master=session.get("admin_id") == "master", import_time=int(time.time()))
+    password = request.form.get("password")
     with DatabaseConnection() as conn:
-        success, message = start_voting_session(conn, session["admin_id"], code, is_master=is_master)
+        admin = conn.execute("SELECT * FROM admins WHERE admin_id = ?", (session["admin_id"],)).fetchone()
+        if not admin or not check_password_hash(admin["password"], password):
+            return jsonify({"success": False, "message": "Invalid password"}), 403
+        success, message = start_voting_session(conn, session["admin_id"])
     logging.debug(f"Start voting: success={success}, message={message}")
     return jsonify({"success": success, "message": message})
 
@@ -90,7 +92,7 @@ def admin():
             employees = conn.execute("SELECT employee_id, name, initials, score, role FROM employees").fetchall()
             rules = get_rules(conn)
             pot_info = get_pot_info(conn)
-        return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, is_admin=True, import_time=int(time.time()))
+        return render_template("admin_manage.html", employees=employees, rules=rules, pot_info=pot_info, is_admin=True, is_master=session.get("admin_id") == "master", import_time=int(time.time()))
     except Exception as e:
         logging.error(f"Error in admin: {str(e)}\n{traceback.format_exc()}")
         return "Internal Server Error", 500
@@ -127,7 +129,19 @@ def admin_reset():
     if "admin_id" not in session:
         return jsonify({"success": False, "message": "Admin login required"}), 403
     with DatabaseConnection() as conn:
-        success, message = reset_scores(conn, session["admin_id"])
+        success, message = reset_scores(conn, session["admin_id"], reason="Admin reset to 50")
+    return jsonify({"success": success, "message": message})
+
+@app.route("/admin/master_reset", methods=["POST"])
+def admin_master_reset():
+    if session.get("admin_id") != "master":
+        return jsonify({"success": False, "message": "Master account required"}), 403
+    password = request.form.get("password")
+    with DatabaseConnection() as conn:
+        admin = conn.execute("SELECT * FROM admins WHERE admin_id = 'master'").fetchone()
+        if not admin or not check_password_hash(admin["password"], password):
+            return jsonify({"success": False, "message": "Invalid master password"}), 403
+        success, message = master_reset_all(conn)
     return jsonify({"success": success, "message": message})
 
 @app.route("/admin/add_rule", methods=["POST"])
