@@ -82,17 +82,17 @@ def close_voting_session(conn, admin_id):
         minus_percent = (counts["minus"] / total_votes) * 100 if total_votes > 0 else 0
         points = 0
         if plus_percent >= 20:
-            points += 5
+            points += 10
         elif plus_percent >= 10:
-            points += 3
+            points += 5
         elif plus_percent >= 5:
-            points += 1
+            points += 2
         if minus_percent >= 20:
-            points -= 5
+            points -= 10
         elif minus_percent >= 10:
-            points -= 3
+            points -= 5
         elif minus_percent >= 5:
-            points -= 1
+            points -= 2
         logging.debug(f"Employee {emp_id} ({employees[emp_id]['name']}): plus={counts['plus']} ({plus_percent}%), minus={counts['minus']} ({minus_percent}%), points={points}")
         if points != 0:
             old_score = employees[emp_id]["score"]
