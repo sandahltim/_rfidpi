@@ -46,6 +46,23 @@
     .vote-positive { color: green !important; }
     .vote-negative { color: red !important; }
     .rule-link { cursor: pointer; text-decoration: underline; }
+    .rules-container {
+        display: flex;
+        justify-content: space-between;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .rules-column {
+        width: 48%;
+    }
+    .rules-column ul {
+        list-style-type: none;
+        padding: 0;
+    }
+    .rules-column h3 {
+        margin-top: 0;
+        font-size: 1.2em;
+    }
 </style>
 
 <div class="table-container">
@@ -80,14 +97,30 @@
 </div>
 
 <h2>Points Rules</h2>
-<ul id="rulesList">
-    {% for rule in rules %}
-    <li data-description="{{ rule.description }}">
-        <a href="#" class="rule-link" data-description="{{ rule.description }}" data-points="{{ rule.points }}">{{ rule.description }}</a>: 
-        <span class="{% if rule.points > 0 %}text-success{% else %}text-danger{% endif %}">{{ rule.points }} points</span>
-    </li>
-    {% endfor %}
-</ul>
+<div class="rules-container">
+    <div class="rules-column">
+        <h3>Positive Points</h3>
+        <ul id="positiveRulesList">
+            {% for rule in rules|selectattr('points', 'ge', 0)|sort(attribute='description') %}
+            <li data-description="{{ rule.description }}">
+                <a href="#" class="rule-link" data-description="{{ rule.description }}" data-points="{{ rule.points }}">{{ rule.description }}</a>: 
+                <span class="text-success">{{ rule.points }} points</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="rules-column">
+        <h3>Negative Points</h3>
+        <ul id="negativeRulesList">
+            {% for rule in rules|selectattr('points', 'lt', 0)|sort(attribute='description') %}
+            <li data-description="{{ rule.description }}">
+                <a href="#" class="rule-link" data-description="{{ rule.description }}" data-points="{{ rule.points }}">{{ rule.description }}</a>: 
+                <span class="text-danger">{{ rule.points }} points</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
 
 <h2>Incentive Pot</h2>
 <div id="potInfo">
@@ -148,7 +181,7 @@
                     <td><input type="radio" name="vote_{{ emp.employee_id }}" value="-1"></td>
                 </tr>
                 {% endfor %}
-        </tbody>
+            </tbody>
         </table>
         <button type="submit" class="btn btn-success">Submit Votes</button>
     </form>
@@ -389,7 +422,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function refreshScoreboard() {
-        fetch("/data", { cache: "no-store" })  // Prevent caching
+        fetch("/data", { cache: "no-store" })
             .then(response => response.json())
             .then(data => {
                 const tbody = document.getElementById("scoreboardBody");
@@ -449,23 +482,38 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshScoreboard();
 
     {% if is_admin %}
-    const rulesList = document.getElementById("rulesList");
-    new Sortable(rulesList, {
+    const positiveRulesList = document.getElementById("positiveRulesList");
+    const negativeRulesList = document.getElementById("negativeRulesList");
+    new Sortable(positiveRulesList, {
         animation: 150,
+        group: 'rules',
         onEnd: function (evt) {
-            const order = Array.from(rulesList.children).map(li => li.getAttribute("data-description"));
-            fetch("/admin/reorder_rules", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: "order[]=" + order.map(encodeURIComponent).join("&order[]=")
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) alert(data.message);
-            })
-            .catch(error => console.error("Error reordering rules:", error));
+            updateRuleOrder();
         }
     });
+    new Sortable(negativeRulesList, {
+        animation: 150,
+        group: 'rules',
+        onEnd: function (evt) {
+            updateRuleOrder();
+        }
+    });
+
+    function updateRuleOrder() {
+        const positiveOrder = Array.from(positiveRulesList.children).map(li => li.getAttribute("data-description"));
+        const negativeOrder = Array.from(negativeRulesList.children).map(li => li.getAttribute("data-description"));
+        const order = positiveOrder.concat(negativeOrder);
+        fetch("/admin/reorder_rules", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "order[]=" + order.map(encodeURIComponent).join("&order[]=")
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) alert(data.message);
+        })
+        .catch(error => console.error("Error reordering rules:", error));
+    }
     {% endif %}
 });
 </script>
