@@ -86,6 +86,22 @@ def initialize_incentive_db():
     """)
     cursor.execute("INSERT OR IGNORE INTO incentive_pot (id, sales_dollars, bonus_percent, driver_percent, laborer_percent, supervisor_percent) VALUES (1, 0.0, 0.0, 50.0, 50.0, 0.0)")
 
+    # Add roles table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS roles (
+            role_name TEXT PRIMARY KEY,
+            percentage REAL
+        )
+    """)
+    # Insert default roles
+    default_roles = [
+        ("Driver", 50.0),
+        ("Laborer", 40.0),
+        ("Supervisor", 9.0),
+        ("Warehouse Labor", 1.0)
+    ]
+    cursor.executemany("INSERT OR IGNORE INTO roles (role_name, percentage) VALUES (?, ?)", default_roles)
+
     conn.commit()
     conn.close()
     print("Incentive database initialized at", INCENTIVE_DB_FILE)
